@@ -1,0 +1,104 @@
+<!DOCTYPE html>
+<html lang="pt-br">
+<head>
+    <meta charset="UTF-8">
+    <title>Login | Preload</title>
+    <style>
+        body {
+            margin: 0;
+            font-family: Arial, Helvetica, sans-serif;
+            background: linear-gradient(135deg, #1e3c72, #2a5298);
+            height: 100vh;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+        }
+
+        .login-card {
+            background: #fff;
+            padding: 30px 28px;
+            width: 380px; /* cartão maior */
+            border-radius: 8px;
+            box-shadow: 0 10px 30px rgba(0,0,0,0.25);
+            text-align: center;
+        }
+
+        /* 🔹 LOGO MAIOR */
+        .login-card img {
+            max-width: 260px;   /* 👈 AQUI aumenta o tamanho */
+            width: 100%;
+            height: auto;
+            margin-bottom: 16px;
+        }
+
+        .login-card h2 {
+            margin: 8px 0 18px 0;
+            color: #2a5298;
+            font-size: 32px;
+        }
+
+        .login-card input {
+            width: 100%;
+            height: 36px;
+            padding: 6px 8px;
+            margin-bottom: 12px;
+            border-radius: 4px;
+            border: 1px solid #ccc;
+            font-size: 13px;
+        }
+
+        .login-card button {
+            width: 100%;
+            height: 38px;
+            background: #2a5298;
+            color: white;
+            border: none;
+            border-radius: 4px;
+            font-size: 15px;
+            cursor: pointer;
+        }
+
+        .login-card button:hover {
+            background: #1e3c72;
+        }
+
+        .erro {
+            color: red;
+            font-size: 12px;
+            margin-top: 8px;
+        }
+
+        .footer {
+            margin-top: 16px;
+            font-size: 11px;
+            color: #777;
+        }
+    </style>
+</head>
+<body>
+
+<div class="login-card">
+
+    <!-- LOGO DPSP -->
+    <img src="/static/logo.png" alt="Grupo DPSP">
+
+    <h2>Preload</h2>
+
+    <form method="post">
+        <input type="text" name="username" placeholder="Usuário" required>
+        <input type="password" name="password" placeholder="Senha" required>
+        <button type="submit">Entrar</button>
+    </form>
+
+    {% if erro %}
+        <div class="erro">{{ erro }}</div>
+    {% endif %}
+
+    <div class="footer">
+        Developed by Alexandre Martins
+    </div>
+
+</div>
+
+</body>
+</html>
