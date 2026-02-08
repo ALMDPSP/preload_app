@@ -1,7 +1,7 @@
 from flask import Flask, render_template, request, redirect, url_for, flash
 from flask_login import LoginManager, UserMixin, login_user, login_required, logout_user
 from werkzeug.security import generate_password_hash, check_password_hash
-import sqlite3
+import psycopg2, psycopg2.extras
 import os
 
 app = Flask(__name__)
@@ -11,48 +11,65 @@ login_manager = LoginManager()
 login_manager.login_view = "login"
 login_manager.init_app(app)
 
-DB_PATH = "database.db"
+DATABASE_URL = os.getenv("DATABASE_URL")
 
 # =========================
-# BANCO DE DADOS
+# BANCO
 # =========================
 def get_db():
-    conn = sqlite3.connect(DB_PATH)
-    conn.row_factory = sqlite3.Row
-    return conn
+    return psycopg2.connect(
+        DATABASE_URL,
+        cursor_factory=psycopg2.extras.RealDictCursor
+    )
 
 def init_db():
     conn = get_db()
     cur = conn.cursor()
 
-    # Usuários
+    # USERS
     cur.execute("""
     CREATE TABLE IF NOT EXISTS users (
-        id INTEGER PRIMARY KEY AUTOINCREMENT,
+        id SERIAL PRIMARY KEY,
         username TEXT UNIQUE NOT NULL,
         password TEXT NOT NULL
     )
     """)
 
-    # Preloads
+    # PRELOADS
     cur.execute("""
     CREATE TABLE IF NOT EXISTS preloads (
-        id INTEGER PRIMARY KEY AUTOINCREMENT,
+        id SERIAL PRIMARY KEY,
+        vd TEXT,
+        bandeira TEXT,
         loja TEXT,
         uf TEXT,
         municipio TEXT,
-        status TEXT
+        cd_supridor TEXT,
+        montador TEXT,
+        projeto TEXT,
+        entrada_ti TEXT,
+        envio_previsto TEXT,
+        term_obra TEXT,
+        cadastro TEXT,
+        sep_equip TEXT,
+        emissao_nfe TEXT,
+        link TEXT,
+        preloading TEXT,
+        em_loja TEXT,
+        status TEXT,
+        cnpj TEXT,
+        precos_datahub TEXT,
+        obs TEXT
     )
     """)
 
-    # Usuário admin padrão
-    cur.execute("SELECT * FROM users WHERE username = ?", ("admin",))
+    # ADMIN
+    cur.execute("SELECT * FROM users WHERE username = %s", ("admin",))
     if not cur.fetchone():
         cur.execute(
-            "INSERT INTO users (username, password) VALUES (?, ?)",
+            "INSERT INTO users (username, password) VALUES (%s, %s)",
             ("admin", generate_password_hash("1234"))
         )
-        print("✔ Usuário admin criado (senha: 1234)")
 
     conn.commit()
     conn.close()
@@ -72,65 +89,26 @@ class User(UserMixin):
 def load_user(user_id):
     conn = get_db()
     cur = conn.cursor()
-    cur.execute("SELECT * FROM users WHERE id = ?", (user_id,))
-    user = cur.fetchone()
+    cur.execute("SELECT * FROM users WHERE id = %s", (user_id,))
+    u = cur.fetchone()
     conn.close()
+    return User(u["id"], u["username"], u["password"]) if u else None
 
-    if user:
-        return User(user["id"], user["username"], user["password"])
-    return None
-
-# =========================
-# ROTAS
-# =========================
 @app.route("/login", methods=["GET", "POST"])
 def login():
     if request.method == "POST":
-        username = request.form.get("username")
-        password = request.form.get("password")
-
         conn = get_db()
         cur = conn.cursor()
-        cur.execute("SELECT * FROM users WHERE username = ?", (username,))
+        cur.execute("SELECT * FROM users WHERE username=%s", (request.form["username"],))
         user = cur.fetchone()
         conn.close()
 
-        if user and check_password_hash(user["password"], password):
+        if user and check_password_hash(user["password"], request.form["password"]):
             login_user(User(user["id"], user["username"], user["password"]))
-            return redirect(url_for("index"))
-        else:
-            flash("Usuário ou senha inválidos")
+            return redirect(url_for("preload"))
+        flash("Usuário ou senha inválidos")
 
     return render_template("login.html")
-
-@app.route("/")
-@login_required
-def index():
-    return render_template("index.html")
-
-@app.route("/dashboard", methods=["GET", "POST"])
-@login_required
-def dashboard():
-    conn = get_db()
-    cur = conn.cursor()
-
-    if request.method == "POST":
-        loja = request.form.get("loja")
-        uf = request.form.get("uf")
-        municipio = request.form.get("municipio")
-        status = request.form.get("status")
-
-        cur.execute(
-            "INSERT INTO preloads (loja, uf, municipio, status) VALUES (?, ?, ?, ?)",
-            (loja, uf, municipio, status)
-        )
-        conn.commit()
-
-    cur.execute("SELECT * FROM preloads")
-    preloads = cur.fetchall()
-    conn.close()
-
-    return render_template("dashboard.html", preloads=preloads)
 
 @app.route("/logout")
 @login_required
@@ -139,7 +117,77 @@ def logout():
     return redirect(url_for("login"))
 
 # =========================
-# START
+# PRELOAD (CRUD)
 # =========================
-if __name__ == "__main__":
-    app.run()
+@app.route("/")
+@login_required
+def preload():
+    conn = get_db()
+    cur = conn.cursor()
+    cur.execute("SELECT * FROM preloads ORDER BY id DESC")
+    dados = cur.fetchall()
+    conn.close()
+    return render_template("index.html", dados=dados)
+
+@app.route("/salvar", methods=["POST"])
+@login_required
+def salvar():
+    conn = get_db()
+    cur = conn.cursor()
+
+    campos = (
+        "vd","bandeira","loja","uf","municipio","cd_supridor","montador","projeto",
+        "entrada_ti","envio_previsto","term_obra","cadastro","sep_equip","emissao_nfe",
+        "link","preloading","em_loja","status","cnpj","precos_datahub","obs"
+    )
+
+    valores = [request.form.get(c) for c in campos]
+
+    cur.execute(f"""
+        INSERT INTO preloads ({",".join(campos)})
+        VALUES ({",".join(["%s"]*len(campos))})
+    """, valores)
+
+    conn.commit()
+    conn.close()
+    return redirect(url_for("preload"))
+
+@app.route("/excluir/<int:id>")
+@login_required
+def excluir(id):
+    conn = get_db()
+    cur = conn.cursor()
+    cur.execute("DELETE FROM preloads WHERE id=%s", (id,))
+    conn.commit()
+    conn.close()
+    return redirect(url_for("preload"))
+
+@app.route("/editar/<int:id>", methods=["GET", "POST"])
+@login_required
+def editar(id):
+    conn = get_db()
+    cur = conn.cursor()
+
+    if request.method == "POST":
+        campos = (
+            "vd","bandeira","loja","uf","municipio","cd_supridor","montador","projeto",
+            "entrada_ti","envio_previsto","term_obra","cadastro","sep_equip","emissao_nfe",
+            "link","preloading","em_loja","status","cnpj","precos_datahub","obs"
+        )
+        valores = [request.form.get(c) for c in campos]
+        valores.append(id)
+
+        cur.execute(f"""
+            UPDATE preloads SET
+            {",".join([f"{c}=%s" for c in campos])}
+            WHERE id=%s
+        """, valores)
+
+        conn.commit()
+        conn.close()
+        return redirect(url_for("preload"))
+
+    cur.execute("SELECT * FROM preloads WHERE id=%s", (id,))
+    dado = cur.fetchone()
+    conn.close()
+    return render_template("editar.html", dado=dado)
