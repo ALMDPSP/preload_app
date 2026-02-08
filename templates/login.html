@@ -17,15 +17,14 @@
         .login-card {
             background: #fff;
             padding: 30px 28px;
-            width: 380px; /* cartão maior */
+            width: 380px;
             border-radius: 8px;
             box-shadow: 0 10px 30px rgba(0,0,0,0.25);
             text-align: center;
         }
 
-        /* 🔹 LOGO MAIOR */
         .login-card img {
-            max-width: 260px;   /* 👈 AQUI aumenta o tamanho */
+            max-width: 260px;
             width: 100%;
             height: auto;
             margin-bottom: 16px;
@@ -65,7 +64,7 @@
         .erro {
             color: red;
             font-size: 12px;
-            margin-top: 8px;
+            margin-top: 10px;
         }
 
         .footer {
@@ -79,20 +78,21 @@
 
 <div class="login-card">
 
-    <!-- LOGO DPSP -->
     <img src="/static/logo.png" alt="Grupo DPSP">
 
     <h2>Preload</h2>
 
-    <form method="post">
+    <form method="POST">
         <input type="text" name="username" placeholder="Usuário" required>
         <input type="password" name="password" placeholder="Senha" required>
         <button type="submit">Entrar</button>
     </form>
 
-    {% if erro %}
-        <div class="erro">{{ erro }}</div>
-    {% endif %}
+    {% with messages = get_flashed_messages() %}
+      {% if messages %}
+        <div class="erro">{{ messages[0] }}</div>
+      {% endif %}
+    {% endwith %}
 
     <div class="footer">
         Developed by Alexandre Martins
