@@ -88,7 +88,7 @@ def login():
 
         if user and check_password_hash(user["password"], password):
             login_user(User(user["id"], user["username"], user["password"]))
-            return redirect(url_for("dashboard"))
+            return redirect(url_for("index"))
         else:
             flash("Usuário ou senha inválidos")
 
