@@ -2,9 +2,10 @@ from flask import Flask, render_template, request, redirect, url_for, flash
 from flask_login import LoginManager, UserMixin, login_user, login_required, logout_user
 from werkzeug.security import generate_password_hash, check_password_hash
 import sqlite3
+import os
 
 app = Flask(__name__)
-app.secret_key = "preload_secret_key"
+app.secret_key = "preload_secret_key_2026"
 
 login_manager = LoginManager()
 login_manager.login_view = "login"
@@ -12,7 +13,9 @@ login_manager.init_app(app)
 
 DB_PATH = "database.db"
 
-# ---------- BANCO ----------
+# =========================
+# BANCO DE DADOS
+# =========================
 def get_db():
     conn = sqlite3.connect(DB_PATH)
     conn.row_factory = sqlite3.Row
@@ -22,16 +25,16 @@ def init_db():
     conn = get_db()
     cur = conn.cursor()
 
-    # usuários
+    # Usuários
     cur.execute("""
     CREATE TABLE IF NOT EXISTS users (
         id INTEGER PRIMARY KEY AUTOINCREMENT,
-        username TEXT UNIQUE,
-        password TEXT
+        username TEXT UNIQUE NOT NULL,
+        password TEXT NOT NULL
     )
     """)
 
-    # preloads
+    # Preloads
     cur.execute("""
     CREATE TABLE IF NOT EXISTS preloads (
         id INTEGER PRIMARY KEY AUTOINCREMENT,
@@ -42,20 +45,23 @@ def init_db():
     )
     """)
 
-    # admin padrão
-    cur.execute("SELECT * FROM users WHERE username='admin'")
+    # Usuário admin padrão
+    cur.execute("SELECT * FROM users WHERE username = ?", ("admin",))
     if not cur.fetchone():
         cur.execute(
             "INSERT INTO users (username, password) VALUES (?, ?)",
             ("admin", generate_password_hash("1234"))
         )
+        print("✔ Usuário admin criado (senha: 1234)")
 
     conn.commit()
     conn.close()
 
 init_db()
 
-# ---------- LOGIN ----------
+# =========================
+# LOGIN
+# =========================
 class User(UserMixin):
     def __init__(self, id, username, password):
         self.id = id
@@ -66,23 +72,26 @@ class User(UserMixin):
 def load_user(user_id):
     conn = get_db()
     cur = conn.cursor()
-    cur.execute("SELECT * FROM users WHERE id=?", (user_id,))
+    cur.execute("SELECT * FROM users WHERE id = ?", (user_id,))
     user = cur.fetchone()
     conn.close()
+
     if user:
         return User(user["id"], user["username"], user["password"])
     return None
 
-# ---------- ROTAS ----------
+# =========================
+# ROTAS
+# =========================
 @app.route("/login", methods=["GET", "POST"])
 def login():
     if request.method == "POST":
-        username = request.form["username"]
-        password = request.form["password"]
+        username = request.form.get("username")
+        password = request.form.get("password")
 
         conn = get_db()
         cur = conn.cursor()
-        cur.execute("SELECT * FROM users WHERE username=?", (username,))
+        cur.execute("SELECT * FROM users WHERE username = ?", (username,))
         user = cur.fetchone()
         conn.close()
 
@@ -94,6 +103,11 @@ def login():
 
     return render_template("login.html")
 
+@app.route("/")
+@login_required
+def index():
+    return render_template("index.html")
+
 @app.route("/dashboard", methods=["GET", "POST"])
 @login_required
 def dashboard():
@@ -101,10 +115,10 @@ def dashboard():
     cur = conn.cursor()
 
     if request.method == "POST":
-        loja = request.form["loja"]
-        uf = request.form["uf"]
-        municipio = request.form["municipio"]
-        status = request.form["status"]
+        loja = request.form.get("loja")
+        uf = request.form.get("uf")
+        municipio = request.form.get("municipio")
+        status = request.form.get("status")
 
         cur.execute(
             "INSERT INTO preloads (loja, uf, municipio, status) VALUES (?, ?, ?, ?)",
@@ -124,5 +138,8 @@ def logout():
     logout_user()
     return redirect(url_for("login"))
 
+# =========================
+# START
+# =========================
 if __name__ == "__main__":
     app.run()
