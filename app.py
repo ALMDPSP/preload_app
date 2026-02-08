@@ -2,7 +2,6 @@ from flask import Flask, render_template, request, redirect, url_for, flash
 from flask_login import LoginManager, UserMixin, login_user, login_required, logout_user
 from werkzeug.security import generate_password_hash, check_password_hash
 import sqlite3
-import os
 
 app = Flask(__name__)
 app.secret_key = "preload_secret_key"
@@ -23,6 +22,7 @@ def init_db():
     conn = get_db()
     cur = conn.cursor()
 
+    # usuários
     cur.execute("""
     CREATE TABLE IF NOT EXISTS users (
         id INTEGER PRIMARY KEY AUTOINCREMENT,
@@ -31,14 +31,24 @@ def init_db():
     )
     """)
 
-    # cria admin se não existir
-    cur.execute("SELECT * FROM users WHERE username = 'admin'")
+    # preloads
+    cur.execute("""
+    CREATE TABLE IF NOT EXISTS preloads (
+        id INTEGER PRIMARY KEY AUTOINCREMENT,
+        loja TEXT,
+        uf TEXT,
+        municipio TEXT,
+        status TEXT
+    )
+    """)
+
+    # admin padrão
+    cur.execute("SELECT * FROM users WHERE username='admin'")
     if not cur.fetchone():
         cur.execute(
             "INSERT INTO users (username, password) VALUES (?, ?)",
             ("admin", generate_password_hash("1234"))
         )
-        print("✔ Usuário admin criado (senha: 1234)")
 
     conn.commit()
     conn.close()
@@ -56,7 +66,7 @@ class User(UserMixin):
 def load_user(user_id):
     conn = get_db()
     cur = conn.cursor()
-    cur.execute("SELECT * FROM users WHERE id = ?", (user_id,))
+    cur.execute("SELECT * FROM users WHERE id=?", (user_id,))
     user = cur.fetchone()
     conn.close()
     if user:
@@ -72,22 +82,41 @@ def login():
 
         conn = get_db()
         cur = conn.cursor()
-        cur.execute("SELECT * FROM users WHERE username = ?", (username,))
+        cur.execute("SELECT * FROM users WHERE username=?", (username,))
         user = cur.fetchone()
         conn.close()
 
         if user and check_password_hash(user["password"], password):
             login_user(User(user["id"], user["username"], user["password"]))
-            return redirect(url_for("index"))
+            return redirect(url_for("dashboard"))
         else:
             flash("Usuário ou senha inválidos")
 
     return render_template("login.html")
 
-@app.route("/")
+@app.route("/dashboard", methods=["GET", "POST"])
 @login_required
-def index():
-    return render_template("index.html")
+def dashboard():
+    conn = get_db()
+    cur = conn.cursor()
+
+    if request.method == "POST":
+        loja = request.form["loja"]
+        uf = request.form["uf"]
+        municipio = request.form["municipio"]
+        status = request.form["status"]
+
+        cur.execute(
+            "INSERT INTO preloads (loja, uf, municipio, status) VALUES (?, ?, ?, ?)",
+            (loja, uf, municipio, status)
+        )
+        conn.commit()
+
+    cur.execute("SELECT * FROM preloads")
+    preloads = cur.fetchall()
+    conn.close()
+
+    return render_template("dashboard.html", preloads=preloads)
 
 @app.route("/logout")
 @login_required
