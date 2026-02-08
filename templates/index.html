@@ -1,239 +1,203 @@
 <!DOCTYPE html>
 <html lang="pt-br">
 <head>
-<meta charset="UTF-8">
-<title>Preload – Abertura de Loja</title>
+    <meta charset="UTF-8">
+    <title>Preload – Abertura de Loja</title>
+    <style>
+        body {
+            margin: 0;
+            font-family: Arial, Helvetica, sans-serif;
+            background: #f4f6f8;
+        }
 
-<style>
-body {
-    margin: 0;
-    font-family: Arial, Helvetica, sans-serif;
-    background: #f4f6f9;
-}
+        header {
+            background: #2a5298;
+            color: white;
+            padding: 12px 20px;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+        }
 
-header {
-    background: #2a5298;
-    color: white;
-    padding: 12px 22px;
-    display: flex;
-    justify-content: space-between;
-    align-items: center;
-}
+        header a {
+            color: white;
+            text-decoration: none;
+            margin-left: 15px;
+            font-weight: bold;
+        }
 
-header .menu {
-    display: flex;
-    align-items: center;
-}
+        .container {
+            padding: 20px;
+        }
 
-header a {
-    color: white;
-    text-decoration: none;
-    margin-left: 15px;
-    font-size: 13px;
-    background: none;
-}
+        .card {
+            background: white;
+            padding: 15px;
+            border-radius: 6px;
+            box-shadow: 0 2px 8px rgba(0,0,0,0.1);
+            margin-bottom: 25px;
+        }
 
-header a.logout {
-    background: #c0392b;
-    padding: 6px 12px;
-    border-radius: 4px;
-}
+        h2 {
+            margin-top: 0;
+            color: #2a5298;
+        }
 
-.container {
-    padding: 16px;
-}
+        .grid {
+            display: grid;
+            grid-template-columns: repeat(4, 1fr);
+            gap: 10px;
+        }
 
-.card {
-    background: white;
-    padding: 14px 16px;
-    border-radius: 6px;
-    box-shadow: 0 2px 8px rgba(0,0,0,0.1);
-    margin-bottom: 16px;
-}
+        label {
+            font-size: 12px;
+            color: #444;
+        }
 
-/* ===== GRID COMPACTO ===== */
-.grid {
-    display: grid;
-    grid-template-columns: repeat(4, minmax(180px, 1fr));
-    gap: 10px;
-}
+        input, textarea {
+            width: 100%;
+            padding: 6px;
+            font-size: 12px;
+            border: 1px solid #ccc;
+            border-radius: 4px;
+        }
 
-.field {
-    display: flex;
-    flex-direction: column;
-}
+        textarea {
+            resize: vertical;
+        }
 
-.field label {
-    font-size: 11px;
-    font-weight: bold;
-    margin-bottom: 2px;
-    color: #555;
-}
+        button {
+            margin-top: 10px;
+            padding: 8px 18px;
+            background: #2a5298;
+            color: white;
+            border: none;
+            border-radius: 4px;
+            cursor: pointer;
+        }
 
-input, textarea {
-    width: 100%;
-    height: 30px;
-    padding: 4px 6px;
-    border: 1px solid #ccc;
-    border-radius: 4px;
-    font-size: 12px;
-}
+        button:hover {
+            background: #1e3c72;
+        }
 
-textarea {
-    height: 60px;
-    resize: vertical;
-}
+        .table-container {
+            overflow-x: auto;
+        }
 
-button {
-    background: #2a5298;
-    color: white;
-    border: none;
-    padding: 6px 14px;
-    border-radius: 4px;
-    cursor: pointer;
-    font-size: 13px;
-}
+        table {
+            border-collapse: collapse;
+            width: 100%;
+            font-size: 12px;
+            min-width: 1600px;
+        }
 
-/* ===== TABELA ===== */
-table {
-    border-collapse: collapse;
-    font-size: 12px;
-    min-width: 2600px;
-}
+        th, td {
+            border: 1px solid #ddd;
+            padding: 6px;
+            text-align: center;
+            white-space: nowrap;
+        }
 
-th, td {
-    padding: 6px 8px;
-    border-bottom: 1px solid #ddd;
-    white-space: nowrap;
-    text-align: center;
-}
+        th {
+            background: #eee;
+        }
 
-th {
-    background: #f0f0f0;
-    position: sticky;
-    top: 0;
-    z-index: 2;
-}
-
-.excluir {
-    color: red;
-    font-weight: bold;
-    text-decoration: none;
-}
-</style>
+        .acoes a {
+            margin: 0 5px;
+            text-decoration: none;
+            font-size: 14px;
+        }
+    </style>
 </head>
-
 <body>
 
 <header>
-    <div>Preload – Abertura de Loja</div>
-    <div class="menu">
+    <div><strong>Preload – Abertura de Loja</strong></div>
+    <div>
         <a href="/dashboard">Dashboard</a>
-        <a href="/logout" class="logout">Sair</a>
+        <a href="/logout">Sair</a>
     </div>
 </header>
 
 <div class="container">
 
-<!-- FORMULÁRIO -->
-<div class="card">
-<h3 style="margin:6px 0 10px 0;">
-    {% if editar %}Editar Preload{% else %}Novo Preload{% endif %}
-</h3>
+    <!-- NOVO PRELOAD -->
+    <div class="card">
+        <h2>Novo Preload</h2>
 
-<form method="post"
-      action="{% if editar %}/atualizar/{{ editar[0] }}{% else %}/novo{% endif %}">
+        <form method="POST" action="/salvar">
 
-<div class="grid">
-{% set v = editar if editar else ['']*22 %}
+            <div class="grid">
+                <div><label>VD</label><input name="vd"></div>
+                <div><label>Bandeira</label><input name="bandeira"></div>
+                <div><label>Loja</label><input name="loja"></div>
+                <div><label>UF</label><input name="uf"></div>
 
-<div class="field"><label>VD</label><input name="vd" value="{{ v[1] }}"></div>
-<div class="field"><label>Bandeira</label><input name="bandeira" value="{{ v[2] }}"></div>
-<div class="field"><label>Loja</label><input name="loja" value="{{ v[3] }}"></div>
-<div class="field"><label>UF</label><input name="uf" value="{{ v[4] }}"></div>
+                <div><label>Município</label><input name="municipio"></div>
+                <div><label>CD Supridor</label><input name="cd_supridor"></div>
+                <div><label>Montador</label><input name="montador"></div>
+                <div><label>Projeto</label><input name="projeto"></div>
 
-<div class="field"><label>Município</label><input name="municipio" value="{{ v[5] }}"></div>
-<div class="field"><label>CD Supridor</label><input name="cd_supridor" value="{{ v[6] }}"></div>
-<div class="field"><label>Montador</label><input name="montador" value="{{ v[7] }}"></div>
-<div class="field"><label>Projeto</label><input name="projeto" value="{{ v[8] }}"></div>
+                <div><label>Entrada TI</label><input name="entrada_ti"></div>
+                <div><label>Envio Previsto</label><input name="envio_previsto"></div>
+                <div><label>Term. Obra</label><input name="term_obra"></div>
+                <div><label>Cadastro</label><input name="cadastro"></div>
 
-<div class="field"><label>Entrada TI</label><input name="entrada_ti" value="{{ v[9] }}"></div>
-<div class="field"><label>Envio Previsto</label><input name="envio_previsto" value="{{ v[10] }}"></div>
-<div class="field"><label>Term. Obra</label><input name="term_obra" value="{{ v[11] }}"></div>
-<div class="field"><label>Cadastro</label><input name="cadastro" value="{{ v[12] }}"></div>
+                <div><label>Sep. Equip.</label><input name="sep_equip"></div>
+                <div><label>Emissão NFe</label><input name="emissao_nfe"></div>
+                <div><label>Link</label><input name="link"></div>
+                <div><label>Preloading</label><input name="preloading"></div>
 
-<div class="field"><label>Sep. Equip.</label><input name="sep_equipamentos" value="{{ v[13] }}"></div>
-<div class="field"><label>Emissão NFe</label><input name="emissao_nfe" value="{{ v[14] }}"></div>
-<div class="field"><label>Link</label><input name="link" value="{{ v[15] }}"></div>
-<div class="field"><label>Preloading</label><input name="preloading" value="{{ v[16] }}"></div>
+                <div><label>Em Loja</label><input name="em_loja"></div>
+                <div><label>Status</label><input name="status"></div>
+                <div><label>CNPJ</label><input name="cnpj"></div>
+                <div><label>Preços/DataHub</label><input name="precos_datahub"></div>
+            </div>
 
-<div class="field"><label>Em Loja</label><input name="em_loja" value="{{ v[17] }}"></div>
-<div class="field"><label>Status</label><input name="status" value="{{ v[18] }}"></div>
-<div class="field"><label>CNPJ</label><input name="cnpj" value="{{ v[19] }}"></div>
-<div class="field"><label>Preços/DataHub</label><input name="precos_datahub" value="{{ v[20] }}"></div>
-</div>
+            <div style="margin-top:10px">
+                <label>Observações</label>
+                <textarea name="obs" rows="3"></textarea>
+            </div>
 
-<br>
-<label style="font-size:12px;"><strong>Observações</strong></label>
-<textarea name="obs">{{ v[21] }}</textarea>
+            <button type="submit">Salvar</button>
+        </form>
+    </div>
 
-<br>
-<button type="submit">
-    {% if editar %}Atualizar{% else %}Salvar{% endif %}
-</button>
+    <!-- REGISTROS -->
+    <div class="card">
+        <h2>Registros de Preload</h2>
 
-</form>
-</div>
+        <div class="table-container">
+            <table>
+                <tr>
+                    <th>VD</th>
+                    <th>Bandeira</th>
+                    <th>Loja</th>
+                    <th>UF</th>
+                    <th>Município</th>
+                    <th>Status</th>
+                    <th>Ações</th>
+                </tr>
 
-<!-- TABELA -->
-<div class="card">
-<h3 style="margin:6px 0 10px 0;">Registros de Preload</h3>
-
-<div style="overflow-x:auto; width:100%;">
-<table>
-<tr>
-<th>VD</th><th>Bandeira</th><th>Loja</th><th>UF</th><th>Município</th>
-<th>CD Supridor</th><th>Montador</th><th>Projeto</th><th>Entrada TI</th>
-<th>Envio Previsto</th><th>Term. Obra</th><th>Cadastro</th>
-<th>Sep. Equip.</th><th>Emissão NFe</th><th>Link</th>
-<th>Preloading</th><th>Em Loja</th><th>Status</th><th>CNPJ</th>
-<th>Preços/DataHub</th><th>Obs</th><th>Ação</th>
-</tr>
-
-{% for d in dados %}
-<tr>
-<td>{{ d[1] }}</td><td>{{ d[2] }}</td><td>{{ d[3] }}</td><td>{{ d[4] }}</td>
-<td>{{ d[5] }}</td><td>{{ d[6] }}</td><td>{{ d[7] }}</td><td>{{ d[8] }}</td>
-<td>{{ d[9] }}</td><td>{{ d[10] }}</td><td>{{ d[11] }}</td><td>{{ d[12] }}</td>
-<td>{{ d[13] }}</td><td>{{ d[14] }}</td><td>{{ d[15] }}</td>
-<td>{{ d[16] }}</td><td>{{ d[17] }}</td><td>{{ d[18] }}</td>
-<td>{{ d[19] }}</td><td>{{ d[20] }}</td>
-<td style="min-width:260px">{{ d[21] }}</td>
-<td>
-<a href="/editar/{{ d[0] }}">Editar</a> |
-<a class="excluir" href="/excluir/{{ d[0] }}">Excluir</a>
-</td>
-</tr>
-{% endfor %}
-</table>
-</div>
-</div>
+                {% for d in dados %}
+                <tr>
+                    <td>{{ d.vd }}</td>
+                    <td>{{ d.bandeira }}</td>
+                    <td>{{ d.loja }}</td>
+                    <td>{{ d.uf }}</td>
+                    <td>{{ d.municipio }}</td>
+                    <td>{{ d.status }}</td>
+                    <td class="acoes">
+                        <a href="/editar/{{ d.id }}">✏️</a>
+                        <a href="/excluir/{{ d.id }}" onclick="return confirm('Excluir este registro?')">🗑️</a>
+                    </td>
+                </tr>
+                {% endfor %}
+            </table>
+        </div>
+    </div>
 
 </div>
-
-<!-- TIMEOUT -->
-<script>
-let tempo = 10 * 60 * 1000, timer;
-function resetar(){
-    clearTimeout(timer);
-    timer = setTimeout(()=>{
-        alert("Sessão expirada por inatividade.");
-        location="/logout";
-    }, tempo);
-}
-onmousemove=onkeypress=onclick=resetar;
-resetar();
-</script>
 
 </body>
 </html>
