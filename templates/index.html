@@ -1,203 +1,96 @@
 <!DOCTYPE html>
 <html lang="pt-br">
 <head>
-    <meta charset="UTF-8">
-    <title>Preload – Abertura de Loja</title>
-    <style>
-        body {
-            margin: 0;
-            font-family: Arial, Helvetica, sans-serif;
-            background: #f4f6f8;
-        }
+<meta charset="UTF-8">
+<title>Preload</title>
 
-        header {
-            background: #2a5298;
-            color: white;
-            padding: 12px 20px;
-            display: flex;
-            justify-content: space-between;
-            align-items: center;
-        }
+<style>
+body{font-family:Arial;background:#f4f6f9;margin:0}
+header{background:#2a5298;color:#fff;padding:12px;display:flex;justify-content:space-between}
+.container{padding:20px}
+.card{background:#fff;padding:15px;border-radius:6px;margin-bottom:20px}
+.grid{display:grid;grid-template-columns:repeat(4,1fr);gap:10px}
+.grid input, textarea{width:100%;padding:6px}
+button{background:#2a5298;color:#fff;border:none;padding:8px 14px;border-radius:4px}
+table{width:100%;border-collapse:collapse}
+th,td{border:1px solid #ddd;padding:6px;text-align:center}
+.actions a{margin:0 5px}
+</style>
 
-        header a {
-            color: white;
-            text-decoration: none;
-            margin-left: 15px;
-            font-weight: bold;
-        }
-
-        .container {
-            padding: 20px;
-        }
-
-        .card {
-            background: white;
-            padding: 15px;
-            border-radius: 6px;
-            box-shadow: 0 2px 8px rgba(0,0,0,0.1);
-            margin-bottom: 25px;
-        }
-
-        h2 {
-            margin-top: 0;
-            color: #2a5298;
-        }
-
-        .grid {
-            display: grid;
-            grid-template-columns: repeat(4, 1fr);
-            gap: 10px;
-        }
-
-        label {
-            font-size: 12px;
-            color: #444;
-        }
-
-        input, textarea {
-            width: 100%;
-            padding: 6px;
-            font-size: 12px;
-            border: 1px solid #ccc;
-            border-radius: 4px;
-        }
-
-        textarea {
-            resize: vertical;
-        }
-
-        button {
-            margin-top: 10px;
-            padding: 8px 18px;
-            background: #2a5298;
-            color: white;
-            border: none;
-            border-radius: 4px;
-            cursor: pointer;
-        }
-
-        button:hover {
-            background: #1e3c72;
-        }
-
-        .table-container {
-            overflow-x: auto;
-        }
-
-        table {
-            border-collapse: collapse;
-            width: 100%;
-            font-size: 12px;
-            min-width: 1600px;
-        }
-
-        th, td {
-            border: 1px solid #ddd;
-            padding: 6px;
-            text-align: center;
-            white-space: nowrap;
-        }
-
-        th {
-            background: #eee;
-        }
-
-        .acoes a {
-            margin: 0 5px;
-            text-decoration: none;
-            font-size: 14px;
-        }
-    </style>
 </head>
 <body>
 
 <header>
-    <div><strong>Preload – Abertura de Loja</strong></div>
-    <div>
-        <a href="/dashboard">Dashboard</a>
-        <a href="/logout">Sair</a>
-    </div>
+  <strong>Preload – Abertura de Loja</strong>
+  <div>
+    <a href="/dashboard" style="color:white">Dashboard</a> |
+    <a href="/logout" style="color:white">Sair</a>
+  </div>
 </header>
 
 <div class="container">
 
-    <!-- NOVO PRELOAD -->
-    <div class="card">
-        <h2>Novo Preload</h2>
+<div class="card">
+<h3>Novo Preload</h3>
 
-        <form method="POST" action="/salvar">
+<form method="POST" action="/salvar">
+<div class="grid">
+<input name="vd" placeholder="VD">
+<input name="bandeira" placeholder="Bandeira">
+<input name="loja" placeholder="Loja">
+<input name="uf" placeholder="UF">
 
-            <div class="grid">
-                <div><label>VD</label><input name="vd"></div>
-                <div><label>Bandeira</label><input name="bandeira"></div>
-                <div><label>Loja</label><input name="loja"></div>
-                <div><label>UF</label><input name="uf"></div>
+<input name="municipio" placeholder="Município">
+<input name="cd_supridor" placeholder="CD Supridor">
+<input name="montador" placeholder="Montador">
+<input name="projeto" placeholder="Projeto">
 
-                <div><label>Município</label><input name="municipio"></div>
-                <div><label>CD Supridor</label><input name="cd_supridor"></div>
-                <div><label>Montador</label><input name="montador"></div>
-                <div><label>Projeto</label><input name="projeto"></div>
+<input name="entrada_ti" placeholder="Entrada TI">
+<input name="envio_previsto" placeholder="Envio Previsto">
+<input name="term_obra" placeholder="Term. Obra">
+<input name="cadastro" placeholder="Cadastro">
 
-                <div><label>Entrada TI</label><input name="entrada_ti"></div>
-                <div><label>Envio Previsto</label><input name="envio_previsto"></div>
-                <div><label>Term. Obra</label><input name="term_obra"></div>
-                <div><label>Cadastro</label><input name="cadastro"></div>
+<input name="sep_equip" placeholder="Sep. Equip.">
+<input name="emissao_nfe" placeholder="Emissão NFe">
+<input name="link" placeholder="Link">
+<input name="status" placeholder="Status">
 
-                <div><label>Sep. Equip.</label><input name="sep_equip"></div>
-                <div><label>Emissão NFe</label><input name="emissao_nfe"></div>
-                <div><label>Link</label><input name="link"></div>
-                <div><label>Preloading</label><input name="preloading"></div>
-
-                <div><label>Em Loja</label><input name="em_loja"></div>
-                <div><label>Status</label><input name="status"></div>
-                <div><label>CNPJ</label><input name="cnpj"></div>
-                <div><label>Preços/DataHub</label><input name="precos_datahub"></div>
-            </div>
-
-            <div style="margin-top:10px">
-                <label>Observações</label>
-                <textarea name="obs" rows="3"></textarea>
-            </div>
-
-            <button type="submit">Salvar</button>
-        </form>
-    </div>
-
-    <!-- REGISTROS -->
-    <div class="card">
-        <h2>Registros de Preload</h2>
-
-        <div class="table-container">
-            <table>
-                <tr>
-                    <th>VD</th>
-                    <th>Bandeira</th>
-                    <th>Loja</th>
-                    <th>UF</th>
-                    <th>Município</th>
-                    <th>Status</th>
-                    <th>Ações</th>
-                </tr>
-
-                {% for d in dados %}
-                <tr>
-                    <td>{{ d.vd }}</td>
-                    <td>{{ d.bandeira }}</td>
-                    <td>{{ d.loja }}</td>
-                    <td>{{ d.uf }}</td>
-                    <td>{{ d.municipio }}</td>
-                    <td>{{ d.status }}</td>
-                    <td class="acoes">
-                        <a href="/editar/{{ d.id }}">✏️</a>
-                        <a href="/excluir/{{ d.id }}" onclick="return confirm('Excluir este registro?')">🗑️</a>
-                    </td>
-                </tr>
-                {% endfor %}
-            </table>
-        </div>
-    </div>
-
+<input name="cnpj" placeholder="CNPJ">
+<input name="precos_datahub" placeholder="Preços/DataHub">
+<input name="preloading" placeholder="Preloading">
+<input name="em_loja" placeholder="Em Loja">
 </div>
 
+<textarea name="obs" placeholder="Observações"></textarea><br><br>
+<button type="submit">Salvar</button>
+</form>
+</div>
+
+<div class="card">
+<h3>Registros</h3>
+
+<div style="overflow-x:auto">
+<table>
+<tr>
+<th>VD</th><th>Loja</th><th>UF</th><th>Status</th><th>Ações</th>
+</tr>
+
+{% for r in registros %}
+<tr>
+<td>{{ r.vd }}</td>
+<td>{{ r.loja }}</td>
+<td>{{ r.uf }}</td>
+<td>{{ r.status }}</td>
+<td class="actions">
+<a href="/excluir/{{ r.id }}" onclick="return confirm('Excluir?')">🗑</a>
+</td>
+</tr>
+{% endfor %}
+
+</table>
+</div>
+</div>
+
+</div>
 </body>
 </html>
