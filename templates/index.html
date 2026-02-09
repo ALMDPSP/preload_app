@@ -3,159 +3,91 @@
 <head>
 <meta charset="UTF-8">
 <title>Preload – Abertura de Loja</title>
-
 <style>
-body {
-    font-family: Arial, Helvetica, sans-serif;
-    background: #f4f6f9;
-    margin: 0;
-}
-
+body { font-family: Arial; margin: 0; background: #f4f6f8; }
 header {
     background: #2a5298;
-    color: #fff;
-    padding: 12px 20px;
-    display: flex;
-    justify-content: space-between;
-    align-items: center;
+    color: white;
+    padding: 10px 20px;
 }
-
 header a {
-    color: #fff;
-    text-decoration: none;
+    color: white;
+    float: right;
     margin-left: 15px;
-    font-weight: bold;
 }
-
-.container {
-    padding: 20px;
-}
-
-h2 {
-    margin-top: 0;
-}
-
-.table-wrapper {
-    overflow-x: auto;
-    background: #fff;
-    border-radius: 6px;
-    box-shadow: 0 2px 6px rgba(0,0,0,.1);
-}
-
+.container { padding: 20px; }
 table {
-    border-collapse: collapse;
     width: 100%;
-    min-width: 1800px;
-}
-
-th, td {
-    border: 1px solid #ddd;
-    padding: 6px 8px;
+    border-collapse: collapse;
     font-size: 12px;
-    text-align: center;
 }
-
+th, td {
+    border: 1px solid #ccc;
+    padding: 5px;
+}
 th {
-    background: #f0f0f0;
-    white-space: nowrap;
-}
-
-.actions a {
-    margin: 0 4px;
-    text-decoration: none;
-    font-weight: bold;
-}
-
-.btn-edit {
-    color: #1e3c72;
-}
-
-.btn-del {
-    color: red;
+    background: #eee;
 }
 </style>
 </head>
-
 <body>
 
 <header>
-    <strong>Preload – Abertura de Loja</strong>
-    <div>
-        <a href="/dashboard">Dashboard</a>
-        <a href="/logout">Sair</a>
-    </div>
+Preload – Abertura de Loja
+<a href="/logout">Sair</a>
+<a href="/">Dashboard</a>
 </header>
 
 <div class="container">
 
-<h2>Registros de Preload</h2>
+<h3>Novo Preload</h3>
 
-<div class="table-wrapper">
+<form method="POST" action="/salvar">
+<input name="vd" placeholder="VD">
+<input name="bandeira" placeholder="Bandeira">
+<input name="loja" placeholder="Loja">
+<input name="uf" placeholder="UF">
+<input name="municipio" placeholder="Município">
+<input name="cd_supridor" placeholder="CD Supridor">
+<input name="montador" placeholder="Montador">
+<input name="projeto" placeholder="Projeto">
+<input name="entrada_ti">
+<input name="envio_previsto">
+<input name="term_obra">
+<input name="cadastro">
+<input name="sep_equip">
+<input name="emissao_nfe">
+<input name="link">
+<input name="status">
+<input name="cnpj">
+<input name="precos_datahub">
+<input name="preloading">
+<input name="em_loja">
+<textarea name="observacoes" placeholder="Observações"></textarea>
+<button>Salvar</button>
+</form>
+
+<h3>Registros</h3>
+
 <table>
-<thead>
 <tr>
-    <th>VD</th>
-    <th>Bandeira</th>
-    <th>Loja</th>
-    <th>UF</th>
-    <th>Município</th>
-    <th>CD Supridor</th>
-    <th>Montador</th>
-    <th>Projeto</th>
-    <th>Entrada TI</th>
-    <th>Envio Prev.</th>
-    <th>Térm. Obra</th>
-    <th>Cadastro</th>
-    <th>Sep. Equip.</th>
-    <th>Emissão NF-e</th>
-    <th>Link</th>
-    <th>Status</th>
-    <th>CNPJ</th>
-    <th>Preços/DataHub</th>
-    <th>Preloading</th>
-    <th>Em Loja</th>
-    <th>Observações</th>
-    <th>Ações</th>
+<th>VD</th><th>Loja</th><th>UF</th><th>Status</th><th>Ações</th>
 </tr>
-</thead>
 
-<tbody>
 {% for r in registros %}
 <tr>
-    <td>{{ r[1] }}</td>
-    <td>{{ r[2] }}</td>
-    <td>{{ r[3] }}</td>
-    <td>{{ r[4] }}</td>
-    <td>{{ r[5] }}</td>
-    <td>{{ r[6] }}</td>
-    <td>{{ r[7] }}</td>
-    <td>{{ r[8] }}</td>
-    <td>{{ r[9] }}</td>
-    <td>{{ r[10] }}</td>
-    <td>{{ r[11] }}</td>
-    <td>{{ r[12] }}</td>
-    <td>{{ r[13] }}</td>
-    <td>{{ r[14] }}</td>
-    <td>{{ r[15] }}</td>
-    <td>{{ r[16] }}</td>
-    <td>{{ r[17] }}</td>
-    <td>{{ r[18] }}</td>
-    <td>{{ r[19] }}</td>
-    <td>{{ r[20] }}</td>
-    <td>{{ r[21] }}</td>
-    <td class="actions">
-        <a class="btn-edit" href="/editar/{{ r[0] }}">Editar</a>
-        |
-        <a class="btn-del" href="/excluir/{{ r[0] }}">Excluir</a>
-    </td>
+<td>{{ r[0] }}</td>
+<td>{{ r[2] }}</td>
+<td>{{ r[3] }}</td>
+<td>{{ r[15] }}</td>
+<td>
+<a href="/excluir/{{ r[0] }}">Excluir</a>
+</td>
 </tr>
 {% endfor %}
-</tbody>
 
 </table>
-</div>
 
 </div>
-
 </body>
 </html>
