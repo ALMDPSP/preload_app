@@ -1,96 +1,98 @@
 <!DOCTYPE html>
 <html lang="pt-br">
 <head>
-<meta charset="UTF-8">
-<title>Preload</title>
-
-<style>
-body{font-family:Arial;background:#f4f6f9;margin:0}
-header{background:#2a5298;color:#fff;padding:12px;display:flex;justify-content:space-between}
-.container{padding:20px}
-.card{background:#fff;padding:15px;border-radius:6px;margin-bottom:20px}
-.grid{display:grid;grid-template-columns:repeat(4,1fr);gap:10px}
-.grid input, textarea{width:100%;padding:6px}
-button{background:#2a5298;color:#fff;border:none;padding:8px 14px;border-radius:4px}
-table{width:100%;border-collapse:collapse}
-th,td{border:1px solid #ddd;padding:6px;text-align:center}
-.actions a{margin:0 5px}
-</style>
-
+    <meta charset="UTF-8">
+    <title>Preload – Abertura de Loja</title>
+    <style>
+        body { font-family: Arial; background: #f5f6fa; margin: 0; }
+        header {
+            background: #2a5298;
+            color: white;
+            padding: 12px 20px;
+            display: flex;
+            justify-content: space-between;
+        }
+        .container { padding: 20px; }
+        .card {
+            background: white;
+            padding: 15px;
+            border-radius: 6px;
+            margin-bottom: 20px;
+        }
+        input, textarea {
+            width: 100%;
+            padding: 6px;
+            margin: 4px 0 10px 0;
+        }
+        button {
+            background: #2a5298;
+            color: white;
+            padding: 8px 16px;
+            border: none;
+            border-radius: 4px;
+            cursor: pointer;
+        }
+        table {
+            width: 100%;
+            border-collapse: collapse;
+        }
+        th, td {
+            border: 1px solid #ccc;
+            padding: 6px;
+            text-align: center;
+        }
+        a { color: #2a5298; text-decoration: none; }
+    </style>
 </head>
 <body>
 
 <header>
-  <strong>Preload – Abertura de Loja</strong>
-  <div>
-    <a href="/dashboard" style="color:white">Dashboard</a> |
-    <a href="/logout" style="color:white">Sair</a>
-  </div>
+    <strong>Preload – Abertura de Loja</strong>
+    <div>
+        <a href="/dashboard">Dashboard</a> |
+        <a href="/logout">Sair</a>
+    </div>
 </header>
 
 <div class="container">
 
-<div class="card">
-<h3>Novo Preload</h3>
+    <div class="card">
+        <h3>Novo Preload</h3>
+        <form method="POST" action="/salvar">
+            <input name="vd" placeholder="VD">
+            <input name="loja" placeholder="Loja">
+            <input name="uf" placeholder="UF">
+            <input name="status" placeholder="Status">
+            <textarea name="observacoes" placeholder="Observações"></textarea>
+            <button type="submit">Salvar</button>
+        </form>
+    </div>
 
-<form method="POST" action="/salvar">
-<div class="grid">
-<input name="vd" placeholder="VD">
-<input name="bandeira" placeholder="Bandeira">
-<input name="loja" placeholder="Loja">
-<input name="uf" placeholder="UF">
-
-<input name="municipio" placeholder="Município">
-<input name="cd_supridor" placeholder="CD Supridor">
-<input name="montador" placeholder="Montador">
-<input name="projeto" placeholder="Projeto">
-
-<input name="entrada_ti" placeholder="Entrada TI">
-<input name="envio_previsto" placeholder="Envio Previsto">
-<input name="term_obra" placeholder="Term. Obra">
-<input name="cadastro" placeholder="Cadastro">
-
-<input name="sep_equip" placeholder="Sep. Equip.">
-<input name="emissao_nfe" placeholder="Emissão NFe">
-<input name="link" placeholder="Link">
-<input name="status" placeholder="Status">
-
-<input name="cnpj" placeholder="CNPJ">
-<input name="precos_datahub" placeholder="Preços/DataHub">
-<input name="preloading" placeholder="Preloading">
-<input name="em_loja" placeholder="Em Loja">
-</div>
-
-<textarea name="obs" placeholder="Observações"></textarea><br><br>
-<button type="submit">Salvar</button>
-</form>
-</div>
-
-<div class="card">
-<h3>Registros</h3>
-
-<div style="overflow-x:auto">
-<table>
-<tr>
-<th>VD</th><th>Loja</th><th>UF</th><th>Status</th><th>Ações</th>
-</tr>
-
-{% for r in registros %}
-<tr>
-<td>{{ r.vd }}</td>
-<td>{{ r.loja }}</td>
-<td>{{ r.uf }}</td>
-<td>{{ r.status }}</td>
-<td class="actions">
-<a href="/excluir/{{ r.id }}" onclick="return confirm('Excluir?')">🗑</a>
-</td>
-</tr>
-{% endfor %}
-
-</table>
-</div>
-</div>
+    <div class="card">
+        <h3>Registros</h3>
+        <table>
+            <tr>
+                <th>VD</th>
+                <th>Loja</th>
+                <th>UF</th>
+                <th>Status</th>
+                <th>Ações</th>
+            </tr>
+            {% for r in registros %}
+            <tr>
+                <td>{{ r.vd }}</td>
+                <td>{{ r.loja }}</td>
+                <td>{{ r.uf }}</td>
+                <td>{{ r.status }}</td>
+                <td>
+                    <a href="/excluir/{{ r.id }}">🗑️ Excluir</a>
+                </td>
+            </tr>
+            {% endfor %}
+        </table>
+    </div>
 
 </div>
+
 </body>
 </html>
