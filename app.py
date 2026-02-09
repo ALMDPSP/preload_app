@@ -1,138 +1,154 @@
 import os
 import psycopg
 from flask import Flask, render_template, request, redirect, url_for, flash
-from flask_login import (
-    LoginManager, UserMixin,
-    login_user, login_required,
-    logout_user
-)
+from flask_login import LoginManager, UserMixin, login_user, login_required, logout_user
 
-# ===============================
-# APP
-# ===============================
 app = Flask(__name__)
 app.secret_key = "preload-secret"
 
-# ===============================
-# LOGIN
-# ===============================
-login_manager = LoginManager()
-login_manager.init_app(app)
-login_manager.login_view = "login"
-
-USERS = {
-    "admin": "admin123"
-}
-
-class User(UserMixin):
-    def __init__(self, username):
-        self.id = username
-
-@login_manager.user_loader
-def load_user(user_id):
-    if user_id in USERS:
-        return User(user_id)
-    return None
-
-# ===============================
-# BANCO
-# ===============================
-DATABASE_URL = os.getenv("DATABASE_URL")
+# ==========================
+# BANCO DE DADOS
+# ==========================
+DATABASE_URL = os.environ.get("DATABASE_URL")
 
 def get_conn():
     return psycopg.connect(DATABASE_URL)
 
-# ===============================
+# ==========================
 # LOGIN
-# ===============================
+# ==========================
+login_manager = LoginManager()
+login_manager.init_app(app)
+login_manager.login_view = "login"
+
+class User(UserMixin):
+    def __init__(self, id, username, password):
+        self.id = id
+        self.username = username
+        self.password = password
+
+@login_manager.user_loader
+def load_user(user_id):
+    conn = get_conn()
+    cur = conn.cursor()
+    cur.execute("SELECT id, username, password FROM users WHERE id=%s", (user_id,))
+    row = cur.fetchone()
+    conn.close()
+    if row:
+        return User(*row)
+    return None
+
+# ==========================
+# LOGIN
+# ==========================
 @app.route("/login", methods=["GET", "POST"])
 def login():
     if request.method == "POST":
-        u = request.form["username"]
-        p = request.form["password"]
+        username = request.form["username"]
+        password = request.form["password"]
 
-        if u in USERS and USERS[u] == p:
-            login_user(User(u))
+        conn = get_conn()
+        cur = conn.cursor()
+        cur.execute(
+            "SELECT id, username, password FROM users WHERE username=%s",
+            (username,)
+        )
+        user = cur.fetchone()
+        conn.close()
+
+        if user and user[2] == password:
+            login_user(User(*user))
             return redirect(url_for("index"))
-
-        flash("Usuário ou senha inválidos")
+        else:
+            flash("Usuário ou senha inválidos")
 
     return render_template("login.html")
 
-# ===============================
+# ==========================
 # LOGOUT
-# ===============================
+# ==========================
 @app.route("/logout")
 @login_required
 def logout():
     logout_user()
     return redirect(url_for("login"))
 
-# ===============================
-# INDEX / DASHBOARD
-# ===============================
+# ==========================
+# INDEX / GRID
+# ==========================
 @app.route("/")
 @app.route("/index")
-@app.route("/dashboard")
 @login_required
 def index():
-    with get_conn() as conn:
-        with conn.cursor() as cur:
-            cur.execute("""
-                SELECT id, vd, loja, uf, status, projeto
-                FROM preload
-                ORDER BY id DESC
-            """)
-            registros = cur.fetchall()
+    conn = get_conn()
+    cur = conn.cursor()
+    cur.execute("""
+        SELECT
+            id, vd, bandeira, loja, uf, municipio, cd_supridor, montador,
+            projeto, entrada_ti, envio_previsto, term_obra, cadastro,
+            sep_equip, emissao_nfe, link, status, cnpj, precos_datahub,
+            preloading, em_loja, observacoes
+        FROM preload
+        ORDER BY id DESC
+    """)
+    registros = cur.fetchall()
+    conn.close()
 
     return render_template("index.html", registros=registros)
 
-# ===============================
+# ==========================
 # SALVAR
-# ===============================
+# ==========================
 @app.route("/salvar", methods=["POST"])
 @login_required
 def salvar():
-    dados = dict(request.form)
+    dados = request.form.to_dict()
 
-    with get_conn() as conn:
-        with conn.cursor() as cur:
-            cur.execute("""
-                INSERT INTO preload (
-                    vd, bandeira, loja, uf, municipio, cd_supridor, montador,
-                    projeto, entrada_ti, envio_previsto, term_obra, cadastro,
-                    sep_equip, emissao_nfe, link, status, cnpj, precos_datahub,
-                    preloading, em_loja, observacoes
-                ) VALUES (
-                    %(vd)s, %(bandeira)s, %(loja)s, %(uf)s, %(municipio)s,
-                    %(cd_supridor)s, %(montador)s, %(projeto)s, %(entrada_ti)s,
-                    %(envio_previsto)s, %(term_obra)s, %(cadastro)s,
-                    %(sep_equip)s, %(emissao_nfe)s, %(link)s, %(status)s,
-                    %(cnpj)s, %(precos_datahub)s, %(preloading)s,
-                    %(em_loja)s, %(observacoes)s
-                )
-            """, dados)
-        conn.commit()
+    conn = get_conn()
+    cur = conn.cursor()
 
-    flash("Registro salvo com sucesso")
+    cur.execute("""
+        INSERT INTO preload (
+            vd, bandeira, loja, uf, municipio, cd_supridor, montador,
+            projeto, entrada_ti, envio_previsto, term_obra, cadastro,
+            sep_equip, emissao_nfe, link, status, cnpj, precos_datahub,
+            preloading, em_loja, observacoes
+        ) VALUES (
+            %(vd)s, %(bandeira)s, %(loja)s, %(uf)s, %(municipio)s,
+            %(cd_supridor)s, %(montador)s, %(projeto)s,
+            %(entrada_ti)s, %(envio_previsto)s, %(term_obra)s,
+            %(cadastro)s, %(sep_equip)s, %(emissao_nfe)s,
+            %(link)s, %(status)s, %(cnpj)s, %(precos_datahub)s,
+            %(preloading)s, %(em_loja)s, %(observacoes)s
+        )
+    """, dados)
+
+    conn.commit()
+    conn.close()
+
     return redirect(url_for("index"))
 
-# ===============================
+# ==========================
 # EXCLUIR
-# ===============================
+# ==========================
 @app.route("/excluir/<int:id>")
 @login_required
 def excluir(id):
-    with get_conn() as conn:
-        with conn.cursor() as cur:
-            cur.execute("DELETE FROM preload WHERE id = %s", (id,))
-        conn.commit()
-
-    flash("Registro excluído")
+    conn = get_conn()
+    cur = conn.cursor()
+    cur.execute("DELETE FROM preload WHERE id=%s", (id,))
+    conn.commit()
+    conn.close()
     return redirect(url_for("index"))
 
-# ===============================
-# START
-# ===============================
+# ==========================
+# DASHBOARD
+# ==========================
+@app.route("/dashboard")
+@login_required
+def dashboard():
+    return render_template("dashboard.html")
+
+# ==========================
 if __name__ == "__main__":
-    app.run()
+    app.run(debug=True)
