@@ -1,34 +1,32 @@
 import os
 import psycopg2
-from psycopg2.extras import RealDictCursor
 from flask import Flask, render_template, request, redirect, url_for
-from flask_login import LoginManager, UserMixin, login_user, logout_user, login_required
+from flask_login import (
+    LoginManager, login_user, login_required,
+    logout_user, UserMixin, current_user
+)
 
 app = Flask(__name__)
-app.secret_key = "preload-secret-key"
 
-# =========================
-# LOGIN
-# =========================
+# 🔐 SECRET KEY FIXA (obrigatório em produção)
+app.config["SECRET_KEY"] = os.environ.get(
+    "SECRET_KEY", "preload_super_secret_key_123"
+)
+
+# 🔐 CONFIG LOGIN
 login_manager = LoginManager()
 login_manager.init_app(app)
 login_manager.login_view = "login"
+login_manager.session_protection = "strong"
 
-class User(UserMixin):
-    def __init__(self, id):
-        self.id = id
 
-@login_manager.user_loader
-def load_user(user_id):
-    return User(user_id)
-
-# =========================
-# DATABASE
-# =========================
-DATABASE_URL = os.environ.get("DATABASE_URL")
-
+# ========= BANCO =========
 def get_db_connection():
-    return psycopg2.connect(DATABASE_URL, sslmode="require")
+    return psycopg2.connect(
+        os.environ.get("DATABASE_URL"),
+        sslmode="require"
+    )
+
 
 def init_db():
     conn = get_db_connection()
@@ -63,19 +61,38 @@ def init_db():
     cur.close()
     conn.close()
 
+
 init_db()
 
-# =========================
-# LOGIN
-# =========================
+
+# ========= USUÁRIO =========
+class User(UserMixin):
+    def __init__(self, id):
+        self.id = id
+
+
+@login_manager.user_loader
+def load_user(user_id):
+    return User(user_id)
+
+
+# ========= LOGIN =========
 @app.route("/login", methods=["GET", "POST"])
 def login():
     if request.method == "POST":
-        if request.form["username"] == "admin" and request.form["password"] == "123":
-            login_user(User(1))
+        username = request.form.get("username")
+        password = request.form.get("password")
+
+        # LOGIN FIXO (admin / 1234)
+        if username == "admin" and password == "1234":
+            user = User(1)
+            login_user(user, remember=True)  # 🔥 remember é o ponto-chave
             return redirect(url_for("index"))
+
         return render_template("login.html", erro="Usuário ou senha inválidos")
+
     return render_template("login.html")
+
 
 @app.route("/logout")
 @login_required
@@ -83,23 +100,20 @@ def logout():
     logout_user()
     return redirect(url_for("login"))
 
-# =========================
-# INDEX
-# =========================
+
+# ========= ROTAS =========
 @app.route("/")
 @login_required
 def index():
     conn = get_db_connection()
-    cur = conn.cursor(cursor_factory=RealDictCursor)
+    cur = conn.cursor()
     cur.execute("SELECT * FROM preload ORDER BY id DESC")
     registros = cur.fetchall()
     cur.close()
     conn.close()
     return render_template("index.html", registros=registros)
 
-# =========================
-# SALVAR
-# =========================
+
 @app.route("/salvar", methods=["POST"])
 @login_required
 def salvar():
@@ -150,34 +164,13 @@ def salvar():
 
     return redirect(url_for("index"))
 
-# =========================
-# EXCLUIR
-# =========================
-@app.route("/excluir/<int:id>")
+
+# 🔒 BLINDAGEM
+@app.route("/novo")
 @login_required
-def excluir(id):
-    conn = get_db_connection()
-    cur = conn.cursor()
-    cur.execute("DELETE FROM preload WHERE id=%s", (id,))
-    conn.commit()
-    cur.close()
-    conn.close()
+def novo():
     return redirect(url_for("index"))
 
-# =========================
-# DASHBOARD
-# =========================
-@app.route("/dashboard")
-@login_required
-def dashboard():
-    conn = get_db_connection()
-    cur = conn.cursor(cursor_factory=RealDictCursor)
-    cur.execute("SELECT status, COUNT(*) qtd FROM preload GROUP BY status")
-    status = cur.fetchall()
-    cur.close()
-    conn.close()
-    return render_template("dashboard.html", status=status)
 
-# =========================
 if __name__ == "__main__":
-    app.run(debug=True)
+    app.run()
