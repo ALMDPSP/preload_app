@@ -1,123 +1,69 @@
 <!DOCTYPE html>
-<html lang="pt-br">
+<html>
 <head>
-<meta charset="UTF-8">
-<title>Dashboard | Preload</title>
-
-<style>
-body {
-    margin: 0;
-    font-family: Arial;
-    background: #f4f6f9;
-}
-
-header {
-    background: #2a5298;
-    color: white;
-    padding: 15px 25px;
-    display: flex;
-    justify-content: space-between;
-}
-
-header a {
-    color: white;
-    text-decoration: none;
-    margin-left: 15px;
-    font-size: 14px;
-}
-
-.container {
-    padding: 20px;
-}
-
-.cards {
-    display: grid;
-    grid-template-columns: repeat(auto-fit, minmax(220px, 1fr));
-    gap: 20px;
-}
-
-.card {
-    background: white;
-    padding: 20px;
-    border-radius: 6px;
-    box-shadow: 0 2px 8px rgba(0,0,0,0.1);
-}
-
-.card h2 {
-    margin: 0;
-    font-size: 28px;
-    color: #2a5298;
-}
-
-.card p {
-    margin: 5px 0 0;
-    color: #555;
-}
-
-table {
-    width: 100%;
-    border-collapse: collapse;
-    margin-top: 20px;
-}
-
-th, td {
-    padding: 10px;
-    border-bottom: 1px solid #ddd;
-    text-align: left;
-}
-
-th {
-    background: #f0f0f0;
-}
-</style>
+    <title>Preload</title>
 </head>
-
 <body>
 
-<header>
-<div>Dashboard – Evolução de Aberturas</div>
-<div>
-    <a href="/">Preload</a>
-    <a href="/logout">Sair</a>
-</div>
+<header style="background:#2b5797;color:white;padding:10px">
+    Preload – Abertura de Loja |
+    <a href="/dashboard" style="color:white">Dashboard</a> |
+    <a href="/logout" style="color:white">Sair</a>
 </header>
 
-<div class="container">
+<h3>Novo Preload</h3>
 
-<div class="cards">
-    <div class="card">
-        <h2>{{ total }}</h2>
-        <p>Total de Lojas</p>
-    </div>
-</div>
+<form method="post" action="/salvar">
+    <input name="vd" placeholder="VD">
+    <input name="bandeira" placeholder="Bandeira">
+    <input name="loja" placeholder="Loja">
+    <input name="uf" placeholder="UF"><br><br>
 
-<div class="card">
-<h3>Status das Aberturas</h3>
-<table>
-<tr><th>Status</th><th>Quantidade</th></tr>
-{% for s in por_status %}
+    <input name="municipio" placeholder="Município">
+    <input name="cd_supridor" placeholder="CD Supridor">
+    <input name="montador" placeholder="Montador">
+    <input name="projeto" placeholder="Projeto"><br><br>
+
+    <input name="entrada_ti" placeholder="Entrada TI">
+    <input name="envio_previsto" placeholder="Envio Previsto">
+    <input name="term_obra" placeholder="Term. Obra">
+    <input name="cadastro" placeholder="Cadastro"><br><br>
+
+    <input name="sep_equip" placeholder="Sep. Equip">
+    <input name="emissao_nfe" placeholder="Emissão NFe">
+    <input name="link" placeholder="Link">
+    <input name="status" placeholder="Status"><br><br>
+
+    <input name="cnpj" placeholder="CNPJ">
+    <input name="precos_datahub" placeholder="Preços/DataHub">
+    <input name="preloading" placeholder="Preloading">
+    <input name="em_loja" placeholder="Em Loja"><br><br>
+
+    <textarea name="observacoes" placeholder="Observações"></textarea><br><br>
+
+    <button>Salvar</button>
+</form>
+
+<h3>Registros</h3>
+
+<table border="1" width="100%">
 <tr>
-    <td>{{ s[0] if s[0] else 'Não informado' }}</td>
-    <td>{{ s[1] }}</td>
+    <th>VD</th><th>Loja</th><th>UF</th><th>Status</th><th>Projeto</th><th>Ações</th>
+</tr>
+
+{% for r in registros %}
+<tr>
+    <td>{{ r[1] }}</td>
+    <td>{{ r[2] }}</td>
+    <td>{{ r[3] }}</td>
+    <td>{{ r[4] }}</td>
+    <td>{{ r[5] }}</td>
+    <td>
+        <a href="/excluir/{{ r[0] }}">Excluir</a>
+    </td>
 </tr>
 {% endfor %}
 </table>
-</div>
-
-<div class="card">
-<h3>Lojas por UF</h3>
-<table>
-<tr><th>UF</th><th>Quantidade</th></tr>
-{% for u in por_uf %}
-<tr>
-    <td>{{ u[0] if u[0] else 'Não informado' }}</td>
-    <td>{{ u[1] }}</td>
-</tr>
-{% endfor %}
-</table>
-</div>
-
-</div>
 
 </body>
 </html>
