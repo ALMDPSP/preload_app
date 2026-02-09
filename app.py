@@ -4,29 +4,24 @@ from flask import Flask, render_template, request, redirect, url_for, flash
 from flask_login import (
     LoginManager, UserMixin,
     login_user, login_required,
-    logout_user, current_user
+    logout_user
 )
 
 # ===============================
-# App
+# APP
 # ===============================
 app = Flask(__name__)
-app.secret_key = "preload-secret-key"
+app.secret_key = "preload-secret"
 
 # ===============================
-# Login Manager
+# LOGIN
 # ===============================
 login_manager = LoginManager()
 login_manager.init_app(app)
 login_manager.login_view = "login"
 
-# ===============================
-# Usuário fixo (inicial)
-# ===============================
 USERS = {
-    "admin": {
-        "password": "admin123"
-    }
+    "admin": "admin123"
 }
 
 class User(UserMixin):
@@ -40,7 +35,7 @@ def load_user(user_id):
     return None
 
 # ===============================
-# Banco
+# BANCO
 # ===============================
 DATABASE_URL = os.getenv("DATABASE_URL")
 
@@ -53,13 +48,11 @@ def get_conn():
 @app.route("/login", methods=["GET", "POST"])
 def login():
     if request.method == "POST":
-        username = request.form.get("username")
-        password = request.form.get("password")
+        u = request.form["username"]
+        p = request.form["password"]
 
-        user = USERS.get(username)
-
-        if user and user["password"] == password:
-            login_user(User(username))
+        if u in USERS and USERS[u] == p:
+            login_user(User(u))
             return redirect(url_for("index"))
 
         flash("Usuário ou senha inválidos")
@@ -80,6 +73,7 @@ def logout():
 # ===============================
 @app.route("/")
 @app.route("/index")
+@app.route("/dashboard")
 @login_required
 def index():
     with get_conn() as conn:
@@ -93,40 +87,13 @@ def index():
 
     return render_template("index.html", registros=registros)
 
-@app.route("/dashboard")
-@login_required
-def dashboard():
-    return redirect(url_for("index"))
-
 # ===============================
 # SALVAR
 # ===============================
 @app.route("/salvar", methods=["POST"])
 @login_required
 def salvar():
-    dados = {
-        "vd": request.form.get("vd"),
-        "bandeira": request.form.get("bandeira"),
-        "loja": request.form.get("loja"),
-        "uf": request.form.get("uf"),
-        "municipio": request.form.get("municipio"),
-        "cd_supridor": request.form.get("cd_supridor"),
-        "montador": request.form.get("montador"),
-        "projeto": request.form.get("projeto"),
-        "entrada_ti": request.form.get("entrada_ti"),
-        "envio_previsto": request.form.get("envio_previsto"),
-        "term_obra": request.form.get("term_obra"),
-        "cadastro": request.form.get("cadastro"),
-        "sep_equip": request.form.get("sep_equip"),
-        "emissao_nfe": request.form.get("emissao_nfe"),
-        "link": request.form.get("link"),
-        "status": request.form.get("status"),
-        "cnpj": request.form.get("cnpj"),
-        "precos_datahub": request.form.get("precos_datahub"),
-        "preloading": request.form.get("preloading"),
-        "em_loja": request.form.get("em_loja"),
-        "observacoes": request.form.get("observacoes"),
-    }
+    dados = dict(request.form)
 
     with get_conn() as conn:
         with conn.cursor() as cur:
@@ -145,8 +112,9 @@ def salvar():
                     %(em_loja)s, %(observacoes)s
                 )
             """, dados)
+        conn.commit()
 
-    flash("Registro salvo com sucesso!")
+    flash("Registro salvo com sucesso")
     return redirect(url_for("index"))
 
 # ===============================
@@ -158,11 +126,13 @@ def excluir(id):
     with get_conn() as conn:
         with conn.cursor() as cur:
             cur.execute("DELETE FROM preload WHERE id = %s", (id,))
+        conn.commit()
+
     flash("Registro excluído")
     return redirect(url_for("index"))
 
 # ===============================
-# MAIN
+# START
 # ===============================
 if __name__ == "__main__":
     app.run()
