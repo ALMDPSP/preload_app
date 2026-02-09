@@ -1,155 +1,62 @@
 <!DOCTYPE html>
-<html lang="pt-br">
+<html>
 <head>
-<meta charset="UTF-8">
-<title>Preload – Abertura de Loja</title>
-
-<style>
-body {
-    margin: 0;
-    font-family: Arial, Helvetica, sans-serif;
-    background: #f4f6f8;
-}
-
-header {
-    background: #2f5597;
-    color: white;
-    padding: 14px 24px;
-    display: flex;
-    justify-content: space-between;
-    align-items: center;
-}
-
-header a {
-    color: white;
-    text-decoration: none;
-    margin-left: 15px;
-    font-weight: bold;
-}
-
-.container {
-    padding: 20px;
-}
-
-.card {
-    background: white;
-    padding: 20px;
-    border-radius: 6px;
-    margin-bottom: 25px;
-}
-
-.grid {
-    display: grid;
-    grid-template-columns: repeat(4, 1fr);
-    gap: 10px;
-}
-
-.grid input, textarea {
-    width: 100%;
-    padding: 6px;
-    box-sizing: border-box;
-}
-
-textarea {
-    grid-column: span 4;
-}
-
-button {
-    background: #2f5597;
-    color: white;
-    padding: 8px 18px;
-    border: none;
-    border-radius: 4px;
-    cursor: pointer;
-}
-
-table {
-    width: 100%;
-    border-collapse: collapse;
-}
-
-th, td {
-    border: 1px solid #ccc;
-    padding: 8px;
-    text-align: center;
-}
-
-th {
-    background: #eee;
-}
-
-.acao a {
-    margin: 0 5px;
-    text-decoration: none;
-}
-</style>
+    <title>Preload</title>
+    <style>
+        body { font-family: Arial;background:#f4f6f9;margin:0 }
+        header { background:#2f5597;color:white;padding:12px 20px;display:flex;justify-content:space-between }
+        a { color:white;text-decoration:none;margin-left:15px }
+        .container { padding:20px }
+        table { width:100%;border-collapse:collapse;background:white }
+        th,td { border:1px solid #ddd;padding:8px;text-align:center }
+        th { background:#eee }
+        input,textarea { width:100%;padding:6px }
+        button { background:#2f5597;color:white;border:none;padding:8px 14px;margin-top:10px }
+    </style>
 </head>
-
 <body>
 
 <header>
-  <strong>Preload – Abertura de Loja</strong>
-  <div>
-    <a href="/index">Dashboard</a>
-    <a href="/logout">Sair</a>
-  </div>
+    <strong>Preload – Abertura de Loja</strong>
+    <div>
+        <a href="/index">Dashboard</a>
+        <a href="/logout">Sair</a>
+    </div>
 </header>
 
 <div class="container">
-
-<div class="card">
 <h3>Novo Preload</h3>
 
 <form method="post" action="/salvar">
-<input type="hidden" name="id" value="{{ editar[0] if editar }}">
-
-<div class="grid">
-<input name="vd" placeholder="VD" value="{{ editar[1] if editar }}">
-<input name="bandeira" placeholder="Bandeira" value="{{ editar[2] if editar }}">
-<input name="loja" placeholder="Loja" value="{{ editar[3] if editar }}">
-<input name="uf" placeholder="UF" value="{{ editar[4] if editar }}">
-
+<input name="vd" placeholder="VD">
+<input name="bandeira" placeholder="Bandeira">
+<input name="loja" placeholder="Loja">
+<input name="uf" placeholder="UF">
 <input name="municipio" placeholder="Município">
 <input name="cd_supridor" placeholder="CD Supridor">
 <input name="montador" placeholder="Montador">
 <input name="projeto" placeholder="Projeto">
-
 <input name="entrada_ti" placeholder="Entrada TI">
 <input name="envio_previsto" placeholder="Envio Previsto">
 <input name="term_obra" placeholder="Term. Obra">
 <input name="cadastro" placeholder="Cadastro">
-
-<input name="sep_equip" placeholder="Sep. Equip.">
-<input name="emissao_nfe" placeholder="Emissão NFe">
+<input name="sep_equip" placeholder="Sep. Equip">
+<input name="emissao_nfe" placeholder="Emissão NF-e">
 <input name="link" placeholder="Link">
 <input name="status" placeholder="Status">
-
 <input name="cnpj" placeholder="CNPJ">
 <input name="precos_datahub" placeholder="Preços/DataHub">
 <input name="preloading" placeholder="Preloading">
 <input name="em_loja" placeholder="Em Loja">
-
 <textarea name="observacoes" placeholder="Observações"></textarea>
-</div>
-
-<br>
-<button type="submit">Salvar</button>
+<button>Salvar</button>
 </form>
-</div>
 
-<div class="card">
 <h3>Registros</h3>
-
 <table>
 <tr>
-<th>VD</th>
-<th>Loja</th>
-<th>UF</th>
-<th>Status</th>
-<th>Projeto</th>
-<th>Ações</th>
+<th>VD</th><th>Loja</th><th>UF</th><th>Status</th><th>Projeto</th><th>Ações</th>
 </tr>
-
 {% for r in registros %}
 <tr>
 <td>{{ r[1] }}</td>
@@ -157,14 +64,13 @@ th {
 <td>{{ r[3] }}</td>
 <td>{{ r[4] }}</td>
 <td>{{ r[5] }}</td>
-<td class="acao">
+<td>
 <a href="/editar/{{ r[0] }}">✏️</a>
 <a href="/excluir/{{ r[0] }}">🗑️</a>
 </td>
 </tr>
 {% endfor %}
 </table>
-</div>
 
 </div>
 </body>
