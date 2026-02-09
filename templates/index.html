@@ -1,69 +1,65 @@
 <!DOCTYPE html>
-<html>
+<html lang="pt-br">
 <head>
-    <title>Preload</title>
+<meta charset="UTF-8">
+<title>Preload – Abertura de Loja</title>
+<link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.2/dist/css/bootstrap.min.css">
 </head>
-<body>
+<body class="bg-light">
 
-<header style="background:#2b5797;color:white;padding:10px">
-    Preload – Abertura de Loja |
-    <a href="/dashboard" style="color:white">Dashboard</a> |
-    <a href="/logout" style="color:white">Sair</a>
-</header>
+<nav class="navbar navbar-dark bg-primary px-3">
+  <span class="navbar-brand">Preload – Abertura de Loja</span>
+  <div>
+    <a href="/dashboard" class="btn btn-light btn-sm">Dashboard</a>
+    <a href="/logout" class="btn btn-danger btn-sm">Sair</a>
+  </div>
+</nav>
 
-<h3>Novo Preload</h3>
+<div class="container mt-4">
 
-<form method="post" action="/salvar">
-    <input name="vd" placeholder="VD">
-    <input name="bandeira" placeholder="Bandeira">
-    <input name="loja" placeholder="Loja">
-    <input name="uf" placeholder="UF"><br><br>
+<form method="POST" action="/salvar" class="card p-3 mb-4">
+<h5>Novo Preload</h5>
 
-    <input name="municipio" placeholder="Município">
-    <input name="cd_supridor" placeholder="CD Supridor">
-    <input name="montador" placeholder="Montador">
-    <input name="projeto" placeholder="Projeto"><br><br>
+<div class="row g-2">
+  {% for campo in [
+    "vd","bandeira","loja","uf","municipio","cd_supridor","montador",
+    "projeto","entrada_ti","envio_previsto","term_obra","cadastro",
+    "sep_equip","emissao_nfe","link","status","cnpj","precos_datahub",
+    "preloading","em_loja"
+  ] %}
+  <div class="col-md-3">
+    <input class="form-control" name="{{campo}}" placeholder="{{campo|replace('_',' ')}}">
+  </div>
+  {% endfor %}
+</div>
 
-    <input name="entrada_ti" placeholder="Entrada TI">
-    <input name="envio_previsto" placeholder="Envio Previsto">
-    <input name="term_obra" placeholder="Term. Obra">
-    <input name="cadastro" placeholder="Cadastro"><br><br>
+<textarea class="form-control mt-2" name="observacoes" placeholder="Observações"></textarea>
 
-    <input name="sep_equip" placeholder="Sep. Equip">
-    <input name="emissao_nfe" placeholder="Emissão NFe">
-    <input name="link" placeholder="Link">
-    <input name="status" placeholder="Status"><br><br>
-
-    <input name="cnpj" placeholder="CNPJ">
-    <input name="precos_datahub" placeholder="Preços/DataHub">
-    <input name="preloading" placeholder="Preloading">
-    <input name="em_loja" placeholder="Em Loja"><br><br>
-
-    <textarea name="observacoes" placeholder="Observações"></textarea><br><br>
-
-    <button>Salvar</button>
+<button class="btn btn-primary mt-2">Salvar</button>
 </form>
 
-<h3>Registros</h3>
+<div class="card p-3">
+<h5>Registros</h5>
 
-<table border="1" width="100%">
+<table class="table table-bordered table-sm">
 <tr>
-    <th>VD</th><th>Loja</th><th>UF</th><th>Status</th><th>Projeto</th><th>Ações</th>
+<th>VD</th><th>Loja</th><th>UF</th><th>Status</th><th>Projeto</th><th>Ações</th>
 </tr>
-
 {% for r in registros %}
 <tr>
-    <td>{{ r[1] }}</td>
-    <td>{{ r[2] }}</td>
-    <td>{{ r[3] }}</td>
-    <td>{{ r[4] }}</td>
-    <td>{{ r[5] }}</td>
-    <td>
-        <a href="/excluir/{{ r[0] }}">Excluir</a>
-    </td>
+<td>{{r[1]}}</td>
+<td>{{r[2]}}</td>
+<td>{{r[3]}}</td>
+<td>{{r[4]}}</td>
+<td>{{r[5]}}</td>
+<td>
+<a href="/excluir/{{r[0]}}" class="btn btn-danger btn-sm">Excluir</a>
+</td>
 </tr>
 {% endfor %}
 </table>
 
+</div>
+</div>
 </body>
 </html>
