@@ -1,47 +1,87 @@
-from flask import Flask, render_template, request, redirect, url_for, session, flash
-import psycopg
 import os
+import psycopg
+from flask import Flask, render_template, request, redirect, url_for, flash
+from flask_login import (
+    LoginManager, UserMixin,
+    login_user, login_required,
+    logout_user, current_user
+)
 
+# ===============================
+# App
+# ===============================
 app = Flask(__name__)
-app.secret_key = os.environ.get("SECRET_KEY", "preload-secret-2026")
+app.secret_key = "preload-secret-key"
 
-DATABASE_URL = os.environ.get("DATABASE_URL")
+# ===============================
+# Login Manager
+# ===============================
+login_manager = LoginManager()
+login_manager.init_app(app)
+login_manager.login_view = "login"
+
+# ===============================
+# Usuário fixo (inicial)
+# ===============================
+USERS = {
+    "admin": {
+        "password": "admin123"
+    }
+}
+
+class User(UserMixin):
+    def __init__(self, username):
+        self.id = username
+
+@login_manager.user_loader
+def load_user(user_id):
+    if user_id in USERS:
+        return User(user_id)
+    return None
+
+# ===============================
+# Banco
+# ===============================
+DATABASE_URL = os.getenv("DATABASE_URL")
 
 def get_conn():
-    return psycopg.connect(DATABASE_URL, sslmode="require")
+    return psycopg.connect(DATABASE_URL)
 
-# ================= LOGIN =================
-@app.route("/", methods=["GET"])
-def root():
-    return redirect(url_for("login"))
-
+# ===============================
+# LOGIN
+# ===============================
 @app.route("/login", methods=["GET", "POST"])
 def login():
     if request.method == "POST":
-        user = request.form.get("username")
+        username = request.form.get("username")
         password = request.form.get("password")
 
-        if user == "admin" and password == "admin":
-            session.clear()
-            session["user"] = user
+        user = USERS.get(username)
+
+        if user and user["password"] == password:
+            login_user(User(username))
             return redirect(url_for("index"))
-        else:
-            flash("Usuário ou senha inválidos")
-            return redirect(url_for("login"))
+
+        flash("Usuário ou senha inválidos")
 
     return render_template("login.html")
 
+# ===============================
+# LOGOUT
+# ===============================
 @app.route("/logout")
+@login_required
 def logout():
-    session.clear()
+    logout_user()
     return redirect(url_for("login"))
 
-# ================= INDEX / DASHBOARD =================
+# ===============================
+# INDEX / DASHBOARD
+# ===============================
+@app.route("/")
 @app.route("/index")
+@login_required
 def index():
-    if "user" not in session:
-        return redirect(url_for("login"))
-
     with get_conn() as conn:
         with conn.cursor() as cur:
             cur.execute("""
@@ -53,20 +93,40 @@ def index():
 
     return render_template("index.html", registros=registros)
 
-# ================= SALVAR =================
+@app.route("/dashboard")
+@login_required
+def dashboard():
+    return redirect(url_for("index"))
+
+# ===============================
+# SALVAR
+# ===============================
 @app.route("/salvar", methods=["POST"])
+@login_required
 def salvar():
-    if "user" not in session:
-        return redirect(url_for("login"))
-
-    campos = [
-        "vd","bandeira","loja","uf","municipio","cd_supridor","montador",
-        "projeto","entrada_ti","envio_previsto","term_obra","cadastro",
-        "sep_equip","emissao_nfe","link","status","cnpj","precos_datahub",
-        "preloading","em_loja","observacoes"
-    ]
-
-    dados = {c: request.form.get(c, "") for c in campos}
+    dados = {
+        "vd": request.form.get("vd"),
+        "bandeira": request.form.get("bandeira"),
+        "loja": request.form.get("loja"),
+        "uf": request.form.get("uf"),
+        "municipio": request.form.get("municipio"),
+        "cd_supridor": request.form.get("cd_supridor"),
+        "montador": request.form.get("montador"),
+        "projeto": request.form.get("projeto"),
+        "entrada_ti": request.form.get("entrada_ti"),
+        "envio_previsto": request.form.get("envio_previsto"),
+        "term_obra": request.form.get("term_obra"),
+        "cadastro": request.form.get("cadastro"),
+        "sep_equip": request.form.get("sep_equip"),
+        "emissao_nfe": request.form.get("emissao_nfe"),
+        "link": request.form.get("link"),
+        "status": request.form.get("status"),
+        "cnpj": request.form.get("cnpj"),
+        "precos_datahub": request.form.get("precos_datahub"),
+        "preloading": request.form.get("preloading"),
+        "em_loja": request.form.get("em_loja"),
+        "observacoes": request.form.get("observacoes"),
+    }
 
     with get_conn() as conn:
         with conn.cursor() as cur:
@@ -77,39 +137,32 @@ def salvar():
                     sep_equip, emissao_nfe, link, status, cnpj, precos_datahub,
                     preloading, em_loja, observacoes
                 ) VALUES (
-                    %(vd)s, %(bandeira)s, %(loja)s, %(uf)s, %(municipio)s, %(cd_supridor)s, %(montador)s,
-                    %(projeto)s, %(entrada_ti)s, %(envio_previsto)s, %(term_obra)s, %(cadastro)s,
-                    %(sep_equip)s, %(emissao_nfe)s, %(link)s, %(status)s, %(cnpj)s, %(precos_datahub)s,
-                    %(preloading)s, %(em_loja)s, %(observacoes)s
+                    %(vd)s, %(bandeira)s, %(loja)s, %(uf)s, %(municipio)s,
+                    %(cd_supridor)s, %(montador)s, %(projeto)s, %(entrada_ti)s,
+                    %(envio_previsto)s, %(term_obra)s, %(cadastro)s,
+                    %(sep_equip)s, %(emissao_nfe)s, %(link)s, %(status)s,
+                    %(cnpj)s, %(precos_datahub)s, %(preloading)s,
+                    %(em_loja)s, %(observacoes)s
                 )
             """, dados)
 
+    flash("Registro salvo com sucesso!")
     return redirect(url_for("index"))
 
-# ================= EXCLUIR =================
+# ===============================
+# EXCLUIR
+# ===============================
 @app.route("/excluir/<int:id>")
+@login_required
 def excluir(id):
-    if "user" not in session:
-        return redirect(url_for("login"))
-
     with get_conn() as conn:
         with conn.cursor() as cur:
             cur.execute("DELETE FROM preload WHERE id = %s", (id,))
-
+    flash("Registro excluído")
     return redirect(url_for("index"))
 
-# ================= DASHBOARD =================
-@app.route("/dashboard")
-def dashboard():
-    if "user" not in session:
-        return redirect(url_for("login"))
-
-    with get_conn() as conn:
-        with conn.cursor() as cur:
-            cur.execute("SELECT status, COUNT(*) FROM preload GROUP BY status")
-            status = cur.fetchall()
-
-    return render_template("dashboard.html", status=status)
-
+# ===============================
+# MAIN
+# ===============================
 if __name__ == "__main__":
     app.run()
