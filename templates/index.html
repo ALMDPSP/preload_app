@@ -1,98 +1,96 @@
 <!DOCTYPE html>
 <html lang="pt-br">
 <head>
-    <meta charset="UTF-8">
-    <title>Preload – Abertura de Loja</title>
-    <style>
-        body { font-family: Arial; background: #f5f6fa; margin: 0; }
-        header {
-            background: #2a5298;
-            color: white;
-            padding: 12px 20px;
-            display: flex;
-            justify-content: space-between;
-        }
-        .container { padding: 20px; }
-        .card {
-            background: white;
-            padding: 15px;
-            border-radius: 6px;
-            margin-bottom: 20px;
-        }
-        input, textarea {
-            width: 100%;
-            padding: 6px;
-            margin: 4px 0 10px 0;
-        }
-        button {
-            background: #2a5298;
-            color: white;
-            padding: 8px 16px;
-            border: none;
-            border-radius: 4px;
-            cursor: pointer;
-        }
-        table {
-            width: 100%;
-            border-collapse: collapse;
-        }
-        th, td {
-            border: 1px solid #ccc;
-            padding: 6px;
-            text-align: center;
-        }
-        a { color: #2a5298; text-decoration: none; }
-    </style>
+<meta charset="UTF-8">
+<title>Preload – Abertura de Loja</title>
+<style>
+body { font-family: Arial; background:#f4f6f9; margin:0; }
+header { background:#2a5298; color:#fff; padding:12px 20px; display:flex; justify-content:space-between; }
+.container { padding:20px; }
+.card { background:#fff; padding:15px; border-radius:6px; margin-bottom:20px; }
+.grid { display:grid; grid-template-columns: repeat(4, 1fr); gap:8px; }
+input, textarea { width:100%; padding:6px; }
+textarea { grid-column: span 4; }
+button { background:#2a5298; color:#fff; border:none; padding:8px 14px; cursor:pointer; }
+table { width:100%; border-collapse:collapse; font-size:13px; }
+th, td { border:1px solid #ccc; padding:6px; text-align:center; }
+a { text-decoration:none; color:#2a5298; }
+</style>
 </head>
+
 <body>
 
 <header>
-    <strong>Preload – Abertura de Loja</strong>
-    <div>
-        <a href="/dashboard">Dashboard</a> |
-        <a href="/logout">Sair</a>
-    </div>
+<strong>Preload – Abertura de Loja</strong>
+<a href="/logout">Sair</a>
 </header>
 
 <div class="container">
 
-    <div class="card">
-        <h3>Novo Preload</h3>
-        <form method="POST" action="/salvar">
-            <input name="vd" placeholder="VD">
-            <input name="loja" placeholder="Loja">
-            <input name="uf" placeholder="UF">
-            <input name="status" placeholder="Status">
-            <textarea name="observacoes" placeholder="Observações"></textarea>
-            <button type="submit">Salvar</button>
-        </form>
-    </div>
+<div class="card">
+<h3>{{ 'Editar Preload' if edit else 'Novo Preload' }}</h3>
 
-    <div class="card">
-        <h3>Registros</h3>
-        <table>
-            <tr>
-                <th>VD</th>
-                <th>Loja</th>
-                <th>UF</th>
-                <th>Status</th>
-                <th>Ações</th>
-            </tr>
-            {% for r in registros %}
-            <tr>
-                <td>{{ r.vd }}</td>
-                <td>{{ r.loja }}</td>
-                <td>{{ r.uf }}</td>
-                <td>{{ r.status }}</td>
-                <td>
-                    <a href="/excluir/{{ r.id }}">🗑️ Excluir</a>
-                </td>
-            </tr>
-            {% endfor %}
-        </table>
-    </div>
+<form method="POST" action="/salvar">
+<input type="hidden" name="id" value="{{ edit.id if edit }}">
 
+<div class="grid">
+<input name="vd" placeholder="VD" value="{{ edit.vd if edit }}">
+<input name="bandeira" placeholder="Bandeira" value="{{ edit.bandeira if edit }}">
+<input name="loja" placeholder="Loja" value="{{ edit.loja if edit }}">
+<input name="uf" placeholder="UF" value="{{ edit.uf if edit }}">
+
+<input name="municipio" placeholder="Município" value="{{ edit.municipio if edit }}">
+<input name="cd_supridor" placeholder="CD Supridor" value="{{ edit.cd_supridor if edit }}">
+<input name="montador" placeholder="Montador" value="{{ edit.montador if edit }}">
+<input name="projeto" placeholder="Projeto" value="{{ edit.projeto if edit }}">
+
+<input name="entrada_ti" placeholder="Entrada TI" value="{{ edit.entrada_ti if edit }}">
+<input name="envio_previsto" placeholder="Envio Previsto" value="{{ edit.envio_previsto if edit }}">
+<input name="term_obra" placeholder="Term. Obra" value="{{ edit.term_obra if edit }}">
+<input name="cadastro" placeholder="Cadastro" value="{{ edit.cadastro if edit }}">
+
+<input name="sep_equip" placeholder="Sep. Equip." value="{{ edit.sep_equip if edit }}">
+<input name="emissao_nfe" placeholder="Emissão NFe" value="{{ edit.emissao_nfe if edit }}">
+<input name="link" placeholder="Link" value="{{ edit.link if edit }}">
+<input name="status" placeholder="Status" value="{{ edit.status if edit }}">
+
+<input name="cnpj" placeholder="CNPJ" value="{{ edit.cnpj if edit }}">
+<input name="precos_datahub" placeholder="Preços/DataHub" value="{{ edit.precos_datahub if edit }}">
+<input name="preloading" placeholder="Preloading" value="{{ edit.preloading if edit }}">
+<input name="em_loja" placeholder="Em Loja" value="{{ edit.em_loja if edit }}">
+
+<textarea name="observacoes" placeholder="Observações">{{ edit.observacoes if edit }}</textarea>
 </div>
 
+<br>
+<button type="submit">{{ 'Atualizar' if edit else 'Salvar' }}</button>
+</form>
+</div>
+
+<div class="card">
+<h3>Registros</h3>
+
+<table>
+<tr>
+<th>VD</th><th>Loja</th><th>UF</th><th>Status</th><th>Projeto</th><th>Ações</th>
+</tr>
+
+{% for r in registros %}
+<tr>
+<td>{{ r.vd }}</td>
+<td>{{ r.loja }}</td>
+<td>{{ r.uf }}</td>
+<td>{{ r.status }}</td>
+<td>{{ r.projeto }}</td>
+<td>
+<a href="/editar/{{ r.id }}">✏️ Editar</a> |
+<a href="/excluir/{{ r.id }}">🗑️ Excluir</a>
+</td>
+</tr>
+{% endfor %}
+</table>
+</div>
+
+</div>
 </body>
 </html>
