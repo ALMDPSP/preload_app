@@ -35,7 +35,16 @@ def criar_tabela():
                     loja TEXT,
                     entrada_ti TEXT,
                     term_obra TEXT,
-                    link TEXT
+                    link TEXT,
+                    servidor TEXT,
+                    pdvs TEXT,
+                    balcoes TEXT,
+                    hibrido TEXT,
+                    treinamento TEXT,
+                    venda_dinheiro TEXT,
+                    venda_cartao TEXT,
+                    pix TEXT,
+                    observacoes TEXT
                 )
             """)
             conn.commit()
@@ -64,15 +73,45 @@ def logout():
 def index():
     criar_tabela()
 
-    # Dados fixos por enquanto (layout visual)
-    filial = {
-        "loja": "Filial Exemplo",
-        "entrada_ti": "01/04/2026",
-        "term_obra": "05/04/2026",
-        "link": "192.168.0.10"
-    }
+    with get_conn() as conn:
+        with conn.cursor(row_factory=psycopg.rows.dict_row) as cur:
+            cur.execute("SELECT * FROM preload ORDER BY id DESC LIMIT 1")
+            registro = cur.fetchone()
 
-    return render_template("index.html", filial=filial)
+    return render_template("index.html", registro=registro)
+
+# ================= SALVAR =================
+@app.route("/salvar", methods=["POST"])
+@login_required
+def salvar():
+    dados = request.form
+
+    with get_conn() as conn:
+        with conn.cursor() as cur:
+            cur.execute("""
+                INSERT INTO preload (
+                    loja, entrada_ti, term_obra, link,
+                    servidor, pdvs, balcoes, hibrido, treinamento,
+                    venda_dinheiro, venda_cartao, pix, observacoes
+                ) VALUES (%s,%s,%s,%s,%s,%s,%s,%s,%s,%s,%s,%s,%s)
+            """, (
+                dados.get("loja"),
+                dados.get("entrada_ti"),
+                dados.get("term_obra"),
+                dados.get("link"),
+                dados.get("servidor"),
+                dados.get("pdvs"),
+                dados.get("balcoes"),
+                dados.get("hibrido"),
+                dados.get("treinamento"),
+                dados.get("venda_dinheiro"),
+                dados.get("venda_cartao"),
+                dados.get("pix"),
+                dados.get("observacoes"),
+            ))
+            conn.commit()
+
+    return redirect(url_for("index"))
 
 if __name__ == "__main__":
     app.run(debug=True)
