@@ -3,64 +3,19 @@
 <head>
 <title>Dashboard</title>
 <style>
-.verde { color:green; }
-.amarelo { color:orange; }
-.vermelho { color:red; }
-.azul { color:blue; }
-.card { border:1px solid #ccc; padding:15px; margin:15px 0; }
+body { font-family: Arial; margin:40px; }
+h1 { color:#2a5298; }
+.logout {
+    float:right;
+}
 </style>
 </head>
 <body>
 
-<a href="/logout">Sair</a>
+<a class="logout" href="/logout">Sair</a>
 
-<h2>Nova Filial</h2>
-
-<form method="POST" action="/salvar">
-<input name="loja" placeholder="Filial" required>
-<input name="data_inicio" placeholder="Data Inicio">
-<input name="data_termino" placeholder="Data Termino">
-<input name="ip" placeholder="IP">
-
-<select name="venda_dinheiro">
-<option value="verde">🟢</option>
-<option value="amarelo">🟡</option>
-<option value="vermelho">🔴</option>
-<option value="azul">🔵</option>
-</select>
-
-<select name="venda_cartao">
-<option value="verde">🟢</option>
-<option value="amarelo">🟡</option>
-<option value="vermelho">🔴</option>
-<option value="azul">🔵</option>
-</select>
-
-<select name="pix">
-<option value="verde">🟢</option>
-<option value="amarelo">🟡</option>
-<option value="vermelho">🔴</option>
-<option value="azul">🔵</option>
-</select>
-
-<button type="submit">Salvar</button>
-</form>
-
-<hr>
-
-<h2>Filiais Cadastradas</h2>
-
-{% for f in filiais %}
-<div class="card">
-<h3>{{ f.loja }}</h3>
-<p>Início: {{ f.data_inicio }}</p>
-<p>Término: {{ f.data_termino }}</p>
-<p>IP: {{ f.ip }}</p>
-<p class="{{ f.venda_dinheiro }}">Venda Dinheiro</p>
-<p class="{{ f.venda_cartao }}">Venda Cartão</p>
-<p class="{{ f.pix }}">Pix</p>
-</div>
-{% endfor %}
+<h1>🏥 Sistema Preload</h1>
+<p>Login realizado com sucesso.</p>
 
 </body>
 </html>
