@@ -30,6 +30,35 @@ def get_conn():
     return psycopg.connect(DATABASE_URL)
 
 # =========================
+# ROTA TEMPORÁRIA PARA CRIAR COLUNAS
+# =========================
+@app.route("/criar_colunas")
+def criar_colunas():
+    with get_conn() as conn:
+        with conn.cursor() as cur:
+            cur.execute("""
+                ALTER TABLE preload ADD COLUMN IF NOT EXISTS servidor_status TEXT;
+                ALTER TABLE preload ADD COLUMN IF NOT EXISTS pdv_status TEXT;
+                ALTER TABLE preload ADD COLUMN IF NOT EXISTS balcao_status TEXT;
+                ALTER TABLE preload ADD COLUMN IF NOT EXISTS hibrido_status TEXT;
+                ALTER TABLE preload ADD COLUMN IF NOT EXISTS treinamento_status TEXT;
+
+                ALTER TABLE preload ADD COLUMN IF NOT EXISTS venda_dinheiro TEXT;
+                ALTER TABLE preload ADD COLUMN IF NOT EXISTS venda_cartao TEXT;
+                ALTER TABLE preload ADD COLUMN IF NOT EXISTS pix TEXT;
+                ALTER TABLE preload ADD COLUMN IF NOT EXISTS ddg TEXT;
+                ALTER TABLE preload ADD COLUMN IF NOT EXISTS recarga TEXT;
+                ALTER TABLE preload ADD COLUMN IF NOT EXISTS fidelize TEXT;
+                ALTER TABLE preload ADD COLUMN IF NOT EXISTS parcelamento TEXT;
+                ALTER TABLE preload ADD COLUMN IF NOT EXISTS logix TEXT;
+                ALTER TABLE preload ADD COLUMN IF NOT EXISTS vida_link TEXT;
+                ALTER TABLE preload ADD COLUMN IF NOT EXISTS epharma TEXT;
+                ALTER TABLE preload ADD COLUMN IF NOT EXISTS funcional_card TEXT;
+            """)
+            conn.commit()
+    return "Colunas criadas com sucesso!"
+
+# =========================
 # LOGIN ROUTES
 # =========================
 @app.route("/login", methods=["GET", "POST"])
@@ -38,7 +67,6 @@ def login():
         user = request.form["username"]
         password = request.form["password"]
 
-        # LOGIN FIXO (pode trocar por banco depois)
         if user == "admin" and password == "1234":
             login_user(User(user))
             return redirect(url_for("index"))
@@ -54,7 +82,7 @@ def logout():
     return redirect(url_for("login"))
 
 # =========================
-# INDEX / DASHBOARD
+# INDEX
 # =========================
 @app.route("/")
 @login_required
@@ -71,7 +99,7 @@ def index():
 @app.route("/salvar", methods=["POST"])
 @login_required
 def salvar():
-    dados = request.form
+    dados = request.form.to_dict()
 
     with get_conn() as conn:
         with conn.cursor() as cur:
