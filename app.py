@@ -1,36 +1,54 @@
 from flask import Flask, render_template, request, redirect, url_for
-from flask_login import LoginManager, UserMixin, login_user, login_required, logout_user
+from flask_login import LoginManager, UserMixin, login_user, login_required, logout_user, current_user
 import psycopg
 import psycopg.rows
 import os
 
 app = Flask(__name__)
-app.secret_key = "preload-secret-key"
+app.secret_key = "preload-super-system"
 
-# LOGIN
 login_manager = LoginManager()
 login_manager.init_app(app)
 login_manager.login_view = "login"
-
-class User(UserMixin):
-    def __init__(self, id):
-        self.id = id
-
-@login_manager.user_loader
-def load_user(user_id):
-    return User(user_id)
 
 DATABASE_URL = os.environ.get("DATABASE_URL")
 
 def get_conn():
     return psycopg.connect(DATABASE_URL, sslmode="require")
 
-def criar_tabela():
+# ------------------ USER ------------------
+
+class User(UserMixin):
+    def __init__(self, id, username):
+        self.id = id
+        self.username = username
+
+@login_manager.user_loader
+def load_user(user_id):
+    with get_conn() as conn:
+        with conn.cursor(row_factory=psycopg.rows.dict_row) as cur:
+            cur.execute("SELECT * FROM users WHERE id=%s", (user_id,))
+            user = cur.fetchone()
+            if user:
+                return User(user["id"], user["username"])
+    return None
+
+# ------------------ CREATE TABLES ------------------
+
+def create_tables():
     with get_conn() as conn:
         with conn.cursor() as cur:
             cur.execute("""
+            CREATE TABLE IF NOT EXISTS users (
+                id SERIAL PRIMARY KEY,
+                username TEXT UNIQUE,
+                password TEXT
+            )
+            """)
+            cur.execute("""
             CREATE TABLE IF NOT EXISTS preload (
                 id SERIAL PRIMARY KEY,
+                user_id INTEGER,
                 loja TEXT,
                 data_inicio TEXT,
                 data_termino TEXT,
@@ -56,13 +74,32 @@ def criar_tabela():
             """)
             conn.commit()
 
-# LOGIN
+# ------------------ LOGIN ------------------
+
 @app.route("/login", methods=["GET", "POST"])
 def login():
+    create_tables()
+
     if request.method == "POST":
-        if request.form["username"] == "admin" and request.form["password"] == "1234":
-            login_user(User("admin"))
-            return redirect(url_for("dashboard"))
+        username = request.form["username"]
+        password = request.form["password"]
+
+        with get_conn() as conn:
+            with conn.cursor(row_factory=psycopg.rows.dict_row) as cur:
+                cur.execute("SELECT * FROM users WHERE username=%s AND password=%s",
+                            (username, password))
+                user = cur.fetchone()
+
+                if user:
+                    login_user(User(user["id"], user["username"]))
+                    return redirect(url_for("dashboard"))
+                else:
+                    # cria usuário automaticamente se não existir
+                    cur.execute("INSERT INTO users (username, password) VALUES (%s,%s)",
+                                (username, password))
+                    conn.commit()
+                    return redirect(url_for("login"))
+
     return render_template("login.html")
 
 @app.route("/logout")
@@ -71,28 +108,32 @@ def logout():
     logout_user()
     return redirect(url_for("login"))
 
-# DASHBOARD
+# ------------------ DASHBOARD ------------------
+
 @app.route("/")
 @login_required
 def dashboard():
-    criar_tabela()
     with get_conn() as conn:
         with conn.cursor(row_factory=psycopg.rows.dict_row) as cur:
-            cur.execute("SELECT * FROM preload ORDER BY id DESC")
+            cur.execute("SELECT * FROM preload WHERE user_id=%s ORDER BY id DESC",
+                        (current_user.id,))
             filiais = cur.fetchall()
-    return render_template("dashboard.html", filiais=filiais)
 
-# SALVAR / EDITAR
+    return render_template("dashboard.html", filiais=filiais, user=current_user)
+
+# ------------------ SAVE ------------------
+
 @app.route("/salvar", methods=["POST"])
 @login_required
 def salvar():
+
     dados = request.form
     id_registro = dados.get("id")
 
     with get_conn() as conn:
         with conn.cursor() as cur:
 
-            if id_registro:  # EDITAR
+            if id_registro:
                 cur.execute("""
                 UPDATE preload SET
                     loja=%s, data_inicio=%s, data_termino=%s, ip=%s,
@@ -109,17 +150,17 @@ def salvar():
                     dados["vida_link"], dados["epharma"], dados["funcional_card"], dados["obs"],
                     id_registro
                 ))
-
-            else:  # NOVO
+            else:
                 cur.execute("""
                 INSERT INTO preload (
-                    loja, data_inicio, data_termino, ip,
+                    user_id, loja, data_inicio, data_termino, ip,
                     servidor, pdvs, balcoes, hibrido, treinamento,
                     venda_dinheiro, venda_cartao, pix, ddg,
                     recarga, fidelize, parcelamento, logix,
                     vida_link, epharma, funcional_card, obs
                 ) VALUES (%s,%s,%s,%s,%s,%s,%s,%s,%s,%s,%s,%s,%s,%s,%s,%s,%s,%s,%s,%s,%s,%s)
                 """, (
+                    current_user.id,
                     dados["loja"], dados["data_inicio"], dados["data_termino"], dados["ip"],
                     dados["servidor"], dados["pdvs"], dados["balcoes"], dados["hibrido"], dados["treinamento"],
                     dados["venda_dinheiro"], dados["venda_cartao"], dados["pix"], dados["ddg"],
