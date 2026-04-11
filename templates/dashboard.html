@@ -1,72 +1,64 @@
 <!DOCTYPE html>
 <html>
 <head>
-<meta name="viewport" content="width=device-width, initial-scale=1.0">
-<script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+<title>Dashboard</title>
 <style>
-body { font-family:Arial; margin:20px; background:#f4f6f9;}
-.card { background:white; padding:20px; border-radius:12px; margin-bottom:20px;}
-button { padding:10px; background:#0066ff; color:white; border:none;}
-.tabs a { padding:8px; background:#ddd; margin:5px; display:inline-block; text-decoration:none;}
+.verde { color:green; }
+.amarelo { color:orange; }
+.vermelho { color:red; }
+.azul { color:blue; }
+.card { border:1px solid #ccc; padding:15px; margin:15px 0; }
 </style>
 </head>
 <body>
 
-<h2>Bem-vindo {{ user.username }}</h2>
 <a href="/logout">Sair</a>
 
-<div class="card">
-<h3>Resumo Executivo</h3>
-Total: {{ total }} |
-Concluídas: {{ concluidas }} |
-{{ percentual }}%
+<h2>Nova Filial</h2>
 
-<div style="background:#ddd;height:20px;border-radius:10px;">
-<div style="width:{{ percentual }}%;background:green;height:20px;border-radius:10px;"></div>
-</div>
-
-<canvas id="grafico"></canvas>
-</div>
-
-<script>
-new Chart(document.getElementById('grafico'), {
-type:'doughnut',
-data:{
-labels:['Concluídas','Pendentes'],
-datasets:[{data:[{{ concluidas }}, {{ total - concluidas }}]}]
-}
-});
-</script>
-
-<div class="card">
-<h3>Nova Filial</h3>
 <form method="POST" action="/salvar">
-<input name="loja" placeholder="Filial">
-<input name="entrada" placeholder="Data Início">
-<input name="termino" placeholder="Data Término">
+<input name="loja" placeholder="Filial" required>
+<input name="data_inicio" placeholder="Data Inicio">
+<input name="data_termino" placeholder="Data Termino">
 <input name="ip" placeholder="IP">
 
-<select name="servidor">
-<option>🔴</option>
-<option>🟡</option>
-<option>🟢</option>
-<option>🔵</option>
+<select name="venda_dinheiro">
+<option value="verde">🟢</option>
+<option value="amarelo">🟡</option>
+<option value="vermelho">🔴</option>
+<option value="azul">🔵</option>
 </select>
 
-<select name="pdvs">
-<option>🔴</option>
-<option>🟡</option>
-<option>🟢</option>
-<option>🔵</option>
+<select name="venda_cartao">
+<option value="verde">🟢</option>
+<option value="amarelo">🟡</option>
+<option value="vermelho">🔴</option>
+<option value="azul">🔵</option>
+</select>
+
+<select name="pix">
+<option value="verde">🟢</option>
+<option value="amarelo">🟡</option>
+<option value="vermelho">🔴</option>
+<option value="azul">🔵</option>
 </select>
 
 <button type="submit">Salvar</button>
 </form>
-</div>
+
+<hr>
+
+<h2>Filiais Cadastradas</h2>
 
 {% for f in filiais %}
 <div class="card">
-<b>{{ f.loja }}</b> - {{ f.servidor }}
+<h3>{{ f.loja }}</h3>
+<p>Início: {{ f.data_inicio }}</p>
+<p>Término: {{ f.data_termino }}</p>
+<p>IP: {{ f.ip }}</p>
+<p class="{{ f.venda_dinheiro }}">Venda Dinheiro</p>
+<p class="{{ f.venda_cartao }}">Venda Cartão</p>
+<p class="{{ f.pix }}">Pix</p>
 </div>
 {% endfor %}
 
