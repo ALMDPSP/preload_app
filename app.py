@@ -80,14 +80,51 @@ def salvar():
                     vd, bandeira, loja, uf, municipio, cd_supridor, montador,
                     projeto, entrada_ti, envio_previsto, term_obra, cadastro,
                     sep_equip, emissao_nfe, link, status, cnpj, precos_datahub,
-                    preloading, em_loja, observacoes
+                    preloading, em_loja, observacoes,
+
+                    servidor_status,
+                    pdv_status,
+                    balcao_status,
+                    hibrido_status,
+                    treinamento_status,
+
+                    venda_dinheiro,
+                    venda_cartao,
+                    pix,
+                    ddg,
+                    recarga,
+                    fidelize,
+                    parcelamento,
+                    logix,
+                    vida_link,
+                    epharma,
+                    funcional_card
                 ) VALUES (
                     %(vd)s, %(bandeira)s, %(loja)s, %(uf)s, %(municipio)s, %(cd_supridor)s, %(montador)s,
                     %(projeto)s, %(entrada_ti)s, %(envio_previsto)s, %(term_obra)s, %(cadastro)s,
                     %(sep_equip)s, %(emissao_nfe)s, %(link)s, %(status)s, %(cnpj)s, %(precos_datahub)s,
-                    %(preloading)s, %(em_loja)s, %(observacoes)s
+                    %(preloading)s, %(em_loja)s, %(observacoes)s,
+
+                    %(servidor_status)s,
+                    %(pdv_status)s,
+                    %(balcao_status)s,
+                    %(hibrido_status)s,
+                    %(treinamento_status)s,
+
+                    %(venda_dinheiro)s,
+                    %(venda_cartao)s,
+                    %(pix)s,
+                    %(ddg)s,
+                    %(recarga)s,
+                    %(fidelize)s,
+                    %(parcelamento)s,
+                    %(logix)s,
+                    %(vida_link)s,
+                    %(epharma)s,
+                    %(funcional_card)s
                 )
             """, dados)
+
             conn.commit()
 
     return redirect(url_for("index"))
