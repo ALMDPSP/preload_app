@@ -7,64 +7,63 @@
 
 <a href="/logout">🚪 Sair</a>
 
-<h2>🏥 Filial - {{ filial.loja }}</h2>
-<p>📆 Data Início: {{ filial.entrada_ti }}</p>
-<p>📆 Data Término: {{ filial.term_obra }}</p>
-<p>🌎 IP: {{ filial.link }}</p>
+<h2>🏥 Preload Filial</h2>
 
-<hr>
+<form method="POST" action="/salvar">
 
-<h3>LEGENDA:</h3>
-<p>🔴 - Pendente</p>
-<p>🟡 - Em andamento</p>
-<p>🟢 - Concluído</p>
-<p>🔵 - Testes Pendente</p>
+Loja:<br>
+<input type="text" name="loja" value="{{ registro.loja if registro }}"><br><br>
+
+📆 Data Início:<br>
+<input type="text" name="entrada_ti" value="{{ registro.entrada_ti if registro }}"><br><br>
+
+📆 Data Término:<br>
+<input type="text" name="term_obra" value="{{ registro.term_obra if registro }}"><br><br>
+
+🌎 IP:<br>
+<input type="text" name="link" value="{{ registro.link if registro }}"><br><br>
 
 <hr>
 
 <h3>MAQUINAS CONFIGURADAS</h3>
 
-<p>Servidor = 1/1 ✅</p>
-<p>PDV’s = 4/4 ✅</p>
-<p>Balcões = 6/6 ✅</p>
-<p>Híbrido = 1/1 ✅</p>
-<p>Treinamento = 1/1 ✅</p>
+Servidor:<br>
+<input type="text" name="servidor" value="{{ registro.servidor if registro }}"><br><br>
+
+PDVs:<br>
+<input type="text" name="pdvs" value="{{ registro.pdvs if registro }}"><br><br>
+
+Balcões:<br>
+<input type="text" name="balcoes" value="{{ registro.balcoes if registro }}"><br><br>
+
+Híbrido:<br>
+<input type="text" name="hibrido" value="{{ registro.hibrido if registro }}"><br><br>
+
+Treinamento:<br>
+<input type="text" name="treinamento" value="{{ registro.treinamento if registro }}"><br><br>
 
 <hr>
 
 <h3>PDV's</h3>
 
-<p>🟢 Venda Dinheiro</p>
-<p>🟡 Venda Cartão</p>
-<p>🟡 Pix</p>
-<p>🟡 DDG</p>
-<p>🟡 Recarga</p>
-<p>🟡 Fidelize</p>
-<p>🟡 Parcelamento</p>
-<p>🟡 Logix</p>
-<p>🟡 Vida Link</p>
-<p>🟡 Epharma</p>
-<p>🟡 Funcional Card</p>
+Venda Dinheiro:<br>
+<input type="text" name="venda_dinheiro" value="{{ registro.venda_dinheiro if registro }}"><br><br>
+
+Venda Cartão:<br>
+<input type="text" name="venda_cartao" value="{{ registro.venda_cartao if registro }}"><br><br>
+
+Pix:<br>
+<input type="text" name="pix" value="{{ registro.pix if registro }}"><br><br>
 
 <hr>
 
-<h3>BALCÕES</h3>
+Observações:<br>
+<textarea name="observacoes" rows="4" style="width:300px;">{{ registro.observacoes if registro }}</textarea>
 
-<p>🟡 Autorização Logix</p>
-<p>🟡 Vida Link</p>
-<p>🟡 Autorização Epharma</p>
-<p>🟡 Autorização Funcional Card</p>
-<p>🟢 Impressora Lexmark</p>
-<p>🟢 Impressora DSS</p>
-<p>🟢 Impressora I9</p>
-<p>🟢 ATA</p>
-<p>🟢 Voip</p>
-<p>🟢 Lojas +</p>
-<p>🟢 POS</p>
-<p>🟢 Balcão 2.0</p>
-<p>🟡 P. Infinita</p>
-<p>🟢 Tira-Teima</p>
-<p>🟢 FortAp</p>
+<br><br>
+<button type="submit">💾 Salvar</button>
+
+</form>
 
 </body>
 </html>
