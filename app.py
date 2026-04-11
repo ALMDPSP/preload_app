@@ -27,36 +27,61 @@ def load_user(user_id):
 DATABASE_URL = os.environ.get("DATABASE_URL")
 
 def get_conn():
-    return psycopg.connect(DATABASE_URL)
+    return psycopg.connect(DATABASE_URL, sslmode="require")
+
 
 # =========================
-# ROTA TEMPORÁRIA PARA CRIAR COLUNAS
+# CRIAR TABELA AUTOMATICAMENTE
 # =========================
-@app.route("/criar_colunas")
-def criar_colunas():
+def criar_tabela_se_nao_existir():
     with get_conn() as conn:
         with conn.cursor() as cur:
             cur.execute("""
-                ALTER TABLE preload ADD COLUMN IF NOT EXISTS servidor_status TEXT;
-                ALTER TABLE preload ADD COLUMN IF NOT EXISTS pdv_status TEXT;
-                ALTER TABLE preload ADD COLUMN IF NOT EXISTS balcao_status TEXT;
-                ALTER TABLE preload ADD COLUMN IF NOT EXISTS hibrido_status TEXT;
-                ALTER TABLE preload ADD COLUMN IF NOT EXISTS treinamento_status TEXT;
+                CREATE TABLE IF NOT EXISTS preload (
+                    id SERIAL PRIMARY KEY,
+                    vd TEXT,
+                    bandeira TEXT,
+                    loja TEXT,
+                    uf TEXT,
+                    municipio TEXT,
+                    cd_supridor TEXT,
+                    montador TEXT,
+                    projeto TEXT,
+                    entrada_ti TEXT,
+                    envio_previsto TEXT,
+                    term_obra TEXT,
+                    cadastro TEXT,
+                    sep_equip TEXT,
+                    emissao_nfe TEXT,
+                    link TEXT,
+                    status TEXT,
+                    cnpj TEXT,
+                    precos_datahub TEXT,
+                    preloading TEXT,
+                    em_loja TEXT,
+                    observacoes TEXT,
 
-                ALTER TABLE preload ADD COLUMN IF NOT EXISTS venda_dinheiro TEXT;
-                ALTER TABLE preload ADD COLUMN IF NOT EXISTS venda_cartao TEXT;
-                ALTER TABLE preload ADD COLUMN IF NOT EXISTS pix TEXT;
-                ALTER TABLE preload ADD COLUMN IF NOT EXISTS ddg TEXT;
-                ALTER TABLE preload ADD COLUMN IF NOT EXISTS recarga TEXT;
-                ALTER TABLE preload ADD COLUMN IF NOT EXISTS fidelize TEXT;
-                ALTER TABLE preload ADD COLUMN IF NOT EXISTS parcelamento TEXT;
-                ALTER TABLE preload ADD COLUMN IF NOT EXISTS logix TEXT;
-                ALTER TABLE preload ADD COLUMN IF NOT EXISTS vida_link TEXT;
-                ALTER TABLE preload ADD COLUMN IF NOT EXISTS epharma TEXT;
-                ALTER TABLE preload ADD COLUMN IF NOT EXISTS funcional_card TEXT;
+                    servidor_status TEXT,
+                    pdv_status TEXT,
+                    balcao_status TEXT,
+                    hibrido_status TEXT,
+                    treinamento_status TEXT,
+
+                    venda_dinheiro TEXT,
+                    venda_cartao TEXT,
+                    pix TEXT,
+                    ddg TEXT,
+                    recarga TEXT,
+                    fidelize TEXT,
+                    parcelamento TEXT,
+                    logix TEXT,
+                    vida_link TEXT,
+                    epharma TEXT,
+                    funcional_card TEXT
+                )
             """)
             conn.commit()
-    return "Colunas criadas com sucesso!"
+
 
 # =========================
 # LOGIN ROUTES
@@ -87,10 +112,13 @@ def logout():
 @app.route("/")
 @login_required
 def index():
+    criar_tabela_se_nao_existir()  # 🔥 cria tabela automaticamente
+
     with get_conn() as conn:
         with conn.cursor() as cur:
-            cur.execute("SELECT * FROM preload ORDER BY vd DESC")
+            cur.execute("SELECT * FROM preload ORDER BY id DESC")
             registros = cur.fetchall()
+
     return render_template("index.html", registros=registros)
 
 # =========================
@@ -99,6 +127,8 @@ def index():
 @app.route("/salvar", methods=["POST"])
 @login_required
 def salvar():
+    criar_tabela_se_nao_existir()
+
     dados = request.form.to_dict()
 
     with get_conn() as conn:
