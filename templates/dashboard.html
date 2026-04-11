@@ -1,15 +1,13 @@
 <!DOCTYPE html>
 <html>
 <head>
-<title>Preload Dashboard</title>
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
 <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
 <style>
-body { font-family: Arial; margin:40px; background:#f4f6f9;}
-.card { background:white; padding:20px; border-radius:10px; box-shadow:0 2px 8px rgba(0,0,0,0.1);}
-.tabs a { margin-right:10px; text-decoration:none; padding:8px 15px; background:#ddd; border-radius:6px;}
-.tabs a:hover { background:#bbb;}
-select { padding:5px; }
-button { padding:10px 20px; background:#007bff; color:white; border:none; border-radius:5px;}
+body { font-family:Arial; margin:20px; background:#f4f6f9;}
+.card { background:white; padding:20px; border-radius:12px; margin-bottom:20px;}
+button { padding:10px; background:#0066ff; color:white; border:none;}
+.tabs a { padding:8px; background:#ddd; margin:5px; display:inline-block; text-decoration:none;}
 </style>
 </head>
 <body>
@@ -17,21 +15,37 @@ button { padding:10px 20px; background:#007bff; color:white; border:none; border
 <h2>Bem-vindo {{ user.username }}</h2>
 <a href="/logout">Sair</a>
 
-<div class="tabs">
-{% for f in filiais %}
-<a href="/?edit={{f.id}}">{{ f.loja }}</a>
-{% endfor %}
+<div class="card">
+<h3>Resumo Executivo</h3>
+Total: {{ total }} |
+Concluídas: {{ concluidas }} |
+{{ percentual }}%
+
+<div style="background:#ddd;height:20px;border-radius:10px;">
+<div style="width:{{ percentual }}%;background:green;height:20px;border-radius:10px;"></div>
 </div>
 
+<canvas id="grafico"></canvas>
+</div>
+
+<script>
+new Chart(document.getElementById('grafico'), {
+type:'doughnut',
+data:{
+labels:['Concluídas','Pendentes'],
+datasets:[{data:[{{ concluidas }}, {{ total - concluidas }}]}]
+}
+});
+</script>
+
 <div class="card">
+<h3>Nova Filial</h3>
 <form method="POST" action="/salvar">
+<input name="loja" placeholder="Filial">
+<input name="entrada" placeholder="Data Início">
+<input name="termino" placeholder="Data Término">
+<input name="ip" placeholder="IP">
 
-🏥 Filial <input name="loja"><br><br>
-📆 Início <input name="data_inicio"><br><br>
-📆 Término <input name="data_termino"><br><br>
-🌎 IP <input name="ip"><br><br>
-
-Servidor
 <select name="servidor">
 <option>🔴</option>
 <option>🟡</option>
@@ -39,43 +53,22 @@ Servidor
 <option>🔵</option>
 </select>
 
-<br><br>
-
-Venda Dinheiro
-<select name="venda_dinheiro">
+<select name="pdvs">
 <option>🔴</option>
 <option>🟡</option>
 <option>🟢</option>
 <option>🔵</option>
 </select>
 
-<br><br>
-
-Observações
-<textarea name="obs" style="width:100%"></textarea>
-
-<br><br>
 <button type="submit">Salvar</button>
-
 </form>
 </div>
 
-<br><br>
-
-<canvas id="grafico"></canvas>
-
-<script>
-new Chart(document.getElementById('grafico'), {
-type: 'bar',
-data: {
-labels: ['Filiais'],
-datasets: [{
-label: 'Total cadastradas',
-data: [{{ filiais|length }}]
-}]
-}
-});
-</script>
+{% for f in filiais %}
+<div class="card">
+<b>{{ f.loja }}</b> - {{ f.servidor }}
+</div>
+{% endfor %}
 
 </body>
 </html>
