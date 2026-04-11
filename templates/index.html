@@ -1,93 +1,82 @@
-<!DOCTYPE html>
-<html lang="pt-br">
-<head>
-<meta charset="UTF-8">
-<title>Preload – Abertura de Loja</title>
 <style>
-body { font-family: Arial; margin: 0; background: #f4f6f8; }
-header {
-    background: #2a5298;
-    color: white;
-    padding: 10px 20px;
+.status-btn {
+    border: none;
+    font-size: 20px;
+    cursor: pointer;
 }
-header a {
-    color: white;
-    float: right;
-    margin-left: 15px;
-}
-.container { padding: 20px; }
-table {
-    width: 100%;
-    border-collapse: collapse;
-    font-size: 12px;
-}
-th, td {
-    border: 1px solid #ccc;
-    padding: 5px;
-}
-th {
-    background: #eee;
+
+.vermelho { color: red; }
+.amarelo { color: orange; }
+.verde { color: green; }
+.azul { color: blue; }
+
+.card {
+    border: 1px solid #ddd;
+    padding: 20px;
+    margin: 20px 0;
+    border-radius: 10px;
+    background: #f9f9f9;
 }
 </style>
-</head>
-<body>
 
-<header>
-Preload – Abertura de Loja
-<a href="/logout">Sair</a>
-<a href="/">Dashboard</a>
-</header>
+<div class="card">
 
-<div class="container">
+<h2>🏥 Filial - {{ registro.loja }}</h2>
+<p>📆 Data Início: {{ registro.entrada_ti }}</p>
+<p>📆 Data Término: {{ registro.term_obra }}</p>
+<p>🌎 IP: {{ registro.link }}</p>
 
-<h3>Novo Preload</h3>
+<hr>
 
-<form method="POST" action="/salvar">
-<input name="vd" placeholder="VD">
-<input name="bandeira" placeholder="Bandeira">
-<input name="loja" placeholder="Loja">
-<input name="uf" placeholder="UF">
-<input name="municipio" placeholder="Município">
-<input name="cd_supridor" placeholder="CD Supridor">
-<input name="montador" placeholder="Montador">
-<input name="projeto" placeholder="Projeto">
-<input name="entrada_ti">
-<input name="envio_previsto">
-<input name="term_obra">
-<input name="cadastro">
-<input name="sep_equip">
-<input name="emissao_nfe">
-<input name="link">
-<input name="status">
-<input name="cnpj">
-<input name="precos_datahub">
-<input name="preloading">
-<input name="em_loja">
-<textarea name="observacoes" placeholder="Observações"></textarea>
-<button>Salvar</button>
-</form>
+<h3>LEGENDA</h3>
+<p>🔴 - Pendente</p>
+<p>🟡 - Em andamento</p>
+<p>🟢 - Concluído</p>
+<p>🔵 - Testes Pendente</p>
 
-<h3>Registros</h3>
+<hr>
 
-<table>
-<tr>
-<th>VD</th><th>Loja</th><th>UF</th><th>Status</th><th>Ações</th>
-</tr>
+<h3>MAQUINAS CONFIGURADAS</h3>
 
-{% for r in registros %}
-<tr>
-<td>{{ r[0] }}</td>
-<td>{{ r[2] }}</td>
-<td>{{ r[3] }}</td>
-<td>{{ r[15] }}</td>
-<td>
-<a href="/excluir/{{ r[0] }}">Excluir</a>
-</td>
-</tr>
-{% endfor %}
+Servidor = 
+<select name="servidor_status">
+    <option value="vermelho">🔴</option>
+    <option value="amarelo">🟡</option>
+    <option value="verde">🟢</option>
+    <option value="azul">🔵</option>
+</select>
 
-</table>
+PDVs = 
+<select name="pdv_status">
+    <option value="vermelho">🔴</option>
+    <option value="amarelo">🟡</option>
+    <option value="verde">🟢</option>
+    <option value="azul">🔵</option>
+</select>
+
+<hr>
+
+<h3>PDV's</h3>
+
+<select name="venda_dinheiro">
+    <option value="verde">🟢 Venda Dinheiro</option>
+    <option value="amarelo">🟡 Venda Dinheiro</option>
+    <option value="vermelho">🔴 Venda Dinheiro</option>
+</select>
+
+<select name="venda_cartao">
+    <option value="verde">🟢 Venda Cartão</option>
+    <option value="amarelo">🟡 Venda Cartão</option>
+    <option value="vermelho">🔴 Venda Cartão</option>
+</select>
+
+<hr>
+
+<h3>OBSERVAÇÕES</h3>
+<textarea name="obs" rows="4" style="width:100%">
+{{ registro.obs }}
+</textarea>
+
+<button type="submit">Salvar</button>
 
 </div>
-</body>
-</html>
