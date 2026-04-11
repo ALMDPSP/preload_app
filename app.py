@@ -126,62 +126,19 @@ def index():
 @app.route("/salvar", methods=["POST"])
 @login_required
 def salvar():
-    criar_tabela_se_nao_existir()
-
     dados = request.form.to_dict()
-    vd = dados.get("vd")
 
     with get_conn() as conn:
         with conn.cursor() as cur:
-
-            cur.execute("SELECT id FROM preload WHERE vd = %s", (vd,))
-            existe = cur.fetchone()
-
-            if existe:
-                # UPDATE
-                cur.execute("""
-                    UPDATE preload SET
-                        servidor_status = %(servidor_status)s,
-                        pdv_status = %(pdv_status)s,
-                        balcao_status = %(balcao_status)s,
-                        hibrido_status = %(hibrido_status)s,
-                        treinamento_status = %(treinamento_status)s,
-                        venda_dinheiro = %(venda_dinheiro)s,
-                        venda_cartao = %(venda_cartao)s,
-                        pix = %(pix)s,
-                        ddg = %(ddg)s,
-                        recarga = %(recarga)s,
-                        fidelize = %(fidelize)s,
-                        parcelamento = %(parcelamento)s,
-                        logix = %(logix)s,
-                        vida_link = %(vida_link)s,
-                        epharma = %(epharma)s,
-                        funcional_card = %(funcional_card)s,
-                        observacoes = %(observacoes)s
-                    WHERE vd = %(vd)s
-                """, dados)
-
-            else:
-                # INSERT
-                cur.execute("""
-                    INSERT INTO preload (
-                        vd, loja, entrada_ti, term_obra, link,
-                        servidor_status, pdv_status, balcao_status,
-                        hibrido_status, treinamento_status,
-                        venda_dinheiro, venda_cartao, pix, ddg,
-                        recarga, fidelize, parcelamento,
-                        logix, vida_link, epharma, funcional_card,
-                        observacoes
-                    ) VALUES (
-                        %(vd)s, %(loja)s, %(entrada_ti)s, %(term_obra)s, %(link)s,
-                        %(servidor_status)s, %(pdv_status)s, %(balcao_status)s,
-                        %(hibrido_status)s, %(treinamento_status)s,
-                        %(venda_dinheiro)s, %(venda_cartao)s, %(pix)s, %(ddg)s,
-                        %(recarga)s, %(fidelize)s, %(parcelamento)s,
-                        %(logix)s, %(vida_link)s, %(epharma)s, %(funcional_card)s,
-                        %(observacoes)s
-                    )
-                """, dados)
+            cur.execute("""
+                UPDATE preload SET
+                    servidor_status = %(servidor_status)s,
+                    pdv_status = %(pdv_status)s,
+                    venda_dinheiro = %(venda_dinheiro)s,
+                    venda_cartao = %(venda_cartao)s,
+                    observacoes = %(observacoes)s
+                WHERE vd = %(vd)s
+            """, dados)
 
             conn.commit()
 
