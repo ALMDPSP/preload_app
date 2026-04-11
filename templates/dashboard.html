@@ -1,69 +1,80 @@
 <!DOCTYPE html>
 <html>
 <head>
-    <title>Preload</title>
+<title>Preload</title>
+<style>
+body { font-family: Arial; margin:40px; }
+.tab { padding:8px 15px; background:#eee; margin-right:5px; display:inline-block; }
+.card { border:1px solid #ccc; padding:20px; margin-top:20px; }
+select { font-size:16px; }
+</style>
 </head>
 <body>
 
-<header style="background:#2b5797;color:white;padding:10px">
-    Preload – Abertura de Loja |
-    <a href="/dashboard" style="color:white">Dashboard</a> |
-    <a href="/logout" style="color:white">Sair</a>
-</header>
+<a href="/logout">🚪 Sair</a>
 
-<h3>Novo Preload</h3>
+<h2>Filiais Cadastradas</h2>
 
-<form method="post" action="/salvar">
-    <input name="vd" placeholder="VD">
-    <input name="bandeira" placeholder="Bandeira">
-    <input name="loja" placeholder="Loja">
-    <input name="uf" placeholder="UF"><br><br>
+{% for f in filiais %}
+<a class="tab" href="#">{{ f.loja }}</a>
+{% endfor %}
 
-    <input name="municipio" placeholder="Município">
-    <input name="cd_supridor" placeholder="CD Supridor">
-    <input name="montador" placeholder="Montador">
-    <input name="projeto" placeholder="Projeto"><br><br>
+<div class="card">
 
-    <input name="entrada_ti" placeholder="Entrada TI">
-    <input name="envio_previsto" placeholder="Envio Previsto">
-    <input name="term_obra" placeholder="Term. Obra">
-    <input name="cadastro" placeholder="Cadastro"><br><br>
+<form method="POST" action="/salvar">
 
-    <input name="sep_equip" placeholder="Sep. Equip">
-    <input name="emissao_nfe" placeholder="Emissão NFe">
-    <input name="link" placeholder="Link">
-    <input name="status" placeholder="Status"><br><br>
+🏥 Filial - <input name="loja"><br><br>
+📆 Data Inicio: <input name="data_inicio"><br><br>
+📆 Data Termino: <input name="data_termino"><br><br>
+🌎 IP: <input name="ip"><br><br>
 
-    <input name="cnpj" placeholder="CNPJ">
-    <input name="precos_datahub" placeholder="Preços/DataHub">
-    <input name="preloading" placeholder="Preloading">
-    <input name="em_loja" placeholder="Em Loja"><br><br>
+<h3>Legenda</h3>
+🔴 Pendente | 🟡 Em andamento | 🟢 Concluído | 🔵 Testes
 
-    <textarea name="observacoes" placeholder="Observações"></textarea><br><br>
+<h3>Máquinas Configuradas</h3>
 
-    <button>Salvar</button>
+Servidor:
+<select name="servidor">
+<option>🔴</option>
+<option>🟡</option>
+<option>🟢</option>
+<option>🔵</option>
+</select><br><br>
+
+PDV's:
+<select name="pdvs">
+<option>🔴</option>
+<option>🟡</option>
+<option>🟢</option>
+<option>🔵</option>
+</select><br><br>
+
+<h3>PDV's</h3>
+
+Venda Dinheiro:
+<select name="venda_dinheiro">
+<option>🔴</option>
+<option>🟡</option>
+<option>🟢</option>
+<option>🔵</option>
+</select><br><br>
+
+Venda Cartão:
+<select name="venda_cartao">
+<option>🔴</option>
+<option>🟡</option>
+<option>🟢</option>
+<option>🔵</option>
+</select><br><br>
+
+Observações:<br>
+<textarea name="obs" rows="4" style="width:100%"></textarea><br><br>
+
+<button type="submit">💾 Salvar</button>
+
 </form>
 
-<h3>Registros</h3>
-
-<table border="1" width="100%">
-<tr>
-    <th>VD</th><th>Loja</th><th>UF</th><th>Status</th><th>Projeto</th><th>Ações</th>
-</tr>
-
-{% for r in registros %}
-<tr>
-    <td>{{ r[1] }}</td>
-    <td>{{ r[2] }}</td>
-    <td>{{ r[3] }}</td>
-    <td>{{ r[4] }}</td>
-    <td>{{ r[5] }}</td>
-    <td>
-        <a href="/excluir/{{ r[0] }}">Excluir</a>
-    </td>
-</tr>
-{% endfor %}
-</table>
+</div>
 
 </body>
 </html>
