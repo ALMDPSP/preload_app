@@ -1,4 +1,4 @@
-from flask import Flask, render_template, request, redirect, url_for
+from flask import Flask, render_template, request, redirect, url_for, flash
 from flask_login import LoginManager, UserMixin, login_user, login_required, logout_user
 from werkzeug.security import generate_password_hash, check_password_hash
 import psycopg
@@ -6,7 +6,7 @@ import psycopg.rows
 import os
 
 app = Flask(__name__)
-app.secret_key = os.environ.get("SECRET_KEY", "super-secret-key-123456")
+app.config["SECRET_KEY"] = os.environ.get("SECRET_KEY")
 
 DATABASE_URL = os.environ.get("DATABASE_URL")
 
@@ -14,8 +14,8 @@ DATABASE_URL = os.environ.get("DATABASE_URL")
 # LOGIN CONFIG
 # =========================
 login_manager = LoginManager()
-login_manager.init_app(app)
 login_manager.login_view = "login"
+login_manager.init_app(app)
 
 class User(UserMixin):
     def __init__(self, id, username):
@@ -41,7 +41,6 @@ def get_conn():
 def create_tables():
     with get_conn() as conn:
         with conn.cursor() as cur:
-
             cur.execute("""
                 CREATE TABLE IF NOT EXISTS users (
                     id SERIAL PRIMARY KEY,
@@ -49,28 +48,6 @@ def create_tables():
                     password TEXT
                 )
             """)
-
-            cur.execute("""
-                CREATE TABLE IF NOT EXISTS filiais (
-                    id SERIAL PRIMARY KEY,
-                    loja TEXT,
-                    data_inicio TEXT,
-                    data_termino TEXT,
-                    ip TEXT,
-                    venda_dinheiro TEXT,
-                    venda_cartao TEXT,
-                    pix TEXT,
-                    ddg TEXT,
-                    recarga TEXT,
-                    fidelize TEXT,
-                    parcelamento TEXT,
-                    logix TEXT,
-                    vida_link TEXT,
-                    epharma TEXT,
-                    funcional_card TEXT
-                )
-            """)
-
             conn.commit()
 
 # =========================
@@ -90,17 +67,19 @@ def login():
                 user = cur.fetchone()
 
                 if not user:
+                    # cria usuário automaticamente na primeira vez
                     hashed = generate_password_hash(password)
-                    cur.execute("INSERT INTO users (username,password) VALUES (%s,%s)", (username,hashed))
+                    cur.execute("INSERT INTO users (username,password) VALUES (%s,%s)",
+                                (username, hashed))
                     conn.commit()
                     cur.execute("SELECT * FROM users WHERE username=%s", (username,))
                     user = cur.fetchone()
 
                 if check_password_hash(user["password"], password):
-                    login_user(User(user["id"], user["username"]))
+                    login_user(User(user["id"], user["username"]), remember=True)
                     return redirect(url_for("dashboard"))
                 else:
-                    return render_template("login.html", erro="Senha incorreta")
+                    flash("Senha incorreta")
 
     return render_template("login.html")
 
@@ -116,68 +95,7 @@ def logout():
 @app.route("/")
 @login_required
 def dashboard():
-    with get_conn() as conn:
-        with conn.cursor(row_factory=psycopg.rows.dict_row) as cur:
-            cur.execute("SELECT * FROM filiais ORDER BY id DESC")
-            filiais = cur.fetchall()
-
-    return render_template("dashboard.html", filiais=filiais)
-
-# =========================
-# SALVAR
-# =========================
-@app.route("/salvar", methods=["POST"])
-@login_required
-def salvar():
-    dados = request.form.to_dict()
-
-    with get_conn() as conn:
-        with conn.cursor() as cur:
-
-            if dados.get("id"):  # EDITAR
-                cur.execute("""
-                    UPDATE filiais SET
-                        loja=%s,
-                        data_inicio=%s,
-                        data_termino=%s,
-                        ip=%s,
-                        venda_dinheiro=%s,
-                        venda_cartao=%s,
-                        pix=%s,
-                        ddg=%s,
-                        recarga=%s,
-                        fidelize=%s,
-                        parcelamento=%s,
-                        logix=%s,
-                        vida_link=%s,
-                        epharma=%s,
-                        funcional_card=%s
-                    WHERE id=%s
-                """, (
-                    dados["loja"], dados["data_inicio"], dados["data_termino"], dados["ip"],
-                    dados["venda_dinheiro"], dados["venda_cartao"], dados["pix"], dados["ddg"],
-                    dados["recarga"], dados["fidelize"], dados["parcelamento"], dados["logix"],
-                    dados["vida_link"], dados["epharma"], dados["funcional_card"],
-                    dados["id"]
-                ))
-            else:  # NOVO
-                cur.execute("""
-                    INSERT INTO filiais (
-                        loja,data_inicio,data_termino,ip,
-                        venda_dinheiro,venda_cartao,pix,ddg,recarga,
-                        fidelize,parcelamento,logix,vida_link,
-                        epharma,funcional_card
-                    ) VALUES (%s,%s,%s,%s,%s,%s,%s,%s,%s,%s,%s,%s,%s,%s,%s)
-                """, (
-                    dados["loja"], dados["data_inicio"], dados["data_termino"], dados["ip"],
-                    dados["venda_dinheiro"], dados["venda_cartao"], dados["pix"], dados["ddg"],
-                    dados["recarga"], dados["fidelize"], dados["parcelamento"], dados["logix"],
-                    dados["vida_link"], dados["epharma"], dados["funcional_card"]
-                ))
-
-            conn.commit()
-
-    return redirect(url_for("dashboard"))
+    return render_template("dashboard.html")
 
 if __name__ == "__main__":
-    app.run(debug=True)
+    app.run()
