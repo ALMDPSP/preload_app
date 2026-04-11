@@ -1,80 +1,81 @@
 <!DOCTYPE html>
 <html>
 <head>
-<title>Preload</title>
+<title>Preload Dashboard</title>
+<script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
 <style>
-body { font-family: Arial; margin:40px; }
-.tab { padding:8px 15px; background:#eee; margin-right:5px; display:inline-block; }
-.card { border:1px solid #ccc; padding:20px; margin-top:20px; }
-select { font-size:16px; }
+body { font-family: Arial; margin:40px; background:#f4f6f9;}
+.card { background:white; padding:20px; border-radius:10px; box-shadow:0 2px 8px rgba(0,0,0,0.1);}
+.tabs a { margin-right:10px; text-decoration:none; padding:8px 15px; background:#ddd; border-radius:6px;}
+.tabs a:hover { background:#bbb;}
+select { padding:5px; }
+button { padding:10px 20px; background:#007bff; color:white; border:none; border-radius:5px;}
 </style>
 </head>
 <body>
 
-<a href="/logout">🚪 Sair</a>
+<h2>Bem-vindo {{ user.username }}</h2>
+<a href="/logout">Sair</a>
 
-<h2>Filiais Cadastradas</h2>
-
+<div class="tabs">
 {% for f in filiais %}
-<a class="tab" href="#">{{ f.loja }}</a>
+<a href="/?edit={{f.id}}">{{ f.loja }}</a>
 {% endfor %}
+</div>
 
 <div class="card">
-
 <form method="POST" action="/salvar">
 
-🏥 Filial - <input name="loja"><br><br>
-📆 Data Inicio: <input name="data_inicio"><br><br>
-📆 Data Termino: <input name="data_termino"><br><br>
-🌎 IP: <input name="ip"><br><br>
+🏥 Filial <input name="loja"><br><br>
+📆 Início <input name="data_inicio"><br><br>
+📆 Término <input name="data_termino"><br><br>
+🌎 IP <input name="ip"><br><br>
 
-<h3>Legenda</h3>
-🔴 Pendente | 🟡 Em andamento | 🟢 Concluído | 🔵 Testes
-
-<h3>Máquinas Configuradas</h3>
-
-Servidor:
+Servidor
 <select name="servidor">
 <option>🔴</option>
 <option>🟡</option>
 <option>🟢</option>
 <option>🔵</option>
-</select><br><br>
+</select>
 
-PDV's:
-<select name="pdvs">
-<option>🔴</option>
-<option>🟡</option>
-<option>🟢</option>
-<option>🔵</option>
-</select><br><br>
+<br><br>
 
-<h3>PDV's</h3>
-
-Venda Dinheiro:
+Venda Dinheiro
 <select name="venda_dinheiro">
 <option>🔴</option>
 <option>🟡</option>
 <option>🟢</option>
 <option>🔵</option>
-</select><br><br>
+</select>
 
-Venda Cartão:
-<select name="venda_cartao">
-<option>🔴</option>
-<option>🟡</option>
-<option>🟢</option>
-<option>🔵</option>
-</select><br><br>
+<br><br>
 
-Observações:<br>
-<textarea name="obs" rows="4" style="width:100%"></textarea><br><br>
+Observações
+<textarea name="obs" style="width:100%"></textarea>
 
-<button type="submit">💾 Salvar</button>
+<br><br>
+<button type="submit">Salvar</button>
 
 </form>
-
 </div>
+
+<br><br>
+
+<canvas id="grafico"></canvas>
+
+<script>
+new Chart(document.getElementById('grafico'), {
+type: 'bar',
+data: {
+labels: ['Filiais'],
+datasets: [{
+label: 'Total cadastradas',
+data: [{{ filiais|length }}]
+}]
+}
+});
+</script>
 
 </body>
 </html>
