@@ -1,22 +1,21 @@
 <!DOCTYPE html>
 <html>
 <head>
-<meta name="viewport" content="width=device-width, initial-scale=1.0">
-<style>
-body { font-family:Arial; background:#f4f6f9; display:flex; justify-content:center; align-items:center; height:100vh;}
-.card { background:white; padding:40px; border-radius:12px; box-shadow:0 4px 10px rgba(0,0,0,0.1); width:300px;}
-input { width:100%; padding:10px; margin:10px 0;}
-button { width:100%; padding:10px; background:#0066ff; color:white; border:none;}
-</style>
+<title>Login</title>
 </head>
 <body>
-<div class="card">
+
 <h2>Login</h2>
+
+{% if erro %}
+<p style="color:red;">{{ erro }}</p>
+{% endif %}
+
 <form method="POST">
-<input name="username" placeholder="Usuário">
-<input name="password" type="password" placeholder="Senha">
+<input name="username" placeholder="Usuário" required>
+<input name="password" type="password" placeholder="Senha" required>
 <button type="submit">Entrar</button>
 </form>
-</div>
+
 </body>
 </html>
