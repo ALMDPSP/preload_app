@@ -1,21 +1,78 @@
 <!DOCTYPE html>
 <html>
 <head>
-<title>Login</title>
+<title>Login - Sistema Preload</title>
+<style>
+body {
+    margin:0;
+    font-family: Arial;
+    background: linear-gradient(135deg,#1e3c72,#2a5298);
+    display:flex;
+    justify-content:center;
+    align-items:center;
+    height:100vh;
+}
+
+.card {
+    background:white;
+    padding:40px;
+    border-radius:10px;
+    width:350px;
+    box-shadow:0 10px 25px rgba(0,0,0,0.3);
+}
+
+h2 {
+    text-align:center;
+    margin-bottom:30px;
+}
+
+input {
+    width:100%;
+    padding:12px;
+    margin-bottom:15px;
+    border-radius:5px;
+    border:1px solid #ccc;
+}
+
+button {
+    width:100%;
+    padding:12px;
+    background:#2a5298;
+    color:white;
+    border:none;
+    border-radius:5px;
+    cursor:pointer;
+    font-weight:bold;
+}
+
+button:hover {
+    background:#1e3c72;
+}
+
+.error {
+    color:red;
+    text-align:center;
+}
+</style>
 </head>
 <body>
 
-<h2>Login</h2>
+<div class="card">
+<h2>🔐 Sistema Preload</h2>
 
-{% if erro %}
-<p style="color:red;">{{ erro }}</p>
-{% endif %}
+{% with messages = get_flashed_messages() %}
+  {% if messages %}
+    <div class="error">{{ messages[0] }}</div>
+  {% endif %}
+{% endwith %}
 
 <form method="POST">
 <input name="username" placeholder="Usuário" required>
-<input name="password" type="password" placeholder="Senha" required>
+<input type="password" name="password" placeholder="Senha" required>
 <button type="submit">Entrar</button>
 </form>
+
+</div>
 
 </body>
 </html>
