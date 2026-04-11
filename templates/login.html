@@ -3,9 +3,9 @@
 <head>
     <title>Login</title>
 </head>
-<body>
+<body style="font-family: Arial; text-align:center; margin-top:100px;">
 
-<h2>Login</h2>
+<h2>🔐 Login Sistema Preload</h2>
 
 <form method="POST">
     <input type="text" name="username" placeholder="Usuário" required><br><br>
@@ -13,11 +13,9 @@
     <button type="submit">Entrar</button>
 </form>
 
-{% with messages = get_flashed_messages() %}
-  {% if messages %}
-    <p style="color:red;">{{ messages[0] }}</p>
-  {% endif %}
-{% endwith %}
+{% if erro %}
+<p style="color:red;">{{ erro }}</p>
+{% endif %}
 
 </body>
 </html>
