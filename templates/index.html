@@ -1,91 +1,62 @@
-<style>
-.status-btn {
-    border: none;
-    font-size: 20px;
-    cursor: pointer;
-}
+<!DOCTYPE html>
+<html>
+<head>
+    <title>Preload</title>
+</head>
+<body>
 
-.vermelho { color: red; }
-.amarelo { color: orange; }
-.verde { color: green; }
-.azul { color: blue; }
-
-.card {
-    border: 1px solid #ddd;
-    padding: 20px;
-    margin: 20px 0;
-    border-radius: 10px;
-    background: #f9f9f9;
-}
-</style>
+<a href="/logout">Sair</a>
 
 {% if registros|length == 0 %}
-
-<div style="padding:40px;text-align:center;">
-    <h2>Nenhuma filial cadastrada</h2>
+    <h3>Nenhuma filial cadastrada</h3>
     <p>Cadastre a primeira filial para começar.</p>
-</div>
-
-{% else %}
+{% endif %}
 
 {% for registro in registros %}
 
 <form method="POST" action="/salvar">
 
-<div class="card">
+<div style="border:1px solid #ccc; padding:20px; margin:20px;">
 
 <h2>🏥 Filial - {{ registro.loja }}</h2>
-<p>📆 Data Início: {{ registro.entrada_ti }}</p>
-<p>📆 Data Término: {{ registro.term_obra }}</p>
+<p>📆 Início: {{ registro.entrada_ti }}</p>
+<p>📆 Término: {{ registro.term_obra }}</p>
 <p>🌎 IP: {{ registro.link }}</p>
 
 <hr>
 
-<h3>LEGENDA</h3>
-<p>🔴 - Pendente</p>
-<p>🟡 - Em andamento</p>
-<p>🟢 - Concluído</p>
-<p>🔵 - Testes Pendente</p>
-
-<hr>
-
-<h3>MAQUINAS CONFIGURADAS</h3>
-
-Servidor =
+Servidor:
 <select name="servidor_status">
     <option value="vermelho" {% if registro.servidor_status == "vermelho" %}selected{% endif %}>🔴</option>
     <option value="amarelo" {% if registro.servidor_status == "amarelo" %}selected{% endif %}>🟡</option>
     <option value="verde" {% if registro.servidor_status == "verde" %}selected{% endif %}>🟢</option>
-    <option value="azul" {% if registro.servidor_status == "azul" %}selected{% endif %}>🔵</option>
 </select>
 
-PDVs =
+PDV:
 <select name="pdv_status">
     <option value="vermelho" {% if registro.pdv_status == "vermelho" %}selected{% endif %}>🔴</option>
     <option value="amarelo" {% if registro.pdv_status == "amarelo" %}selected{% endif %}>🟡</option>
     <option value="verde" {% if registro.pdv_status == "verde" %}selected{% endif %}>🟢</option>
-    <option value="azul" {% if registro.pdv_status == "azul" %}selected{% endif %}>🔵</option>
 </select>
 
 <hr>
 
-<h3>PDV's</h3>
-
+Venda Dinheiro:
 <select name="venda_dinheiro">
-    <option value="verde" {% if registro.venda_dinheiro == "verde" %}selected{% endif %}>🟢 Venda Dinheiro</option>
-    <option value="amarelo" {% if registro.venda_dinheiro == "amarelo" %}selected{% endif %}>🟡 Venda Dinheiro</option>
-    <option value="vermelho" {% if registro.venda_dinheiro == "vermelho" %}selected{% endif %}>🔴 Venda Dinheiro</option>
+    <option value="verde" {% if registro.venda_dinheiro == "verde" %}selected{% endif %}>🟢</option>
+    <option value="amarelo" {% if registro.venda_dinheiro == "amarelo" %}selected{% endif %}>🟡</option>
+    <option value="vermelho" {% if registro.venda_dinheiro == "vermelho" %}selected{% endif %}>🔴</option>
 </select>
 
+Venda Cartão:
 <select name="venda_cartao">
-    <option value="verde" {% if registro.venda_cartao == "verde" %}selected{% endif %}>🟢 Venda Cartão</option>
-    <option value="amarelo" {% if registro.venda_cartao == "amarelo" %}selected{% endif %}>🟡 Venda Cartão</option>
-    <option value="vermelho" {% if registro.venda_cartao == "vermelho" %}selected{% endif %}>🔴 Venda Cartão</option>
+    <option value="verde" {% if registro.venda_cartao == "verde" %}selected{% endif %}>🟢</option>
+    <option value="amarelo" {% if registro.venda_cartao == "amarelo" %}selected{% endif %}>🟡</option>
+    <option value="vermelho" {% if registro.venda_cartao == "vermelho" %}selected{% endif %}>🔴</option>
 </select>
 
 <hr>
 
-<h3>OBSERVAÇÕES</h3>
 <textarea name="observacoes" rows="4" style="width:100%">{{ registro.observacoes }}</textarea>
 
 <input type="hidden" name="vd" value="{{ registro.vd }}">
@@ -99,4 +70,5 @@ PDVs =
 
 {% endfor %}
 
-{% endif %}
+</body>
+</html>
