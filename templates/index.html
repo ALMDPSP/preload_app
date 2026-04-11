@@ -19,6 +19,15 @@
 }
 </style>
 
+{% if registros|length == 0 %}
+
+<div style="padding:40px;text-align:center;">
+    <h2>Nenhuma filial cadastrada</h2>
+    <p>Cadastre a primeira filial para começar.</p>
+</div>
+
+{% else %}
+
 {% for registro in registros %}
 
 <form method="POST" action="/salvar">
@@ -77,9 +86,7 @@ PDVs =
 <hr>
 
 <h3>OBSERVAÇÕES</h3>
-<textarea name="observacoes" rows="4" style="width:100%">
-{{ registro.observacoes }}
-</textarea>
+<textarea name="observacoes" rows="4" style="width:100%">{{ registro.observacoes }}</textarea>
 
 <input type="hidden" name="vd" value="{{ registro.vd }}">
 
@@ -91,3 +98,5 @@ PDVs =
 </form>
 
 {% endfor %}
+
+{% endif %}
