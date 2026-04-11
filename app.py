@@ -1,14 +1,13 @@
 from flask import Flask, render_template, request, redirect, url_for, flash
 from flask_login import LoginManager, UserMixin, login_user, login_required, logout_user
 import psycopg
-from psycopg.rows import dict_row
 import os
 
 app = Flask(__name__)
 app.secret_key = "preload-secret-key"
 
 # =========================
-# LOGIN
+# LOGIN CONFIG
 # =========================
 login_manager = LoginManager()
 login_manager.init_app(app)
@@ -33,57 +32,28 @@ def get_conn():
 # =========================
 # CRIAR TABELA AUTOMATICAMENTE
 # =========================
-def criar_tabela_se_nao_existir():
+def criar_tabela():
     with get_conn() as conn:
         with conn.cursor() as cur:
             cur.execute("""
                 CREATE TABLE IF NOT EXISTS preload (
                     id SERIAL PRIMARY KEY,
-                    vd TEXT UNIQUE,
-                    bandeira TEXT,
+                    vd TEXT,
                     loja TEXT,
-                    uf TEXT,
-                    municipio TEXT,
-                    cd_supridor TEXT,
-                    montador TEXT,
-                    projeto TEXT,
                     entrada_ti TEXT,
-                    envio_previsto TEXT,
                     term_obra TEXT,
-                    cadastro TEXT,
-                    sep_equip TEXT,
-                    emissao_nfe TEXT,
                     link TEXT,
-                    status TEXT,
-                    cnpj TEXT,
-                    precos_datahub TEXT,
-                    preloading TEXT,
-                    em_loja TEXT,
-                    observacoes TEXT,
-
                     servidor_status TEXT,
                     pdv_status TEXT,
-                    balcao_status TEXT,
-                    hibrido_status TEXT,
-                    treinamento_status TEXT,
-
                     venda_dinheiro TEXT,
                     venda_cartao TEXT,
-                    pix TEXT,
-                    ddg TEXT,
-                    recarga TEXT,
-                    fidelize TEXT,
-                    parcelamento TEXT,
-                    logix TEXT,
-                    vida_link TEXT,
-                    epharma TEXT,
-                    funcional_card TEXT
+                    observacoes TEXT
                 )
             """)
             conn.commit()
 
 # =========================
-# LOGIN ROUTES
+# LOGIN
 # =========================
 @app.route("/login", methods=["GET", "POST"])
 def login():
@@ -111,17 +81,17 @@ def logout():
 @app.route("/")
 @login_required
 def index():
-    criar_tabela_se_nao_existir()
+    criar_tabela()
 
     with get_conn() as conn:
-        with conn.cursor(row_factory=dict_row) as cur:
+        with conn.cursor(row_factory=psycopg.rows.dict_row) as cur:
             cur.execute("SELECT * FROM preload ORDER BY id DESC")
             registros = cur.fetchall()
 
     return render_template("index.html", registros=registros)
 
 # =========================
-# SALVAR (UPDATE ou INSERT)
+# SALVAR (UPDATE)
 # =========================
 @app.route("/salvar", methods=["POST"])
 @login_required
@@ -139,25 +109,12 @@ def salvar():
                     observacoes = %(observacoes)s
                 WHERE vd = %(vd)s
             """, dados)
-
             conn.commit()
 
     return redirect(url_for("index"))
 
 # =========================
-# EXCLUIR
-# =========================
-@app.route("/excluir/<vd>")
-@login_required
-def excluir(vd):
-    with get_conn() as conn:
-        with conn.cursor() as cur:
-            cur.execute("DELETE FROM preload WHERE vd = %s", (vd,))
-            conn.commit()
-    return redirect(url_for("index"))
-
-# =========================
-# RUN
+# RODAR
 # =========================
 if __name__ == "__main__":
     app.run(debug=True)
