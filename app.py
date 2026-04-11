@@ -27,8 +27,7 @@ def load_user(user_id):
 DATABASE_URL = os.environ.get("DATABASE_URL")
 
 def get_conn():
-    # 🔥 CORREÇÃO SSL PARA RENDER
-    return psycopg.connect(DATABASE_URL, sslmode="require")
+    return psycopg.connect(DATABASE_URL)
 
 # =========================
 # ROTA TEMPORÁRIA PARA CRIAR COLUNAS
