@@ -171,9 +171,12 @@ def cutovers():
 @app.post('/api/cutovers')
 def create_cutover():
     if g.user['role'] not in ['admin','manager']:return error('Somente Administrador ou Gestor pode criar cutovers.',403)
-    title=str((request.get_json() or {}).get('title','')).strip()[:160]
+    body=request.get_json() or {}
+    title=str(body.get('title','')).strip()[:160]
     if not title:return error('Informe filial / PDV.')
-    id=secrets.token_hex(16);s={'meta':{'branch':title},'tasks':{},'decisions':{'linx':{},'orion':{}}}
+    meta=body.get('meta',{})
+    if not isinstance(meta,dict) or any(k not in ['date','window','coordinator'] or not isinstance(v,str) or len(v)>250 for k,v in meta.items()):return error('Dados da execução inválidos.')
+    id=secrets.token_hex(16);s={'meta':{**meta,'branch':title},'tasks':{},'decisions':{'linx':{},'orion':{}}}
     with db() as c:
         c.execute('INSERT INTO ct_cutovers VALUES (%s,%s,%s,1,%s,%s)',(id,title,json.dumps(s),now(),g.user['email']))
         audit(c,g.user['email'],'criação',id)

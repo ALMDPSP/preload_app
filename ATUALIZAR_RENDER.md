@@ -1,4 +1,15 @@
-# Atualização v2.1 — MFA seguindo o Controle de Ativos
+# Atualização v2.2 — acessos, saída e preenchimento simples
+
+1. Substitua os arquivos no GitHub pelo conteúdo completo deste pacote. Envie também os novos `static/simple.js` e `static/simple.css`.
+2. Mantenha as variáveis atuais do Render: `DATABASE_URL`, `SECRET_KEY` e, se já usada para cadastrar MFA, `MFA_ENCRYPTION_KEY`. Não é necessário criar novas variáveis.
+3. Faça o deploy da versão mais recente. Mantenha os comandos de build e início já configurados.
+4. Ao acessar, pressione **Ctrl+F5** se o navegador ainda mostrar o layout anterior.
+5. No menu lateral, confira nome, perfil e **Sair da conta**. Administradores também terão **Gestão de acessos**.
+6. Para iniciar uma execução, use **Novo cutover** e preencha Filial, PDV e Data. Nas etapas, informe responsável e resultado, depois clique em **Concluir**. Horários e observações ficam em **Mais informações**.
+
+Os usuários, perfis, cadastros de MFA e cutovers existentes são preservados. O e-mail configurado no primeiro cadastro de administrador é o acesso que gerencia a equipe. Alterar `ADMIN_EMAIL` no Render não modifica perfis de contas existentes.
+
+## Referência de configuração — versão 2.1
 
 1. No GitHub, substitua os arquivos pelo conteúdo deste pacote. O ajuste principal está em `auth_mfa.py`; mantenha todos os arquivos do projeto atualizados.
 2. No Render, preserve `DATABASE_URL` e `SECRET_KEY` existentes.

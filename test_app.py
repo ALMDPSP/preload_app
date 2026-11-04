@@ -214,3 +214,16 @@ def test_production_starts_without_extra_mfa_variable():
     r=subprocess.run([sys.executable,'-c','import app; print("configuration-ok")'],env=env,capture_output=True,text=True)
     assert r.returncode==0,r.stderr
     assert r.stdout.strip()=='configuration-ok'
+
+
+def test_create_with_simple_form_metadata_and_logout(isolated):
+    a=admin(isolated)
+    body={'title':'VD266 / PDV 01','meta':{'date':'2026-11-04','coordinator':'Alexandre','window':'20h às 22h'}}
+    r=a.post('/api/cutovers',headers=headers(a),json=body)
+    assert r.status_code==201
+    saved=a.get('/api/cutovers/'+r.json['id']).json
+    assert saved['state']['meta']=={**body['meta'],'branch':body['title']}
+    bad=a.post('/api/cutovers',headers=headers(a),json={'title':'X','meta':{'role':'admin'}})
+    assert bad.status_code==400
+    assert a.post('/logout',headers=headers(a)).status_code==302
+    assert a.get('/api/cutovers').status_code==401

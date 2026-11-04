@@ -1,6 +1,18 @@
-# Cutover Linx Agiliza → Orion · Render + Neon · v2.1
+# Cutover Linx Agiliza → Orion · Render + Neon · v2.2
 
-## Atualizar para a versão 2.1
+## Interface simplificada na versão 2.2
+
+- **Sua conta:** nome, e-mail, perfil, último acesso, **Minha senha** e **Sair da conta** ficam no menu lateral. O botão de saída encerra a sessão e tenta salvar alterações pendentes; se houver falha, solicita confirmação antes de descartá-las.
+- **Administrador:** use **Gestão de acessos** no menu lateral para cadastrar usuários, pesquisar pessoas e gerenciar perfis, bloqueios, senhas temporárias e Authenticator. O botão **Minha conta** identifica seu próprio acesso administrativo e impede bloqueio ou alteração do próprio perfil pela tela.
+- **Novo cutover:** formulário com Filial, PDV e Data, mais coordenador opcional. Não precisa juntar todos os dados num único campo. Ao criar, os dados são gravados juntos no banco.
+- **Etapas:** abra uma etapa e preencha responsável e resultado. Use **Usar meu nome**, **Iniciar etapa** ou **Concluir**. Campos obrigatórios ausentes ficam destacados com mensagem na própria etapa. O status também pode ser escolhido na lista.
+- **Detalhes opcionais:** horários e observações ficam em **Mais informações**, preservando os dados já cadastrados. As condições para avançar continuam visíveis.
+
+O usuário criado pelo primeiro cadastro (`ADMIN_EMAIL`) tem perfil Administrador. Entre com esse e-mail para gerenciar os acessos. Alterar `ADMIN_EMAIL` no Render depois que o banco já possui usuários não promove outra conta. Para alterar uma conta existente, entre com um administrador e ajuste seu perfil em **Gestão de acessos**.
+
+Para atualizar, envie todos os arquivos deste pacote ao GitHub, inclusive `static/simple.js`, `static/simple.css` e o novo template. Mantenha as variáveis atuais no Render e faça o deploy. Não há novas variáveis obrigatórias nem alteração da estrutura do banco nesta versão.
+
+## Configuração preservada da versão 2.1
 
 1. Substitua os arquivos do projeto no GitHub pelo conteúdo desta pasta. Preserve os nomes `static`, `templates` e `requirements.txt`.
 2. Mantenha `DATABASE_URL` e `SECRET_KEY` atuais no Render. Não é necessário cadastrar `MFA_ENCRYPTION_KEY`: quando ela não existe, a aplicação deriva a chave de criptografia de `SECRET_KEY`, seguindo o comportamento do Controle de Ativos.
