@@ -24,7 +24,8 @@ SCHEMA = [
     'CREATE TABLE IF NOT EXISTS ct_users (id TEXT PRIMARY KEY, email TEXT UNIQUE NOT NULL, name TEXT NOT NULL, password TEXT NOT NULL, role TEXT NOT NULL, active INTEGER NOT NULL DEFAULT 1, last_login TEXT)',
     'CREATE TABLE IF NOT EXISTS ct_cutovers (id TEXT PRIMARY KEY, title TEXT NOT NULL, state TEXT NOT NULL, version INTEGER NOT NULL, updated_at TEXT NOT NULL, updated_by TEXT NOT NULL)',
     'CREATE TABLE IF NOT EXISTS ct_audit (id TEXT PRIMARY KEY, cutover_id TEXT, actor TEXT NOT NULL, action TEXT NOT NULL, created_at TEXT NOT NULL, detail TEXT NOT NULL)',
-    'CREATE TABLE IF NOT EXISTS ct_attempts (key TEXT PRIMARY KEY, count INTEGER NOT NULL, window_start REAL NOT NULL)'
+    'CREATE TABLE IF NOT EXISTS ct_attempts (key TEXT PRIMARY KEY, count INTEGER NOT NULL, window_start REAL NOT NULL)',
+    'CREATE TABLE IF NOT EXISTS ct_auth (user_id TEXT PRIMARY KEY, secret TEXT, temp_secret TEXT, last_step BIGINT NOT NULL DEFAULT -1, recovery TEXT NOT NULL DEFAULT \'[]\', must_change INTEGER NOT NULL DEFAULT 0, auth_version INTEGER NOT NULL DEFAULT 1)'
 ]
 SOURCE = json.loads((ROOT / 'data.json').read_text())
 IDS = [t['id'] for t in SOURCE['orion'] + SOURCE['linx']]
@@ -60,8 +61,12 @@ def init_db():
         if not c.execute('SELECT id FROM ct_users LIMIT 1').fetchone():
             if not email or len(password) < 12:
                 raise RuntimeError('Primeiro acesso: defina ADMIN_EMAIL e ADMIN_PASSWORD com pelo menos 12 caracteres.')
+            uid=secrets.token_hex(16)
             c.execute('INSERT INTO ct_users (id,email,name,password,role) VALUES (%s,%s,%s,%s,%s)',
-                      (secrets.token_hex(16), email, os.getenv('ADMIN_NAME','Administrador'), generate_password_hash(password), 'admin'))
+                      (uid, email, os.getenv('ADMIN_NAME','Administrador'), generate_password_hash(password), 'admin'))
+            c.execute('INSERT INTO ct_auth (user_id,must_change) VALUES (%s,1)',(uid,))
+        # Additive migration: existing users and cutovers remain intact.
+        c.execute('INSERT INTO ct_auth (user_id) SELECT id FROM ct_users WHERE 1=1 ON CONFLICT(user_id) DO NOTHING')
 
 def token():
     if 'csrf' not in session: session['csrf'] = secrets.token_hex(32)
@@ -77,14 +82,17 @@ def error(message, code=400): return jsonify(error=message), code
 def protect():
     g.user = None
     if session.get('uid'):
-        with db() as c: row = c.execute('SELECT id,email,name,role,active,last_login FROM ct_users WHERE id=%s', (session['uid'],)).fetchone()
-        if row and row['active']: g.user = dict(row)
+        with db() as c: row = c.execute('SELECT u.id,u.email,u.name,u.role,u.active,u.last_login,a.auth_version,a.secret,a.must_change FROM ct_users u JOIN ct_auth a ON a.user_id=u.id WHERE u.id=%s', (session['uid'],)).fetchone()
+        if row and row['active'] and row['secret'] and not row['must_change'] and session.get('mfa_verified') and session.get('auth_version')==row['auth_version']:
+            g.user = {k:row[k] for k in ['id','email','name','role','active','last_login']}
         else: session.clear()
     if request.method in ('POST','PUT','DELETE','PATCH'):
         supplied = request.headers.get('X-CSRF-Token') or request.form.get('csrf','')
         if not secrets.compare_digest(str(session.get('csrf','!')), supplied):
             return error('Sessão expirada. Atualize a página e tente novamente.',403)
     if request.path.startswith('/api/') and not g.user: return error('Faça login novamente.',401)
+    if request.path.startswith('/api/') and request.method in ('POST','PUT','PATCH','DELETE') and g.user and g.user['role']=='viewer' and request.path!='/api/password':
+        return error('Perfil Consulta permite somente leitura.',403)
 
 @app.after_request
 def headers(response):
@@ -116,11 +124,10 @@ def login():
             user = c.execute('SELECT * FROM ct_users WHERE email=%s',(email,)).fetchone()
             if row['count'] > 15: message='Muitas tentativas. Aguarde 15 minutos.'
             elif user and user['active'] and check_password_hash(user['password'],request.form.get('password','')):
-                session.clear();session['uid']=user['id'];session.permanent=True;token()
-                c.execute('UPDATE ct_users SET last_login=%s WHERE id=%s',(now(),user['id']))
+                auth=c.execute('SELECT auth_version FROM ct_auth WHERE user_id=%s',(user['id'],)).fetchone()
+                session.clear();session['pending_uid']=user['id'];session['pending_until']=time.time()+600;session['pending_version']=auth['auth_version'];token()
                 c.execute('DELETE FROM ct_attempts WHERE key=%s',(key,))
-                audit(c,email,'login')
-                return redirect('/')
+                return redirect('/mfa')
             else: message='E-mail ou senha inválidos.'
     return render_template('login.html',csrf=token(),message=message)
 
@@ -163,6 +170,7 @@ def cutovers():
 
 @app.post('/api/cutovers')
 def create_cutover():
+    if g.user['role'] not in ['admin','manager']:return error('Somente Administrador ou Gestor pode criar cutovers.',403)
     title=str((request.get_json() or {}).get('title','')).strip()[:160]
     if not title:return error('Informe filial / PDV.')
     id=secrets.token_hex(16);s={'meta':{'branch':title},'tasks':{},'decisions':{'linx':{},'orion':{}}}
@@ -186,6 +194,14 @@ def update_cutover(id):
     with db() as c:
         old=c.execute('SELECT state FROM ct_cutovers WHERE id=%s',(id,)).fetchone()
         if not old:return error('Cutover não encontrado.',404)
+        previous=json.loads(old['state'])
+        if g.user['role']=='operator':
+            for k in ['linx','orion']:
+                before=previous['decisions'].get(k,{})
+                after=s['decisions'].get(k,{})
+                # Operators can invalidate an approval by reopening a task, but cannot approve or edit a decision.
+                invalidated=dict(before);invalidated['value']='Pendente'
+                if after!=before and after!=invalidated:return error('Decisões GO / NO-GO são exclusivas de Administrador ou Gestor.',403)
         changed=c.execute('UPDATE ct_cutovers SET state=%s,title=%s,version=version+1,updated_at=%s,updated_by=%s WHERE id=%s AND version=%s', (json.dumps(s,ensure_ascii=False),s['meta']['branch'][:160],now(),g.user['email'],id,body['version']))
         if changed.rowcount!=1:return error('Outra pessoa atualizou este cutover. Exporte sua cópia e recarregue antes de continuar.',409)
         previous=json.loads(old['state']);diff={k:{'antes':previous.get(k),'depois':s.get(k)} for k in ['meta','tasks','decisions'] if previous.get(k)!=s.get(k)}
@@ -201,13 +217,15 @@ def history(id):
 def users():
     if g.user['role']!='admin':return error('Acesso exclusivo do administrador.',403)
     if request.method=='GET':
-        with db() as c:rows=c.execute('SELECT id,email,name,role,active,last_login FROM ct_users ORDER BY name').fetchall()
+        with db() as c:rows=c.execute('SELECT u.id,u.email,u.name,u.role,u.active,u.last_login,CASE WHEN a.secret IS NULL THEN 0 ELSE 1 END AS mfa_enabled,a.must_change FROM ct_users u JOIN ct_auth a ON a.user_id=u.id ORDER BY u.name').fetchall()
         return jsonify([dict(r) for r in rows])
     b=request.get_json() or {};email=str(b.get('email','')).strip().lower();pw=str(b.get('password',''));name=str(b.get('name','')).strip();role=b.get('role','operator')
-    if '@' not in email or len(email)>254 or not name or len(name)>160 or len(pw)<12 or role not in ['admin','operator']:return error('Informe nome, e-mail, perfil e senha com pelo menos 12 caracteres.')
+    if '@' not in email or len(email)>254 or not name or len(name)>160 or len(pw)<12 or role not in ['admin','manager','operator','viewer']:return error('Informe nome, e-mail, perfil e senha com pelo menos 12 caracteres.')
     with db() as c:
-        result=c.execute('INSERT INTO ct_users (id,email,name,password,role) VALUES (%s,%s,%s,%s,%s) ON CONFLICT(email) DO NOTHING',(secrets.token_hex(16),email,name,generate_password_hash(pw),role))
+        uid=secrets.token_hex(16)
+        result=c.execute('INSERT INTO ct_users (id,email,name,password,role) VALUES (%s,%s,%s,%s,%s) ON CONFLICT(email) DO NOTHING',(uid,email,name,generate_password_hash(pw),role))
         if result.rowcount!=1:return error('E-mail já cadastrado.',409)
+        c.execute('INSERT INTO ct_auth (user_id,must_change) VALUES (%s,1)',(uid,))
         audit(c,g.user['email'],'criação de usuário',detail={'email':email,'role':role})
     return jsonify(ok=True),201
 
@@ -219,6 +237,7 @@ def toggle_user(id):
     if not isinstance(value,bool):return error('Valor inválido.')
     with db() as c:
         c.execute('UPDATE ct_users SET active=%s WHERE id=%s',(int(value),id))
+        c.execute('UPDATE ct_auth SET auth_version=auth_version+1 WHERE user_id=%s',(id,))
         audit(c,g.user['email'],'alteração de acesso',detail={'id':id,'active':value})
     return jsonify(ok=True)
 
@@ -229,11 +248,15 @@ def password():
         row=c.execute('SELECT password FROM ct_users WHERE id=%s',(g.user['id'],)).fetchone()
         if len(pw)<12 or not check_password_hash(row['password'],str(b.get('current',''))):return error('Confira a senha atual e use uma nova senha com pelo menos 12 caracteres.')
         c.execute('UPDATE ct_users SET password=%s WHERE id=%s',(generate_password_hash(pw),g.user['id']))
+        c.execute('UPDATE ct_auth SET auth_version=auth_version+1 WHERE user_id=%s',(g.user['id'],))
         audit(c,g.user['email'],'troca de senha')
     session.clear();return jsonify(ok=True)
 
 @app.errorhandler(500)
 def internal_error(e):return error('Erro interno. Tente novamente; se persistir, consulte os logs do serviço.',500)
+
+from auth_mfa import register_auth
+register_auth(app, globals())
 
 if __name__=='__main__':
     init_db();app.run(host='127.0.0.1',port=5000)
