@@ -10,8 +10,6 @@ services:
         value: 3.12.8
       - key: SECRET_KEY
         generateValue: true
-      - key: MFA_ENCRYPTION_KEY
-        sync: false
       - key: DATABASE_URL
         sync: false
       - key: ADMIN_EMAIL

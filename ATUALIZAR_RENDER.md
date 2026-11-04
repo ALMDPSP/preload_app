@@ -1,35 +1,16 @@
-# Atualização v2 — perfis e Authenticator
+# Atualização v2.1 — MFA seguindo o Controle de Ativos
 
-1. No GitHub, envie o conteúdo completo desta pasta para a raiz do repositório do Cutover. Preserve os nomes `static`, `templates` e `requirements.txt`.
-2. No Render, abra seu Web Service → **Environment**.
-3. Mantenha `DATABASE_URL` e `SECRET_KEY` atuais. Adicione **MFA_ENCRYPTION_KEY**.
-4. Para gerar o valor dessa nova variável, execute no PowerShell:
-
-   ```powershell
-   $bytes = New-Object byte[] 32
-   $rng = [System.Security.Cryptography.RandomNumberGenerator]::Create()
-   $rng.GetBytes($bytes)
-   [Convert]::ToBase64String($bytes).Replace('+','-').Replace('/','_')
-   $rng.Dispose()
-   ```
-
-   Copie a linha resultante, incluindo `=` no final, para o valor da variável. Gere uma única vez e guarde a chave com segurança para os próximos deploys.
-
-5. Confirme Build Command:
-
-   ```sh
-   pip install -r requirements.txt
-   ```
-
-6. Confirme Start Command:
+1. No GitHub, substitua os arquivos pelo conteúdo deste pacote. O ajuste principal está em `auth_mfa.py`; mantenha todos os arquivos do projeto atualizados.
+2. No Render, preserve `DATABASE_URL` e `SECRET_KEY` existentes.
+3. Se o deploy parou por falta de `MFA_ENCRYPTION_KEY`, não é necessário criar essa variável. Esta versão usa `SECRET_KEY` para derivar a proteção das credenciais do Authenticator.
+4. Se você já definiu `MFA_ENCRYPTION_KEY` e ativou MFA na versão anterior, mantenha seu valor. Assim, os cadastros anteriores continuam legíveis.
+5. Mantenha Build Command `pip install -r requirements.txt` e Start Command:
 
    ```sh
    python init_db.py && gunicorn app:app --bind 0.0.0.0:$PORT --workers 2 --timeout 120
    ```
 
-7. Salve as variáveis e faça o deploy da versão mais recente. Mantenha `/healthz` como Health Check Path.
-8. Entre com seu usuário existente. Será solicitado o cadastro do Authenticator. Se ainda for o primeiro administrador do banco novo, antes disso será solicitada a troca da senha temporária.
-9. Microsoft Authenticator: adicionar **Outra conta**. Google Authenticator: ler QR Code. Confirme o código e guarde os oito códigos de recuperação.
-10. No menu **Usuários**, ajuste os perfis: Administrador, Gestor, Operador e Consulta. Novos usuários devem receber senha temporária com pelo menos 12 caracteres.
+6. Faça o deploy mais recente. Não é necessário apagar o banco ou criar tabelas manualmente.
+7. Entre com seu usuário, cadastre o QR Code no Microsoft Authenticator (Outra conta) ou Google Authenticator e confirme o código. Guarde os códigos de recuperação.
 
-Não é necessário apagar banco nem executar SQL manualmente. A inicialização cria a tabela adicional de autenticação e preserva o conteúdo anterior. Confira o salvamento de um cutover e o acesso de um usuário Consulta após publicar. Os detalhes de permissões e recuperação estão em `README.md`.
+Os quatro perfis, MFA obrigatório, troca de senha temporária e os registros existentes são preservados. Não altere a chave utilizada para criptografia após cadastrar os Authenticator: ela é necessária para ler os dados já gravados. O app permanece exigindo `SECRET_KEY` em produção; a proteção MFA continua ativa.

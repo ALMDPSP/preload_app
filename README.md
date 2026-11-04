@@ -1,24 +1,14 @@
-# Cutover Linx Agiliza → Orion · Render + Neon · v2.0
+# Cutover Linx Agiliza → Orion · Render + Neon · v2.1
 
-## Atualizar da versão 1 para a versão 2
+## Atualizar para a versão 2.1
 
-1. Substitua os arquivos do projeto no GitHub pelo conteúdo desta pasta, incluindo `auth_mfa.py`, `templates/mfa.html`, `static/users.js` e `requirements.txt`. Não altere os nomes das pastas `static` e `templates`.
-2. Preserve `DATABASE_URL` e `SECRET_KEY` existentes no Render.
-3. Adicione `MFA_ENCRYPTION_KEY` nas variáveis do Render. Gere uma vez e mantenha o mesmo valor nas futuras publicações. Essa chave criptografa as credenciais MFA; perdê-la impede a validação dos Authenticator já cadastrados. Não use uma senha comum nem o texto de exemplo como chave.
-4. Gere o valor no PowerShell do Windows:
+1. Substitua os arquivos do projeto no GitHub pelo conteúdo desta pasta. Preserve os nomes `static`, `templates` e `requirements.txt`.
+2. Mantenha `DATABASE_URL` e `SECRET_KEY` atuais no Render. Não é necessário cadastrar `MFA_ENCRYPTION_KEY`: quando ela não existe, a aplicação deriva a chave de criptografia de `SECRET_KEY`, seguindo o comportamento do Controle de Ativos.
+3. Se você já configurou `MFA_ENCRYPTION_KEY` na versão 2.0 e ativou algum Authenticator, preserve seu valor. Esta versão continua usando a chave Fernet explícita anterior para conseguir ler os cadastros existentes. A interpretação dessa variável é mantida como na versão 2.0 do Cutover; não copie chaves de outro aplicativo.
+4. Faça o deploy com o Start Command já usado. `init_db.py` cria a tabela adicional `ct_auth` sem apagar usuários, senhas ou cutovers. Usuários que ainda não ativaram MFA serão direcionados para o cadastro no próximo login.
+5. Usuários existentes mantêm seu perfil e senha. Administradores podem escolher os novos perfis em **Usuários**. Quem for novo ou tiver uma senha temporária redefinida precisará criar uma nova senha antes de configurar/validar o Authenticator.
 
-   ```powershell
-   $bytes = New-Object byte[] 32
-   $rng = [System.Security.Cryptography.RandomNumberGenerator]::Create()
-   $rng.GetBytes($bytes)
-   [Convert]::ToBase64String($bytes).Replace('+','-').Replace('/','_')
-   $rng.Dispose()
-   ```
-
-   Copie a linha resultante inteira, inclusive o `=` final, para `MFA_ENCRYPTION_KEY`.
-
-5. Faça o deploy mantendo o Start Command já usado. `init_db.py` cria a tabela adicional `ct_auth` sem apagar usuários, senhas ou cutovers. As sessões antigas deixam de autorizar acesso: todos precisarão entrar novamente e cadastrar MFA.
-6. Usuários existentes mantêm seu perfil e senha. Administradores podem escolher os novos perfis em **Usuários**. Quem for novo ou tiver uma senha temporária redefinida precisará criar uma nova senha antes de configurar/validar o Authenticator.
+A chave usada precisa permanecer estável: sem variável adicional, preserve `SECRET_KEY`; com variável adicional já em uso, preserve `MFA_ENCRYPTION_KEY`. Alterar a chave de criptografia sem migrar os dados impede a leitura dos cadastros MFA existentes.
 
 ## Perfis e permissões
 
@@ -70,7 +60,6 @@ Aplicação Flask com login e dados compartilhados em PostgreSQL. Mantém as 11 
    |---|---|
    | `DATABASE_URL` | Connection string do Neon, com usuário, senha, host, banco e parâmetros TLS |
    | `SECRET_KEY` | Chave aleatória longa e permanente; gere com `python -c "import secrets; print(secrets.token_hex(32))"` |
-   | `MFA_ENCRYPTION_KEY` | Chave Fernet permanente; use o comando PowerShell acima ou `python -c "from cryptography.fernet import Fernet; print(Fernet.generate_key().decode())"` |
    | `ADMIN_EMAIL` | Seu e-mail para o primeiro administrador |
    | `ADMIN_PASSWORD` | Senha inicial forte, com pelo menos 12 caracteres |
    | `ADMIN_NAME` | Alexandre Martins, ou nome desejado |
@@ -114,7 +103,7 @@ pip install pytest==8.4.2
 python -m pytest -q
 ```
 
-Os testes automatizados usam SQLite temporário e cobrem troca obrigatória de senha, MFA e criptografia, rejeição de código reutilizado, recuperação de uso único, redefinições administrativas, limitação de tentativas, CSRF, quatro perfis, bloqueio e revogação de sessões, salvamento compartilhado, conflitos, GO e migração da versão 1. A conexão real ao seu Neon e o deploy no seu Render dependem das suas configurações e precisam ser validados após a publicação. Em desenvolvimento, sem `MFA_ENCRYPTION_KEY`, a chave é derivada de `SECRET_KEY` apenas para facilitar testes; isso não é permitido em produção.
+Os testes automatizados usam SQLite temporário e cobrem troca obrigatória de senha, MFA e criptografia, rejeição de código reutilizado, recuperação de uso único, redefinições administrativas, limitação de tentativas, CSRF, quatro perfis, bloqueio e revogação de sessões, salvamento compartilhado, conflitos, GO e migração da versão 1. A conexão real ao seu Neon e o deploy no seu Render dependem das suas configurações e precisam ser validados após a publicação. Sem `MFA_ENCRYPTION_KEY`, a chave de criptografia é derivada de `SECRET_KEY` também em produção. A configuração explícita já utilizada na v2.0 continua compatível.
 
 ## Referências oficiais
 

@@ -7,12 +7,17 @@ from flask import request, session, redirect, render_template, g, jsonify
 from werkzeug.security import check_password_hash, generate_password_hash
 
 
+def build_mfa_cipher(secret_key, configured=None):
+    # Preserve the explicit Fernet key accepted by v2.0. Without it, derive a
+    # stable encryption key from SECRET_KEY, as in Controle de Ativos.
+    key = configured.encode() if configured else base64.urlsafe_b64encode(hashlib.sha256(secret_key.encode()).digest())
+    return Fernet(key)
+
+
 def register_auth(app, core):
     db, audit, error, token, now = (core[k] for k in ['db','audit','error','token','now'])
     configured=os.getenv('MFA_ENCRYPTION_KEY')
-    if not configured and not core['DEV']:
-        raise RuntimeError('Configure MFA_ENCRYPTION_KEY com uma chave Fernet permanente.')
-    cipher=Fernet(configured.encode() if configured else base64.urlsafe_b64encode(hashlib.sha256(app.secret_key.encode()).digest()))
+    cipher=build_mfa_cipher(app.secret_key, configured)
     def encrypt(value):return cipher.encrypt(value.encode()).decode()
     def decrypt(value):return cipher.decrypt(value.encode()).decode()
     def digest(value):return hashlib.sha256(value.strip().replace('-','').upper().encode()).hexdigest()

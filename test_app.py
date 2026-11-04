@@ -190,3 +190,27 @@ def test_gates_and_invalid_data(isolated):
     assert save(a,id,s,1).status_code==400
     s['tasks']={'linx1':{'status':'Qualquer'}}
     assert save(a,id,s,1).status_code==400
+
+
+def test_mfa_key_fallback_matches_ativos_and_preserves_explicit_v2_key():
+    import base64,hashlib
+    from auth_mfa import build_mfa_cipher
+    secret='example-application-secret-for-tests'
+    expected=Fernet(base64.urlsafe_b64encode(hashlib.sha256(secret.encode()).digest()))
+    token=expected.encrypt(b'TEST-MFA-SECRET')
+    assert build_mfa_cipher(secret).decrypt(token)==b'TEST-MFA-SECRET'
+    assert expected.decrypt(build_mfa_cipher(secret).encrypt(b'TEST-MFA-SECRET'))==b'TEST-MFA-SECRET'
+    explicit=Fernet.generate_key()
+    old_token=Fernet(explicit).encrypt(b'EXISTING-V2-SECRET')
+    assert build_mfa_cipher(secret,explicit.decode()).decrypt(old_token)==b'EXISTING-V2-SECRET'
+    assert build_mfa_cipher('different-session-key',explicit.decode()).decrypt(old_token)==b'EXISTING-V2-SECRET'
+
+
+def test_production_starts_without_extra_mfa_variable():
+    import subprocess,sys
+    env=dict(os.environ)
+    env.pop('MFA_ENCRYPTION_KEY',None)
+    env.update(APP_ENV='production',SECRET_KEY='isolated-production-config-test',DATABASE_URL='postgresql://unused:unused@localhost/unused')
+    r=subprocess.run([sys.executable,'-c','import app; print("configuration-ok")'],env=env,capture_output=True,text=True)
+    assert r.returncode==0,r.stderr
+    assert r.stdout.strip()=='configuration-ok'
