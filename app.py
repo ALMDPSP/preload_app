@@ -74,7 +74,7 @@ def init_db(log=None):
         report('Conexão estabelecida. Conferindo estrutura principal...')
         for sql in SCHEMA: c.execute(sql)
         report('Conferindo filiais e migrando vínculos anteriores...')
-        migrated=migrate_branches(c,now)
+        migrated=migrate_branches(c,now,postgres=bool(DATABASE))
         report(f'Filiais conferidas. Vínculos migrados: {migrated}. Conferindo usuários...')
         email = os.getenv('ADMIN_EMAIL', '').strip().lower()
         password = os.getenv('ADMIN_PASSWORD', '')

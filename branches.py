@@ -1,5 +1,6 @@
 """Branch registration and permanent one-store linkage for each cutover."""
 import json, re, secrets
+from branch_values import normalize_uf, branch_status
 from flask import g, request, jsonify
 
 BRANCH_SCHEMA=[
@@ -9,8 +10,10 @@ BRANCH_SCHEMA=[
  'CREATE TABLE IF NOT EXISTS ct_branch_imports (id TEXT PRIMARY KEY, user_id TEXT NOT NULL, payload TEXT NOT NULL, mode TEXT NOT NULL, expires_at DOUBLE PRECISION NOT NULL, created_at TEXT NOT NULL, applied_at TEXT, result TEXT)'
 ]
 
-def migrate_branches(c,now):
+def migrate_branches(c,now,postgres=False):
     for sql in BRANCH_SCHEMA:c.execute(sql)
+    columns=([r['column_name'] for r in c.execute("SELECT column_name FROM information_schema.columns WHERE table_schema=current_schema() AND table_name='ct_branches'").fetchall()] if postgres else [r['name'] for r in c.execute('PRAGMA table_info(ct_branches)').fetchall()])
+    if 'opening_soon' not in columns:c.execute('ALTER TABLE ct_branches ADD COLUMN opening_soon INTEGER NOT NULL DEFAULT 0')
     rows=c.execute('SELECT x.id,x.title,x.state FROM ct_cutovers x LEFT JOIN ct_cutover_branch b ON b.cutover_id=x.id WHERE b.cutover_id IS NULL').fetchall()
     if not rows:return 0
     candidates={};links=[]
@@ -39,23 +42,25 @@ def bound_meta(state,branch):
 def register_branches(app,core):
     db,error,audit,now=(core[k] for k in ['db','error','audit','now'])
     def valid_fields(body,update=False):
-        name=str(body.get('name','')).strip();city=str(body.get('city','')).strip();uf=str(body.get('uf','')).strip().upper()
+        name=str(body.get('name','')).strip();city=str(body.get('city','')).strip();uf=normalize_uf(body.get('uf',''))
         if not name or len(name)>160 or len(city)>100 or (uf and uf not in ['AC','AL','AP','AM','BA','CE','DF','ES','GO','MA','MT','MS','MG','PA','PB','PR','PE','PI','RJ','RN','RS','RO','RR','SC','SP','SE','TO']):raise ValueError('Informe o nome da filial e confira cidade e UF.')
         return name,city,uf
 
     @app.route('/api/branches',methods=['GET','POST'])
     def branches():
         if request.method=='GET':
-            with db() as c:rows=c.execute('SELECT b.*,COUNT(l.cutover_id) AS cutover_count FROM ct_branches b LEFT JOIN ct_cutover_branch l ON l.branch_id=b.id WHERE b.needs_review=0 OR l.cutover_id IS NOT NULL GROUP BY b.id,b.code,b.name,b.city,b.uf,b.active,b.needs_review,b.created_at ORDER BY b.needs_review DESC,b.code').fetchall()
+            with db() as c:rows=c.execute('SELECT b.*,COUNT(l.cutover_id) AS cutover_count FROM ct_branches b LEFT JOIN ct_cutover_branch l ON l.branch_id=b.id WHERE b.needs_review=0 OR l.cutover_id IS NOT NULL GROUP BY b.id,b.code,b.name,b.city,b.uf,b.active,b.needs_review,b.created_at,b.opening_soon ORDER BY b.needs_review DESC,b.code').fetchall()
             return jsonify([dict(r) for r in rows])
         if g.user['role'] not in ['admin','manager']:return error('Somente Administrador ou Gestor pode cadastrar filiais.',403)
         body=request.get_json() or {};code=str(body.get('code','')).strip().upper()
         if not re.fullmatch(r'[A-Z0-9][A-Z0-9_-]{1,29}',code):return error('Informe um código de filial de 2 a 30 caracteres, como VD266 ou L2621.')
-        try:name,city,uf=valid_fields(body)
+        try:
+            name,city,uf=valid_fields(body)
+            active,opening=branch_status(body)
         except ValueError as exc:return error(str(exc))
         with db() as c:
             uid=secrets.token_hex(16)
-            row=c.execute('INSERT INTO ct_branches (id,code,name,city,uf,created_at) VALUES (%s,%s,%s,%s,%s,%s) ON CONFLICT(code) DO NOTHING',(uid,code,name,city,uf,now()))
+            row=c.execute('INSERT INTO ct_branches (id,code,name,city,uf,active,opening_soon,created_at) VALUES (%s,%s,%s,%s,%s,%s,%s,%s) ON CONFLICT(code) DO NOTHING',(uid,code,name,city,uf,active,opening,now()))
             if row.rowcount!=1:return error('Essa filial já está cadastrada. Selecione-a na lista.',409)
             audit(c,g.user['email'],'cadastro de filial',detail={'id':uid,'code':code,'name':name})
         return jsonify(id=uid,code=code),201
@@ -64,15 +69,33 @@ def register_branches(app,core):
     def edit_branch(id):
         if g.user['role'] not in ['admin','manager']:return error('Acesso exclusivo de Administrador ou Gestor.',403)
         body=request.get_json() or {}
-        try:name,city,uf=valid_fields(body)
+        try:
+            name,city,uf=valid_fields(body)
+            active,opening=branch_status(body)
         except ValueError as exc:return error(str(exc))
-        if not isinstance(body.get('active',True),bool):return error('Situação da filial inválida.')
         with db() as c:
             previous=c.execute('SELECT * FROM ct_branches WHERE id=%s',(id,)).fetchone()
             if not previous:return error('Filial não encontrada.',404)
             if body.get('code',previous['code'])!=previous['code']:return error('O código da filial não pode ser alterado após o cadastro.')
-            c.execute('UPDATE ct_branches SET name=%s,city=%s,uf=%s,active=%s WHERE id=%s',(name,city,uf,int(body.get('active',True)),id))
-            audit(c,g.user['email'],'alteração de filial',detail={'id':id,'name':name,'active':body.get('active',True)})
+            c.execute('UPDATE ct_branches SET name=%s,city=%s,uf=%s,active=%s,opening_soon=%s WHERE id=%s',(name,city,uf,active,opening,id))
+            audit(c,g.user['email'],'alteração de filial',detail={'id':id,'name':name,'active':bool(active),'opening_soon':bool(opening)})
+        return jsonify(ok=True)
+
+    @app.delete('/api/branches/<id>')
+    def delete_branch(id):
+        if g.user['role']!='admin':return error('Somente Administrador pode excluir filiais.',403)
+        try:
+            with db() as c:
+                row=c.execute('SELECT * FROM ct_branches WHERE id=%s',(id,)).fetchone()
+                if not row:return error('Filial não encontrada.',404)
+                if c.execute('SELECT cutover_id FROM ct_cutover_branch WHERE branch_id=%s LIMIT 1',(id,)).fetchone():
+                    return error('Esta filial possui cutovers vinculados. Inative o cadastro para preservar o histórico.',409)
+                audit(c,g.user['email'],'exclusão de filial',detail={'id':id,'code':row['code'],'name':row['name']})
+                c.execute('DELETE FROM ct_branches WHERE id=%s',(id,))
+        except Exception as exc:
+            if getattr(exc,'sqlstate',None)=='23503' or type(exc).__name__=='IntegrityError':
+                return error('A filial possui vínculos. Atualize a página e inative o cadastro.',409)
+            raise
         return jsonify(ok=True)
 
     @app.put('/api/cutovers/<id>/branch')

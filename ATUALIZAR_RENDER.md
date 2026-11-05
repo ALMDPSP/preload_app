@@ -1,3 +1,18 @@
+# Atualização v2.6 — Filiais a inaugurar e exclusão
+
+1. Substitua no GitHub os arquivos pelo conteúdo completo deste pacote, incluindo o novo `branch_values.py`.
+2. No Render, mantenha o Build Command `pip install -r requirements.txt` e o Start Command `bash start.sh`. Mantenha as variáveis atuais.
+3. Faça o deploy. A coluna adicional é criada automaticamente, preservando filiais, usuários e cutovers existentes.
+4. Atualize a página com Ctrl+F5. Abra **Filiais** e cadastre/edite usando **Ativa**, **Inativa** ou **A inaugurar**.
+5. Na importação, a coluna Situação/Ativo aceita **A inaugurar**. Estado/UF aceita nomes completos ou siglas; por exemplo, São Paulo é convertido para SP. Confira a situação na prévia antes de confirmar.
+6. Para excluir, entre como Administrador e clique em **Excluir**, depois confirme na janela. Se houver cutovers vinculados, a exclusão é bloqueada; use **Editar → Inativa** para preservar o histórico.
+
+Lojas a inaugurar aparecem identificadas no cadastro, na pesquisa e no seletor de filiais. Elas permitem iniciar cutovers de preparação. A situação é independente da conclusão do checklist.
+
+Importações permanecem em duas etapas, com confirmação, limite de 10 MB/10 mil linhas e preservação dos vínculos. Prévia gerada antes desta atualização deve ser analisada novamente. Os nomes dos 27 estados/DF são reconhecidos com ou sem acento.
+
+Validação: 26 testes automatizados com SQLite e simulação dos parâmetros PostgreSQL; verificação da interface para Administrador e Consulta, com importação, paginação, situação A inaugurar, edição e confirmação de exclusão. Sem deploy ou teste no Neon do usuário. A planilha FILIAL.xlsx não estava disponível no ambiente desta revisão; os formatos foram validados com arquivos de teste.
+
 # Atualização v2.5.1 - Revisão da inicialização e importação de filiais
 
 1. Substitua os arquivos no GitHub pelo conteúdo completo deste pacote. Inclua `branch_import.py`, `static/branch-import.js` e o `requirements.txt` atualizado.

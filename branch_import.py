@@ -1,11 +1,12 @@
 """Bounded XLSX/CSV branch imports with review, atomic commit and stable IDs."""
 import csv, hashlib, io, json, re, secrets, sqlite3, time, unicodedata, zipfile
 from pathlib import Path
+from branch_values import normalize_uf, parse_status
 from flask import request, g, jsonify, Response
 
 MAX_ROWS=10000
 MAX_FILE=10*1024*1024
-FIELDS=['id','code','name','city','uf','active','needs_review']
+FIELDS=['id','code','name','city','uf','active','opening_soon','needs_review']
 UFS={'AC','AL','AP','AM','BA','CE','DF','ES','GO','MA','MT','MS','MG','PA','PB','PR','PE','PI','RJ','RN','RS','RO','RR','SC','SP','SE','TO'}
 
 def normalized(value):
@@ -79,7 +80,7 @@ def parse_rows(rows):
     for number,row in enumerate(rows[header+1:],header+2):
         if not any(text_value(v) for v in row):continue
         def val(field):return text_value(row[mapping[field]]) if field in mapping and mapping[field]<len(row) else ''
-        code=val('code').upper();name=val('name');city=val('city');uf=val('uf').upper();active_raw=val('active')
+        code=val('code').upper();name=val('name');city=val('city');uf=normalize_uf(val('uf'));active_raw=val('active')
         failures=[]
         if not re.fullmatch(r'[A-Z0-9][A-Z0-9_-]{1,29}',code):failures.append('Código inválido (2 a 30 caracteres, letras, números, _ ou -).')
         if not name or len(name)>160:failures.append('Nome obrigatório, com até 160 caracteres.')
@@ -87,14 +88,12 @@ def parse_rows(rows):
         if uf and uf not in UFS:failures.append('UF inválida. Informe a sigla, como SP.')
         if code in seen:failures.append(f'Código repetido no arquivo; já informado na linha {seen[code]}.')
         else:seen[code]=number
-        active=None
+        active=None;opening=None
         if active_raw:
-            active_key=unicodedata.normalize('NFKD',active_raw).encode('ascii','ignore').decode().lower().strip()
-            if active_key in {'1','true','sim','s','ativo','ativa'}:active=1
-            elif active_key in {'0','false','nao','n','inativo','inativa'}:active=0
-            else:failures.append('Situação inválida. Use Ativa/Inativa ou Sim/Não.')
+            try:active,opening=parse_status(active_raw)
+            except ValueError as exc:failures.append(str(exc))
         if failures:errors.append({'line':number,'code':code,'message':' '.join(failures)})
-        else:parsed.append({'line':number,'code':code,'name':name,'city':city,'uf':uf,'active':active})
+        else:parsed.append({'line':number,'code':code,'name':name,'city':city,'uf':uf,'active':active,'opening_soon':opening})
     if not parsed and not errors:raise ValueError('O arquivo contém somente o cabeçalho. Inclua as filiais abaixo dele.')
     return parsed,errors
 
@@ -106,9 +105,9 @@ def plan_import(rows,existing,mode):
         previous=existing.get(record['code'])
         if previous and previous['needs_review']:
             errors.append({'line':record['line'],'code':record['code'],'message':'Este é um vínculo antigo pendente de revisão. Confirme a filial antes de atualizar.'});continue
-        current={'code':record['code'],'name':record['name'],'city':record['city'] or (previous['city'] if previous else ''),'uf':record['uf'] or (previous['uf'] if previous else ''),'active':record['active'] if record['active'] is not None else (previous['active'] if previous else 1)}
+        current={'code':record['code'],'name':record['name'],'city':record['city'] or (previous['city'] if previous else ''),'uf':record['uf'] or (previous['uf'] if previous else ''),'opening_soon':record.get('opening_soon') if record.get('opening_soon') is not None else (previous.get('opening_soon',0) if previous else 0),'active':record['active'] if record['active'] is not None else (previous['active'] if previous else 1)}
         if previous and mode=='create_only':action='ignored'
-        elif previous:action='unchanged' if all(previous[k]==current[k] for k in ['name','city','uf','active']) else 'update'
+        elif previous:action='unchanged' if all(previous[k]==current[k] for k in ['name','city','uf','active','opening_soon']) else 'update'
         else:action='new'
         counts[action]+=1
         plan.append({**current,'line':record['line'],'action':action,'before':fingerprint(previous) if previous else None})
@@ -120,7 +119,7 @@ def register_branch_import(app,core):
 
     @app.get('/api/branches/import-template')
     def import_template():
-        data='\ufeffcodigo;nome;cidade;uf;ativo\r\nVD266;Shopping Vila Lobos;São Paulo;SP;Ativa\r\nL2621;Nome da loja;Campinas;SP;Ativa\r\n'
+        data='\ufeffcodigo;nome;cidade;uf;ativo\r\nVD266;Shopping Vila Lobos;São Paulo;SP;Ativa\r\nL2621;Nome da loja;Campinas;SP;A inaugurar\r\n'
         return Response(data,content_type='text/csv; charset=utf-8',headers={'Content-Disposition':'attachment; filename="Modelo_Importacao_Filiais.csv"'})
 
     @app.post('/api/branches/import/preview')
@@ -159,15 +158,16 @@ def register_branch_import(app,core):
                 if staged['applied_at']:return jsonify(**json.loads(staged['result']),already_applied=True)
                 if staged['expires_at']<time.time():return error('A prévia expirou. Analise novamente o arquivo.',409)
                 plan=json.loads(staged['payload'])
+                if any('opening_soon' not in r or (r.get('before') and 'opening_soon' not in r['before']) for r in plan):return error('O sistema foi atualizado. Analise o arquivo novamente antes de confirmar.',409)
                 existing={r['code']:dict(r) for r in c.execute('SELECT * FROM ct_branches ORDER BY code'+lock).fetchall()}
                 writes=[r for r in plan if r['action'] in ['new','update']]
                 for r in writes:
                     current=existing.get(r['code'])
                     if (fingerprint(current) if current else None)!=r['before']:return error('O cadastro mudou depois da prévia. Analise o arquivo novamente para evitar sobrescritas.',409)
-                created=[(secrets.token_hex(16),r['code'],r['name'],r['city'],r['uf'],r['active'],now()) for r in writes if r['action']=='new']
-                updated=[(r['name'],r['city'],r['uf'],r['active'],r['before']['id']) for r in writes if r['action']=='update']
-                if created:c.executemany('INSERT INTO ct_branches (id,code,name,city,uf,active,created_at) VALUES (%s,%s,%s,%s,%s,%s,%s)',created)
-                if updated:c.executemany('UPDATE ct_branches SET name=%s,city=%s,uf=%s,active=%s WHERE id=%s',updated)
+                created=[(secrets.token_hex(16),r['code'],r['name'],r['city'],r['uf'],r['active'],r['opening_soon'],now()) for r in writes if r['action']=='new']
+                updated=[(r['name'],r['city'],r['uf'],r['active'],r['opening_soon'],r['before']['id']) for r in writes if r['action']=='update']
+                if created:c.executemany('INSERT INTO ct_branches (id,code,name,city,uf,active,opening_soon,created_at) VALUES (%s,%s,%s,%s,%s,%s,%s,%s)',created)
+                if updated:c.executemany('UPDATE ct_branches SET name=%s,city=%s,uf=%s,active=%s,opening_soon=%s WHERE id=%s',updated)
                 result={'created':len(created),'updated':len(updated),'ignored':sum(r['action']=='ignored' for r in plan),'unchanged':sum(r['action']=='unchanged' for r in plan)}
                 audit(c,g.user['email'],'importação de filiais',detail={**result,'import_id':uid,'mode':staged['mode']})
                 c.execute('UPDATE ct_branch_imports SET payload=%s,applied_at=%s,result=%s WHERE id=%s',('[]',now(),json.dumps(result),uid))

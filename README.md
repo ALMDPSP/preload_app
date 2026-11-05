@@ -1,6 +1,10 @@
-# Cutover Linx Agiliza → Orion · v2.5.1
+# Cutover Linx Agiliza → Orion · v2.6
 
 Consulte `ATUALIZAR_RENDER.md` para atualizar o Start Command para `bash start.sh` e acompanhar os novos logs de inicialização.
+
+## Filiais a inaugurar e exclusão — v2.6
+
+Cadastre ou importe a situação **A inaugurar**. Administradores podem excluir filiais sem cutovers; cadastros com histórico devem ser inativados. A importação aceita nomes completos dos estados e siglas. Consulte `ATUALIZAR_RENDER.md`.
 
 ## Importação de filiais por planilha - v2.5
 
