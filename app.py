@@ -35,11 +35,12 @@ STATUSES = ['Pendente', 'Em andamento', 'Concluído', 'Bloqueado']
 def now(): return datetime.now(timezone.utc).isoformat()
 
 @contextmanager
-def db():
+def db(*, healthcheck=False):
     if DATABASE:
         import psycopg
         from psycopg.rows import dict_row
-        conn = psycopg.connect(DATABASE, connect_timeout=15, row_factory=dict_row)
+        conn = psycopg.connect(DATABASE, connect_timeout=2 if healthcheck else 15,row_factory=dict_row,
+                               keepalives=1,keepalives_idle=15,keepalives_interval=5,keepalives_count=3,tcp_user_timeout=20000)
     else:
         conn = sqlite3.connect(os.getenv('SQLITE_PATH', str(ROOT / 'dev.sqlite')), timeout=15)
         conn.row_factory = sqlite3.Row
@@ -53,6 +54,11 @@ def db():
                 cursor.executemany(sql if DATABASE else sql.replace('%s','?'),params)
             finally:cursor.close()
     try:
+        if DATABASE:
+            # SET LOCAL is scoped to this transaction and compatible with pooled connections.
+            conn.execute("SET LOCAL statement_timeout = '1500ms'" if healthcheck else "SET LOCAL statement_timeout = '45000ms'")
+            conn.execute("SET LOCAL lock_timeout = '1000ms'" if healthcheck else "SET LOCAL lock_timeout = '8000ms'")
+            conn.execute("SET LOCAL idle_in_transaction_session_timeout = '30000ms'")
         yield Connection()
         conn.commit()
     except Exception:
@@ -60,10 +66,16 @@ def db():
         raise
     finally: conn.close()
 
-def init_db():
+def init_db(log=None):
+    report=log or (lambda message:None)
+    started=time.monotonic()
+    report('Conectando ao banco de dados...')
     with db() as c:
+        report('Conexão estabelecida. Conferindo estrutura principal...')
         for sql in SCHEMA: c.execute(sql)
-        migrate_branches(c,now)
+        report('Conferindo filiais e migrando vínculos anteriores...')
+        migrated=migrate_branches(c,now)
+        report(f'Filiais conferidas. Vínculos migrados: {migrated}. Conferindo usuários...')
         email = os.getenv('ADMIN_EMAIL', '').strip().lower()
         password = os.getenv('ADMIN_PASSWORD', '')
         if not c.execute('SELECT id FROM ct_users LIMIT 1').fetchone():
@@ -75,6 +87,7 @@ def init_db():
             c.execute('INSERT INTO ct_auth (user_id,must_change) VALUES (%s,1)',(uid,))
         # Additive migration: existing users and cutovers remain intact.
         c.execute('INSERT INTO ct_auth (user_id) SELECT id FROM ct_users WHERE 1=1 ON CONFLICT(user_id) DO NOTHING')
+    report(f'Banco pronto em {time.monotonic()-started:.2f}s.')
 
 def token():
     if 'csrf' not in session: session['csrf'] = secrets.token_hex(32)
@@ -89,6 +102,7 @@ def error(message, code=400): return jsonify(error=message), code
 @app.before_request
 def protect():
     g.user = None
+    if request.path=='/healthz':return
     if session.get('uid'):
         with db() as c: row = c.execute('SELECT u.id,u.email,u.name,u.role,u.active,u.last_login,a.auth_version,a.secret,a.must_change FROM ct_users u JOIN ct_auth a ON a.user_id=u.id WHERE u.id=%s', (session['uid'],)).fetchone()
         if row and row['active'] and row['secret'] and not row['must_change'] and session.get('mfa_verified') and session.get('auth_version')==row['auth_version']:
@@ -115,7 +129,7 @@ def headers(response):
 @app.get('/healthz')
 def health():
     try:
-        with db() as c: c.execute('SELECT 1').fetchone()
+        with db(healthcheck=True) as c: c.execute('SELECT 1').fetchone()
         return jsonify(status='ok')
     except Exception: return error('Banco indisponível',503)
 

@@ -1,4 +1,6 @@
-# Cutover Linx Agiliza → Orion · v2.5
+# Cutover Linx Agiliza → Orion · v2.5.1
+
+Consulte `ATUALIZAR_RENDER.md` para atualizar o Start Command para `bash start.sh` e acompanhar os novos logs de inicialização.
 
 ## Importação de filiais por planilha - v2.5
 
@@ -123,7 +125,7 @@ Aplicação Flask com login e dados compartilhados em PostgreSQL. Mantém as 11 
 3. No Render, crie um **Web Service** conectado ao repositório. Use runtime **Python 3**, Build Command `pip install -r requirements.txt` e Start Command:
 
    ```sh
-   python init_db.py && gunicorn app:app --bind 0.0.0.0:$PORT --workers 2 --timeout 120
+   bash start.sh
    ```
 
 4. Em **Environment**, configure:

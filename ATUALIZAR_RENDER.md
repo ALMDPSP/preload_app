@@ -1,11 +1,11 @@
-# Atualização v2.5 - Importar cerca de 1.800 filiais por planilha
+# Atualização v2.5.1 - Revisão da inicialização e importação de filiais
 
 1. Substitua os arquivos no GitHub pelo conteúdo completo deste pacote. Inclua `branch_import.py`, `static/branch-import.js` e o `requirements.txt` atualizado.
 2. Mantenha as variáveis atuais no Render. Não há nova variável obrigatória.
-3. Mantenha o Build Command `pip install -r requirements.txt` e o Start Command:
+3. No painel do serviço Render, em Settings → Build & Deploy, mantenha o Build Command `pip install -r requirements.txt` e altere o Start Command para:
 
    ```sh
-   python init_db.py && gunicorn app:app --bind 0.0.0.0:$PORT --workers 2 --timeout 120
+   bash start.sh
    ```
 
 4. Faça o deploy. A tabela que guarda as prévias de importação é criada automaticamente. Nenhuma filial, usuário ou cutover existente é apagado.
@@ -19,3 +19,16 @@
 Limites por envio: 10 MB, 10 mil linhas e 30 colunas. Se o arquivo for `.xls`, salve como `.xlsx`. Fórmulas devem ser convertidas para valores. A prévia expira em 20 minutos. Se os cadastros mudarem durante a revisão, analise novamente o arquivo.
 
 As funções de checklist, PDF, usuários, perfis, senha e Authenticator continuam disponíveis. Para recuperar um Administrador existente, consulte o comando `python manage.py set-admin SEU_EMAIL_JA_CADASTRADO` no README.
+
+## Revisão v2.5.1
+
+- Inclua também `start.sh` e `init_db.py` deste pacote. Alterar apenas `render.yaml` não atualiza necessariamente um serviço criado manualmente; confira o Start Command no painel.
+- Logs com etapas e duração, incluindo antes de carregar a aplicação.
+- Migração de vínculos antigos em lote, preservando IDs e cadastros existentes.
+- PostgreSQL: conexão com limite de 15 segundos, comandos com limite de 45 segundos e espera por bloqueios com limite de 8 segundos. Falhas interrompem a transação; a inicialização pode ser repetida após resolver a causa.
+- A verificação `/healthz` usa limites menores e não carrega a sessão do usuário.
+- O servidor respeita `WEB_CONCURRENCY`; usa um worker se essa variável estiver ausente.
+
+O log enviado terminou em cancelamento manual depois de um build bem-sucedido. Ele não permite atribuir a demora a uma falha do código. O pacote melhora o desempenho da migração e permite identificar em qual etapa uma próxima tentativa demora. Não troque `SECRET_KEY`, `MFA_ENCRYPTION_KEY` ou `DATABASE_URL` durante esta atualização.
+
+Validação: testes automatizados com SQLite, incluindo migração de 1.800 registros, repetição sem duplicação, rollback, autenticação, perfis, importação e PDF. A partida real do Gunicorn, os logs e a resposta HTTP de `/healthz` foram verificados com um worker. Os parâmetros de conexão PostgreSQL foram verificados com simulação; o ambiente de revisão não permitiu iniciar o PostgreSQL local. A conexão com seu Neon e o deploy no Render precisam ser verificados pelos próximos logs.

@@ -12,15 +12,20 @@ BRANCH_SCHEMA=[
 def migrate_branches(c,now):
     for sql in BRANCH_SCHEMA:c.execute(sql)
     rows=c.execute('SELECT x.id,x.title,x.state FROM ct_cutovers x LEFT JOIN ct_cutover_branch b ON b.cutover_id=x.id WHERE b.cutover_id IS NULL').fetchall()
+    if not rows:return 0
+    candidates={};links=[]
     for row in rows:
         state=json.loads(row['state']);label=state.get('meta',{}).get('branch') or row['title']
         match=re.match(r'^\s*((?:VD|L)?\d{2,8})(?=\s*[/\s-]|$)',label,re.IGNORECASE)
         code=match.group(1).upper() if match else 'LEGADO-'+row['id'][:16].upper()
         review=0 if match else 1
         name='Filial '+code+' (nome a completar)' if match else 'Execução anterior - confirmar filial'
-        c.execute('INSERT INTO ct_branches (id,code,name,needs_review,created_at) VALUES (%s,%s,%s,%s,%s) ON CONFLICT(code) DO NOTHING',(secrets.token_hex(16),code,name,review,now()))
-        branch=c.execute('SELECT id FROM ct_branches WHERE code=%s',(code,)).fetchone()
-        c.execute('INSERT INTO ct_cutover_branch (cutover_id,branch_id) VALUES (%s,%s) ON CONFLICT(cutover_id) DO NOTHING',(row['id'],branch['id']))
+        if code not in candidates:candidates[code]=(secrets.token_hex(16),code,name,review,now())
+        links.append((row['id'],code))
+    c.executemany('INSERT INTO ct_branches (id,code,name,needs_review,created_at) VALUES (%s,%s,%s,%s,%s) ON CONFLICT(code) DO NOTHING',list(candidates.values()))
+    identities={r['code']:r['id'] for r in c.execute('SELECT id,code FROM ct_branches').fetchall()}
+    c.executemany('INSERT INTO ct_cutover_branch (cutover_id,branch_id) VALUES (%s,%s) ON CONFLICT(cutover_id) DO NOTHING',[(id,identities[code]) for id,code in links])
+    return len(links)
 
 def branch_for(c,cutover_id):
     return c.execute('SELECT b.* FROM ct_branches b JOIN ct_cutover_branch l ON l.branch_id=b.id WHERE l.cutover_id=%s',(cutover_id,)).fetchone()
