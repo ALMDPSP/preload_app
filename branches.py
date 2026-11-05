@@ -5,7 +5,8 @@ from flask import g, request, jsonify
 BRANCH_SCHEMA=[
  'CREATE TABLE IF NOT EXISTS ct_branches (id TEXT PRIMARY KEY, code TEXT UNIQUE NOT NULL, name TEXT NOT NULL, city TEXT NOT NULL DEFAULT \'\', uf TEXT NOT NULL DEFAULT \'\', active INTEGER NOT NULL DEFAULT 1, needs_review INTEGER NOT NULL DEFAULT 0, created_at TEXT NOT NULL)',
  'CREATE TABLE IF NOT EXISTS ct_cutover_branch (cutover_id TEXT PRIMARY KEY REFERENCES ct_cutovers(id), branch_id TEXT NOT NULL REFERENCES ct_branches(id))',
- 'CREATE INDEX IF NOT EXISTS ct_cutover_branch_store_idx ON ct_cutover_branch(branch_id)'
+ 'CREATE INDEX IF NOT EXISTS ct_cutover_branch_store_idx ON ct_cutover_branch(branch_id)',
+ 'CREATE TABLE IF NOT EXISTS ct_branch_imports (id TEXT PRIMARY KEY, user_id TEXT NOT NULL, payload TEXT NOT NULL, mode TEXT NOT NULL, expires_at DOUBLE PRECISION NOT NULL, created_at TEXT NOT NULL, applied_at TEXT, result TEXT)'
 ]
 
 def migrate_branches(c,now):

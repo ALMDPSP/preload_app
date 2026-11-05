@@ -1,4 +1,31 @@
-# Cutover Linx Agiliza → Orion · v2.4
+# Cutover Linx Agiliza → Orion · v2.5
+
+## Importação de filiais por planilha - v2.5
+
+A aba **Filiais** permite cadastrar listas como a de aproximadamente 1.800 lojas de uma vez. A lista tem busca e paginação de 50 registros para manter a utilização simples.
+
+1. Entre como Administrador ou Gestor e abra **Filiais → Importar lojas**.
+2. Baixe o **modelo CSV** dentro da janela. Substitua as duas linhas de exemplo pela sua lista. Você também pode usar Excel `.xlsx`, com os dados na primeira aba. Arquivos antigos `.xls` devem ser salvos como `.xlsx`.
+3. Utilize as colunas abaixo. Variações usuais de cabeçalho, como Filial/Código da filial, Descrição/Nome da loja e Município/Cidade, são reconhecidas.
+
+   | Coluna do modelo | Obrigatória | Como preencher |
+   |---|---|---|
+   | `codigo` | Sim | Código único, como VD266, L2621 ou 0012; 2 a 30 caracteres |
+   | `nome` | Sim | Nome da loja, até 160 caracteres |
+   | `cidade` | Não | Nome da cidade, até 100 caracteres |
+   | `uf` | Não | Sigla, como SP ou RJ |
+   | `ativo` | Não | Ativa/Inativa, Sim/Não ou 1/0 |
+
+4. Escolha **Cadastrar apenas novas filiais** (padrão, preserva todos os cadastros existentes) ou **Cadastrar novas e atualizar existentes** (usa o código como referência).
+5. Clique em **Analisar arquivo**. Nenhum cadastro é alterado nessa fase. Confira os totais, a amostra de até 100 linhas e eventuais erros. Se houver erro em alguma linha ou código repetido no arquivo, corrija e envie novamente; a confirmação permanece bloqueada. A janela mostra até 200 erros por vez.
+6. Clique em **Confirmar importação**. Todas as linhas planejadas são processadas juntas, em uma transação. O resultado informa novas lojas, atualizações e registros mantidos. Os IDs das filiais existentes e seus vínculos com cutovers são preservados. O processo não apaga filiais ou cutovers.
+7. A prévia expira em 20 minutos. Se alguém editar um cadastro que seria alterado ou inserir o mesmo código entre prévia e confirmação, o sistema pede uma nova análise para evitar sobrescritas. Repetir a confirmação da mesma prévia concluída não duplica a importação.
+
+Limites: até 10 MB, 10 mil linhas e 30 colunas. Somente `.xlsx` e `.csv`; fórmulas no Excel não são aceitas (cole como valores). CSV UTF-8 e Windows-1252 são aceitos, com separação por ponto e vírgula, vírgula ou tabulação. Para preservar zeros à esquerda, prefira códigos como texto; formatos numéricos simples de zeros no Excel também são reconhecidos.
+
+Na atualização, cidade, UF ou situação ausentes/vazias mantêm o cadastro anterior. Para novas filiais, situação vazia significa Ativa. Registros antigos marcados **Revisar filial** precisam ter seu vínculo confirmado pelo fluxo de revisão; a importação não resolve vínculos ambíguos automaticamente. Ações de importação ficam registradas com autor, modo e totais no histórico administrativo do banco.
+
+A tabela `ct_branch_imports` é criada automaticamente pelo `init_db.py`. Ela guarda a prévia para confirmação; após aplicar, os dados temporários são removidos do registro, mantendo o resultado e a identificação da operação. Os arquivos originais enviados não são armazenados.
 
 ## Filiais cadastradas e início de cutover - v2.4
 

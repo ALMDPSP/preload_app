@@ -1,8 +1,9 @@
-let registeredBranches=[],switchingBranch=false;
+let registeredBranches=[],switchingBranch=false,branchPage=1,branchSearchTimer=null;
+const BRANCH_PAGE_SIZE=50;
 function currentBranch(){return registeredBranches.find(b=>b.id===selectedBranchId)}
 function showBranches(){
  $('cutoverWorkspace').classList.add('hidden');$('branchesPage').classList.remove('hidden');
- document.querySelectorAll('[data-view]').forEach(b=>b.classList.remove('active'));$('branchesNav').classList.add('active');
+ document.querySelectorAll('[data-view]').forEach(b=>b.classList.remove('active'));$('branchesNav').classList.add('active');branchPage=1;
  refreshBranches().catch(e=>toast(e.message));
 }
 function showCutoverWorkspace(){
@@ -17,7 +18,10 @@ async function refreshBranches(){
 function renderBranchRegistry(){
  const q=$('branchSearch').value.toLocaleLowerCase('pt-BR');
  const rows=registeredBranches.filter(b=>(b.code+' '+b.name+' '+b.city+' '+b.uf).toLocaleLowerCase('pt-BR').includes(q));
- $('branchRegistry').innerHTML=rows.length?`<div class="panel branch-table-wrap"><table class="branch-table"><thead><tr><th>Filial</th><th>Cidade / UF</th><th>Cutovers</th><th>Situação</th><th></th></tr></thead><tbody>${rows.map(b=>`<tr><td><b>${esc(b.code)}</b><span>${esc(b.name)}</span></td><td>${esc([b.city,b.uf].filter(Boolean).join(' / '))||'Não informado'}</td><td>${b.cutover_count}</td><td><span class="badge ${b.needs_review?'blocked':b.active?'done':''}">${b.needs_review?'Revisar filial':b.active?'Ativa':'Inativa'}</span></td><td><div class="actions"><button data-open-branch="${esc(b.id)}">Abrir cutovers</button>${DECIDE?`<button data-edit-branch="${esc(b.id)}">Editar</button>`:''}</div></td></tr>`).join('')}</tbody></table></div>`:'<div class="panel empty">Nenhuma filial encontrada.'+(DECIDE?' Clique em Cadastrar filial para começar.':'')+'</div>';
+ const pages=Math.max(1,Math.ceil(rows.length/BRANCH_PAGE_SIZE));branchPage=Math.min(Math.max(1,branchPage),pages);const start=(branchPage-1)*BRANCH_PAGE_SIZE,paged=rows.slice(start,start+BRANCH_PAGE_SIZE);
+ $('branchTotals').textContent=registeredBranches.length+' filiais cadastradas · '+registeredBranches.filter(b=>b.active).length+' ativas · '+rows.length+' encontrada(s) na pesquisa';
+ $('branchRegistry').innerHTML=rows.length?`<div class="panel branch-table-wrap"><table class="branch-table"><thead><tr><th>Filial</th><th>Cidade / UF</th><th>Cutovers</th><th>Situação</th><th></th></tr></thead><tbody>${paged.map(b=>`<tr><td><b>${esc(b.code)}</b><span>${esc(b.name)}</span></td><td>${esc([b.city,b.uf].filter(Boolean).join(' / '))||'Não informado'}</td><td>${b.cutover_count}</td><td><span class="badge ${b.needs_review?'blocked':b.active?'done':''}">${b.needs_review?'Revisar filial':b.active?'Ativa':'Inativa'}</span></td><td><div class="actions"><button data-open-branch="${esc(b.id)}">Abrir cutovers</button>${DECIDE?`<button data-edit-branch="${esc(b.id)}">Editar</button>`:''}</div></td></tr>`).join('')}</tbody></table></div>`:'<div class="panel empty">Nenhuma filial encontrada.'+(DECIDE?' Clique em Cadastrar filial para começar.':'')+'</div>';
+ if(rows.length){$('branchRegistry').insertAdjacentHTML('beforeend',`<div class="branch-pagination"><span>${start+1} a ${Math.min(start+BRANCH_PAGE_SIZE,rows.length)} de ${rows.length} filiais</span><div class="actions"><button id="previousBranches" ${branchPage===1?'disabled':''}>Anterior</button><span>Página ${branchPage} de ${pages}</span><button id="nextBranches" ${branchPage===pages?'disabled':''}>Próxima</button></div></div>`);$('previousBranches').onclick=()=>{branchPage--;renderBranchRegistry()};$('nextBranches').onclick=()=>{branchPage++;renderBranchRegistry()}}
  document.querySelectorAll('[data-open-branch]').forEach(b=>b.onclick=async()=>{await switchBranch(b.dataset.openBranch);document.querySelector('[data-view="run"]').click()});
  document.querySelectorAll('[data-edit-branch]').forEach(b=>b.onclick=()=>branchForm(registeredBranches.find(x=>x.id===b.dataset.editBranch)));
 }
@@ -59,9 +63,9 @@ function resolveLegacy(){
 }
 function initBranches(){
  document.querySelector('main').append($('modal'));
- const nav=document.createElement('button');nav.id='branchesNav';nav.textContent='▦ Filiais cadastradas';nav.onclick=showBranches;document.querySelector('.nav').prepend(nav);
+ const nav=document.createElement('button');nav.id='branchesNav';nav.textContent='▦ Filiais';nav.onclick=showBranches;document.querySelector('.nav').prepend(nav);
  document.querySelectorAll('[data-view]').forEach(b=>{const prior=b.onclick;b.onclick=()=>{showCutoverWorkspace();prior()}});
- $('manageBranches').onclick=showBranches;$('addBranch').onclick=()=>branchForm();$('branchSearch').oninput=renderBranchRegistry;
+ $('manageBranches').onclick=showBranches;$('addBranch').onclick=()=>branchForm();$('branchSearch').oninput=()=>{branchPage=1;clearTimeout(branchSearchTimer);branchSearchTimer=setTimeout(renderBranchRegistry,150)};
  $('selectedBranch').onchange=()=>switchBranch($('selectedBranch').value);
  $('execution').onchange=async()=>{
   const id=$('execution').value;if(id){await loadExecution(id);return}

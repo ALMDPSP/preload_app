@@ -16,7 +16,7 @@ if not os.getenv('SECRET_KEY') and not DEV:
 app.secret_key = os.getenv('SECRET_KEY') or secrets.token_hex(32)
 app.config.update(SESSION_COOKIE_SECURE=not DEV, SESSION_COOKIE_HTTPONLY=True,
                   SESSION_COOKIE_SAMESITE='Lax', PERMANENT_SESSION_LIFETIME=timedelta(hours=8),
-                  MAX_CONTENT_LENGTH=2 * 1024 * 1024)
+                  MAX_CONTENT_LENGTH=10 * 1024 * 1024)
 app.wsgi_app = ProxyFix(app.wsgi_app, x_for=1, x_proto=1)
 DATABASE = os.getenv('DATABASE_URL', '')
 if not DATABASE and not DEV:
@@ -47,6 +47,11 @@ def db():
     class Connection:
         def execute(self, sql, params=()):
             return conn.execute(sql if DATABASE else sql.replace('%s', '?'), params)
+        def executemany(self, sql, params):
+            cursor=conn.cursor()
+            try:
+                cursor.executemany(sql if DATABASE else sql.replace('%s','?'),params)
+            finally:cursor.close()
     try:
         yield Connection()
         conn.commit()
@@ -302,9 +307,14 @@ def password():
 @app.errorhandler(500)
 def internal_error(e):return error('Erro interno. Tente novamente; se persistir, consulte os logs do serviço.',500)
 
+@app.errorhandler(413)
+def upload_too_large(e):return error('O arquivo ultrapassa o limite de 10 MB.',413)
+
 from auth_mfa import register_auth
+from branch_import import register_branch_import
 register_auth(app, globals())
 register_branches(app, globals())
+register_branch_import(app, globals())
 
 if __name__=='__main__':
     init_db();app.run(host='127.0.0.1',port=5000)
