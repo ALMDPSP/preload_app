@@ -20,7 +20,7 @@ def create_report(source, state, saved):
     styles['Heading4'].fontName='Helvetica-Bold';styles['Heading4'].fontSize=10;styles['Heading4'].leading=14
     styles['Title'].fontName='Helvetica-Bold';styles['Title'].fontSize=20;styles['Title'].leading=25;styles['Title'].textColor=colors.HexColor('#173e34')
     styles.add(ParagraphStyle(name='BodySmall',fontName='Helvetica',fontSize=9,leading=13,textColor=colors.HexColor('#24423e'),spaceAfter=5,splitLongWords=True))
-    styles.add(ParagraphStyle(name='SectionGreen',fontName='Helvetica-Bold',fontSize=12,leading=16,textColor=colors.HexColor('#007f70'),spaceBefore=16,spaceAfter=10))
+    styles.add(ParagraphStyle(name='SectionGreen',fontName='Helvetica-Bold',fontSize=12,leading=16,textColor=colors.HexColor('#007f70'),spaceBefore=16,spaceAfter=10,keepWithNext=True))
     styles.add(ParagraphStyle(name='MutedLine',fontSize=8,leading=11,textColor=colors.HexColor('#62766e'),spaceAfter=5))
     def p(value,style='BodySmall'):return Paragraph(escape(str(value or '')).replace('\n','<br/>'),styles[style])
     def local(value):
@@ -29,6 +29,7 @@ def create_report(source, state, saved):
     tasks=state.get('tasks',{});meta=state.get('meta',{});all_tasks=source['orion']+source['linx'];count=sum(tasks.get(t['id'],{}).get('status')=='Concluído' for t in all_tasks)
     elements=[p('DPSP / EXPANSÃO DE TI','SectionGreen'),p('Checklist de Cutover','Title'),p('Retirada Linx Agiliza e implantação Orion','MutedLine'),Spacer(1,8*mm)]
     info=[['FILIAL / PDV',meta.get('branch','Não informado')],['DATA / JANELA',(meta.get('date') or 'Não informada')+' | '+(meta.get('window') or 'Janela não informada')],['COORDENADOR',meta.get('coordinator') or 'Não informado'],['PROGRESSO',f'{count} de {len(all_tasks)} processos concluídos ({round(count/len(all_tasks)*100)}%)'],['REGISTRO SALVO',f"Versão {saved['version']} | {local(saved['updated_at'])} (Brasília)"],['SALVO POR',saved['updated_by']]]
+    if meta.get('branch_name'):info.insert(1,['LOJA',meta['branch_name']])
     table=Table([[p(k,'MutedLine'),p(v)] for k,v in info],colWidths=[37*mm,137*mm],hAlign='LEFT')
     table.setStyle(TableStyle([('BACKGROUND',(0,0),(-1,-1),colors.HexColor('#f0f6f2')),('VALIGN',(0,0),(-1,-1),'TOP'),('LEFTPADDING',(0,0),(-1,-1),10),('RIGHTPADDING',(0,0),(-1,-1),10),('TOPPADDING',(0,0),(-1,-1),7),('BOTTOMPADDING',(0,0),(-1,-1),5)]));elements.append(table)
     for title,group in [('01 | Preparação do Orion',source['orion'][:3]),('02 | Retirada do Linx Agiliza',source['linx']),('03 | Instalação, testes e aceite',source['orion'][3:])]:

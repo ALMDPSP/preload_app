@@ -6,6 +6,7 @@ from pathlib import Path
 from flask import Flask, request, session, jsonify, render_template, redirect, g
 from werkzeug.security import generate_password_hash, check_password_hash
 from werkzeug.middleware.proxy_fix import ProxyFix
+from branches import migrate_branches, branch_for, bound_meta, register_branches
 
 ROOT = Path(__file__).parent
 app = Flask(__name__)
@@ -42,6 +43,7 @@ def db():
     else:
         conn = sqlite3.connect(os.getenv('SQLITE_PATH', str(ROOT / 'dev.sqlite')), timeout=15)
         conn.row_factory = sqlite3.Row
+        conn.execute('PRAGMA foreign_keys=ON')
     class Connection:
         def execute(self, sql, params=()):
             return conn.execute(sql if DATABASE else sql.replace('%s', '?'), params)
@@ -56,6 +58,7 @@ def db():
 def init_db():
     with db() as c:
         for sql in SCHEMA: c.execute(sql)
+        migrate_branches(c,now)
         email = os.getenv('ADMIN_EMAIL', '').strip().lower()
         password = os.getenv('ADMIN_PASSWORD', '')
         if not c.execute('SELECT id FROM ct_users LIMIT 1').fetchone():
@@ -164,25 +167,39 @@ def valid_state(s):
 
 @app.get('/api/cutovers')
 def cutovers():
-    with db() as c: rows=c.execute('SELECT id,title,version,updated_at,updated_by FROM ct_cutovers ORDER BY updated_at DESC').fetchall()
+    branch_id=request.args.get('branch_id')
+    with db() as c:
+        sql='SELECT x.id,x.title,x.version,x.updated_at,x.updated_by,l.branch_id,b.code AS branch_code,b.name AS branch_name,b.needs_review FROM ct_cutovers x JOIN ct_cutover_branch l ON l.cutover_id=x.id JOIN ct_branches b ON b.id=l.branch_id'
+        rows=c.execute(sql+(' WHERE l.branch_id=%s' if branch_id else '')+' ORDER BY x.updated_at DESC',(branch_id,) if branch_id else ()).fetchall()
     return jsonify([dict(r) for r in rows])
 
 @app.post('/api/cutovers')
 def create_cutover():
     if g.user['role'] not in ['admin','manager']:return error('Somente Administrador ou Gestor pode criar cutovers.',403)
-    title=str((request.get_json() or {}).get('title','')).strip()[:160]
-    if not title:return error('Informe filial / PDV.')
-    id=secrets.token_hex(16);s={'meta':{'branch':title},'tasks':{},'decisions':{'linx':{},'orion':{}}}
+    body=request.get_json() or {};branch_id=body.get('branch_id')
+    if not isinstance(branch_id,str) or not branch_id:return error('Selecione uma filial cadastrada para iniciar o cutover.')
+    pdv=body.get('pdv','')
+    if not isinstance(pdv,str):return error('Informe o PDV desta execução.')
+    pdv=pdv.strip()
+    if not pdv or len(pdv)>40:return error('Informe o PDV desta execução (até 40 caracteres).')
+    id=secrets.token_hex(16)
     with db() as c:
+        branch=c.execute('SELECT * FROM ct_branches WHERE id=%s',(branch_id,)).fetchone()
+        if not branch or not branch['active'] or branch['needs_review']:return error('Selecione uma filial ativa e com cadastro confirmado.')
+        title=branch['code']+' / PDV '+pdv
+        s=bound_meta({'meta':{'branch':title,'pdv':pdv},'tasks':{},'decisions':{'linx':{},'orion':{}}},branch)
         c.execute('INSERT INTO ct_cutovers VALUES (%s,%s,%s,1,%s,%s)',(id,title,json.dumps(s),now(),g.user['email']))
+        c.execute('INSERT INTO ct_cutover_branch (cutover_id,branch_id) VALUES (%s,%s)',(id,branch_id))
         audit(c,g.user['email'],'criação',id)
     return jsonify(id=id),201
 
 @app.get('/api/cutovers/<id>')
 def get_cutover(id):
-    with db() as c: row=c.execute('SELECT * FROM ct_cutovers WHERE id=%s',(id,)).fetchone()
+    with db() as c:
+        row=c.execute('SELECT * FROM ct_cutovers WHERE id=%s',(id,)).fetchone()
+        branch=branch_for(c,id) if row else None
     if not row:return error('Cutover não encontrado.',404)
-    return jsonify(id=id,state=json.loads(row['state']),version=row['version'],updated_at=row['updated_at'],updated_by=row['updated_by'])
+    return jsonify(id=id,branch_id=branch['id'] if branch else None,state=bound_meta(json.loads(row['state']),branch) if branch else json.loads(row['state']),version=row['version'],updated_at=row['updated_at'],updated_by=row['updated_by'])
 
 @app.put('/api/cutovers/<id>')
 def update_cutover(id):
@@ -194,6 +211,12 @@ def update_cutover(id):
         old=c.execute('SELECT state FROM ct_cutovers WHERE id=%s',(id,)).fetchone()
         if not old:return error('Cutover não encontrado.',404)
         previous=json.loads(old['state'])
+        branch=branch_for(c,id)
+        if not branch:return error('Vincule esta execução a uma filial antes de salvar.')
+        canonical=bound_meta(previous,branch)['meta']
+        for key in ['branch_id','branch_code','branch_name','branch']:
+            if key in s['meta'] and s['meta'][key]!=canonical[key]:return error('A filial deste cutover não pode ser alterada. Inicie outra execução para outra loja.')
+            s['meta'][key]=canonical[key]
         for task_id, record in s['tasks'].items():
             prior=previous.get('tasks',{}).get(task_id,{})
             if record.get('status')=='Concluído' and prior.get('status')!='Concluído':
@@ -226,12 +249,15 @@ def history(id):
 def download_pdf(id):
     from flask import send_file
     from pdf_report import create_report, report_filename
-    with db() as c:row=c.execute('SELECT * FROM ct_cutovers WHERE id=%s',(id,)).fetchone()
+    with db() as c:
+        row=c.execute('SELECT * FROM ct_cutovers WHERE id=%s',(id,)).fetchone()
+        branch=branch_for(c,id) if row else None
     if not row:return error('Cutover não encontrado.',404)
     expected=request.args.get('version')
     if expected is not None and str(row['version'])!=expected:
         return error('O checklist foi atualizado por outra pessoa. Atualize os dados e gere o PDF novamente.',409)
     state=json.loads(row['state'])
+    if branch:bound_meta(state,branch)
     return send_file(create_report(SOURCE,state,dict(row)),mimetype='application/pdf',as_attachment=True,download_name=report_filename(state,row['version']),max_age=0)
 
 @app.route('/api/users',methods=['GET','POST'])
@@ -278,6 +304,7 @@ def internal_error(e):return error('Erro interno. Tente novamente; se persistir,
 
 from auth_mfa import register_auth
 register_auth(app, globals())
+register_branches(app, globals())
 
 if __name__=='__main__':
     init_db();app.run(host='127.0.0.1',port=5000)

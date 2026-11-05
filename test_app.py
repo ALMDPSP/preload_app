@@ -68,7 +68,13 @@ def add_user(c,email,role,clock):
     return user,codes
 
 def create(c):
-    r=c.post('/api/cutovers',headers=headers(c),json={'title':'VD266 / PDV 01'})
+    branches=c.get('/api/branches').json
+    branch=next((b for b in branches if b['code']=='VD266'),None)
+    if branch is None:
+        response=c.post('/api/branches',headers=headers(c),json={'code':'VD266','name':'Shopping Vila Lobos'})
+        assert response.status_code==201
+        branch=response.json
+    r=c.post('/api/cutovers',headers=headers(c),json={'branch_id':branch['id'],'pdv':'01'})
     assert r.status_code==201
     return r.json['id']
 
@@ -283,3 +289,51 @@ def test_observations_optional_for_go(isolated):
     state['decisions']['linx']={'value':'GO','owner':'Gestor','at':'2026-11-05T12:00','reason':''}
     state['tasks']['orion4']={'status':'Concluído'}
     assert save(a,id,state,1).status_code==200
+
+
+def test_branch_registration_isolation_and_immutable_link(isolated):
+    a=admin(isolated)
+    branch1=a.post('/api/branches',headers=headers(a),json={'code':'vd266','name':'Shopping Vila Lobos','city':'São Paulo','uf':'SP'})
+    assert branch1.status_code==201
+    assert a.post('/api/branches',headers=headers(a),json={'code':'VD266','name':'Duplicada'}).status_code==409
+    branch2=a.post('/api/branches',headers=headers(a),json={'code':'L2621','name':'Outra loja'}).json
+    assert a.post('/api/cutovers',headers=headers(a),json={'pdv':'01'}).status_code==400
+    first=a.post('/api/cutovers',headers=headers(a),json={'branch_id':branch1.json['id'],'pdv':'01'}).json['id']
+    second=a.post('/api/cutovers',headers=headers(a),json={'branch_id':branch2['id'],'pdv':'02'}).json['id']
+    assert [r['id'] for r in a.get('/api/cutovers?branch_id='+branch1.json['id']).json]==[first]
+    assert [r['id'] for r in a.get('/api/cutovers?branch_id='+branch2['id']).json]==[second]
+    state=a.get('/api/cutovers/'+first).json['state'];state['tasks']['linx1']={'status':'Concluído'}
+    assert save(a,first,state,1).status_code==200
+    assert a.get('/api/cutovers/'+second).json['state']['tasks']=={}
+    state['meta']['branch_id']=branch2['id']
+    assert save(a,first,state,2).status_code==400
+    assert a.put('/api/cutovers/'+first+'/branch',headers=headers(a),json={'branch_id':branch2['id'],'version':2}).status_code==400
+    operator,_=add_user(a,'branch-operator@example.test','operator',isolated)
+    assert operator.post('/api/branches',headers=headers(operator),json={'code':'X22','name':'Sem permissão'}).status_code==403
+    viewer,_=add_user(a,'branch-viewer@example.test','viewer',isolated)
+    assert viewer.get('/api/branches').status_code==200
+    assert viewer.put('/api/branches/'+branch2['id'],headers=headers(viewer),json={'name':'X'}).status_code==403
+    assert a.put('/api/branches/'+branch2['id'],headers=headers(a),json={'name':'Outra loja','active':False}).status_code==200
+    assert a.post('/api/cutovers',headers=headers(a),json={'branch_id':branch2['id'],'pdv':'03'}).status_code==400
+    assert a.get('/api/cutovers/'+second).status_code==200
+
+
+def test_migration_groups_known_stores_and_flags_ambiguous_legacy(isolated):
+    a=admin(isolated)
+    with module.db() as c:
+        for id,title in [('old1','VD266 / PDV 01'),('old2','VD266 / PDV 02'),('old3','Loja sem identificação'),('old4','PDV01')]:
+            state={'meta':{'branch':title},'tasks':{'linx1':{'status':'Concluído','notes':'Preservar'}},'decisions':{'linx':{},'orion':{}}}
+            c.execute('INSERT INTO ct_cutovers VALUES (%s,%s,%s,1,%s,%s)',(id,title,json.dumps(state),module.now(),'migration-test'))
+    module.init_db();module.init_db()
+    known=next(b for b in a.get('/api/branches').json if b['code']=='VD266')
+    assert known['cutover_count']==2
+    assert len(a.get('/api/cutovers?branch_id='+known['id']).json)==2
+    legacy=a.get('/api/cutovers/old3').json
+    assert next(b for b in a.get('/api/branches').json if b['id']==legacy['branch_id'])['needs_review']==1
+    ambiguous=a.get('/api/cutovers/old4').json
+    assert next(b for b in a.get('/api/branches').json if b['id']==ambiguous['branch_id'])['needs_review']==1
+    response=a.put('/api/cutovers/old3/branch',headers=headers(a),json={'branch_id':known['id'],'pdv':'03','version':1})
+    assert response.status_code==200
+    migrated=a.get('/api/cutovers/old3').json
+    assert migrated['branch_id']==known['id'] and migrated['state']['tasks']['linx1']['notes']=='Preservar'
+    assert a.put('/api/cutovers/old3/branch',headers=headers(a),json={'branch_id':known['id'],'version':2}).status_code==400

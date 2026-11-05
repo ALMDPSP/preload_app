@@ -1,4 +1,21 @@
-# Cutover Linx Agiliza → Orion · v2.3
+# Cutover Linx Agiliza → Orion · v2.4
+
+## Filiais cadastradas e início de cutover - v2.4
+
+1. Na aba **Filiais cadastradas**, Administrador ou Gestor cadastra código e nome da loja. Cidade e UF são opcionais. O código não muda depois do cadastro; o nome, cidade, UF e situação podem ser editados.
+2. Na aba **Cutover**, selecione **uma filial**. O seletor de execuções mostra somente os cutovers dessa loja.
+3. Clique em **Iniciar cutover**, confirme a loja exibida e informe o PDV. Os processos Linx e Orion pertencem a essa mesma execução e filial.
+4. Uma filial pode ter várias execuções/PDVs, com IDs e registros independentes. Marcar, salvar ou gerar PDF em uma execução não altera outras. A loja não pode ser trocada no meio de um cutover.
+5. Para atender outra loja, selecione a outra filial e inicie uma execução própria. O site aguarda salvar os dados atuais antes de trocar de filial; se houver erro ou conflito, a troca é impedida para preservar as alterações.
+6. Filiais inativas mantêm seu histórico, mas não recebem novos cutovers. Gestor e Administrador gerenciam o cadastro; Operador e Consulta podem consultar as filiais conforme suas permissões existentes.
+
+### Registros anteriores
+
+A inicialização cria `ct_branches` e `ct_cutover_branch` e um índice para consulta por loja. O vínculo tem chave única por execução e referência à filial. Não é necessário executar SQL manualmente.
+
+Execuções anteriores com código de filial reconhecido no início da identificação (VD, L ou código numérico) são agrupadas nesse cadastro. Complete o nome da loja em **Editar**. Identificações ambíguas recebem um cadastro temporário marcado **Revisar filial**; nenhuma loja é presumida nesses casos. Abra o cutover antigo e use **Vincular execução à filial correta**. Somente Administrador/Gestor pode confirmar esse vínculo; processos e observações são mantidos. Após a confirmação, o vínculo passa a ser permanente. Os usuários, MFA, senhas, versões e registros existentes são preservados na migração.
+
+Importações precisam corresponder à identidade da execução selecionada: o servidor rejeita dados de outra filial, em vez de trocar o vínculo. O PDF identifica o código/PDV e o nome da loja registrado na execução.
 
 Atualização aplicada exclusivamente ao projeto `preload_app` do anexo. Este pacote não contém o Controle de Ativos/Estoque.
 
