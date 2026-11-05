@@ -370,6 +370,10 @@ from branch_import import register_branch_import
 register_auth(app, globals())
 register_branches(app, globals())
 register_branch_import(app, globals())
+from reports import register_reports
+from pwa import register_pwa
+register_reports(app,globals())
+register_pwa(app,ROOT)
 
 if __name__=='__main__':
     init_db();app.run(host='127.0.0.1',port=5000)

@@ -1,3 +1,28 @@
+# Atualização v2.9 — Aplicativo instalável e Relatórios
+
+1. Atualize no GitHub o conteúdo completo deste pacote. Inclua os novos `reports.py`, `pwa.py`, `static/reports.js`, `static/pwa.js`, `static/sw.js` e ícones PNG, além de `app.py`, templates e demais arquivos estáticos.
+2. No Render, mantenha as variáveis atuais, o Build Command `pip install -r requirements.txt` e o Start Command `bash start.sh`. Não há nova chave ou banco para configurar.
+3. Faça o deploy e atualize a página com Ctrl+F5.
+
+## Aplicativo
+
+O botão **Instalar aplicativo** aparece no login e na conta conectada. Em navegadores compatíveis, abre a confirmação de instalação. Quando essa confirmação ainda não estiver disponível, mostra instruções. Em iPhone/iPad, abra pelo Safari e use Compartilhar → Adicionar à Tela de Início. A confirmação deve ser realizada no aparelho de cada usuário.
+
+Nome: Cutover. Ícone próprio com checklist e seta. Abre em janela independente nos ambientes que suportam o modo standalone. O acesso continua exigindo a mesma conta e MFA; os dados são os mesmos do site. O aplicativo precisa de internet. Não são armazenados checklists, relatórios, respostas de API ou sessões em cache offline.
+
+## Relatórios
+
+Aba disponível a todos os perfis com acesso autenticado. O painel consulta somente os registros salvos, sem gravar preenchimentos pendentes.
+
+- Cartões de concluídos, com pendências, rejeitados e filiais sem cutover.
+- Situações detalhadas: Concluído, Pendente, Em andamento, Bloqueado, Aguardando aceite, Rejeitado e Sem cutover.
+- Filtros por código/nome/PDV, situação e UF; paginação de 50 linhas; exportação CSV dos resultados filtrados.
+- Detalhamento dos 11 processos e observações, além de atalhos para abrir a filial/execução.
+- Concluído exige todos os processos e os dois GO com responsável e data. Aguardando aceite identifica checklist marcado sem liberação completa.
+- Cada execução/PDV entra separadamente. Contagem de filiais usa lojas distintas. As filiais inativas e a inaugurar continuam identificadas. Os totais de processos incluem as execuções rejeitadas, conforme aviso na tela.
+
+Validação: 31 testes automatizados com SQLite, incluindo regras de situação, dados salvos, acesso aos relatórios, rejeição/exclusão, manifesto, ícones e service worker. Interface verificada para Administrador e Consulta: filtros, detalhes, navegação, instalação simulada e preservação do salvamento manual. Sem conexão ao Neon ou deploy no Render do usuário; instalação em dispositivo real depende da publicação e do navegador utilizado.
+
 # Atualização v2.8 — Busca na seleção, rejeição e exclusão de cutovers
 
 1. Substitua no GitHub os arquivos pelo conteúdo completo deste pacote. Inclua o novo `static/cutover-actions.js`, além de `app.py`, `branches.py`, `pdf_report.py`, `templates/index.html` e os demais arquivos estáticos atualizados.

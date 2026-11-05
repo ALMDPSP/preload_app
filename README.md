@@ -1,6 +1,14 @@
-# Cutover Linx Agiliza → Orion · v2.8
+# Cutover Linx Agiliza → Orion · v2.9
 
 Consulte `ATUALIZAR_RENDER.md` para atualizar o Start Command para `bash start.sh` e acompanhar os novos logs de inicialização.
+
+## Aplicativo com ícone e Relatórios — v2.9
+
+Clique em **Instalar aplicativo** para instalar no computador ou celular. O navegador poderá mostrar a confirmação ou as instruções específicas do aparelho. No iPhone/iPad, abra no Safari e use Compartilhar → Adicionar à Tela de Início. O aplicativo abre em janela própria com ícone de checklist; mantém o login e o Authenticator. Precisa de internet para consultar e salvar os dados.
+
+A aba **Relatórios** está disponível para todos os perfis autenticados. Mostra dados efetivamente salvos e separa Concluído, Pendente, Em andamento, Bloqueado, Aguardando aceite, Rejeitado e Sem cutover. Concluído exige todos os 11 processos e GO da retirada e da operação com responsável/data. Marcação completa sem aceite aparece como Aguardando aceite. Os filtros por filial/loja/PDV, situação e UF atualizam os totais. **Ver pendências** detalha os processos; **Abrir cutover** leva à execução selecionada. **Exportar CSV** baixa os registros filtrados.
+
+Cada execução é contada separadamente; a mesma filial pode ter mais de um cutover/PDV. Filiais sem execução também aparecem. Cadastros inativos e lojas a inaugurar são identificados. Processos não concluídos incluem Pendente, Em andamento e Bloqueado; a rejeição é contabilizada separadamente nos cartões. Os totais de processos incluem execuções rejeitadas e são identificados na tela.
 
 ## Seleção com busca, rejeição e exclusão — v2.8
 
