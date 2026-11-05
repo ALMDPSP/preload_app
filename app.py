@@ -26,6 +26,7 @@ SCHEMA = [
     'CREATE TABLE IF NOT EXISTS ct_cutovers (id TEXT PRIMARY KEY, title TEXT NOT NULL, state TEXT NOT NULL, version INTEGER NOT NULL, updated_at TEXT NOT NULL, updated_by TEXT NOT NULL)',
     'CREATE TABLE IF NOT EXISTS ct_audit (id TEXT PRIMARY KEY, cutover_id TEXT, actor TEXT NOT NULL, action TEXT NOT NULL, created_at TEXT NOT NULL, detail TEXT NOT NULL)',
     'CREATE TABLE IF NOT EXISTS ct_attempts (key TEXT PRIMARY KEY, count INTEGER NOT NULL, window_start REAL NOT NULL)',
+    'CREATE TABLE IF NOT EXISTS ct_cutover_reviews (cutover_id TEXT PRIMARY KEY REFERENCES ct_cutovers(id), reason TEXT NOT NULL, actor TEXT NOT NULL, created_at TEXT NOT NULL)',
     'CREATE TABLE IF NOT EXISTS ct_auth (user_id TEXT PRIMARY KEY, secret TEXT, temp_secret TEXT, last_step BIGINT NOT NULL DEFAULT -1, recovery TEXT NOT NULL DEFAULT \'[]\', must_change INTEGER NOT NULL DEFAULT 0, auth_version INTEGER NOT NULL DEFAULT 1)'
 ]
 SOURCE = json.loads((ROOT / 'data.json').read_text())
@@ -188,7 +189,7 @@ def valid_state(s):
 def cutovers():
     branch_id=request.args.get('branch_id')
     with db() as c:
-        sql='SELECT x.id,x.title,x.version,x.updated_at,x.updated_by,l.branch_id,b.code AS branch_code,b.name AS branch_name,b.needs_review FROM ct_cutovers x JOIN ct_cutover_branch l ON l.cutover_id=x.id JOIN ct_branches b ON b.id=l.branch_id'
+        sql='SELECT x.id,x.title,x.version,x.updated_at,x.updated_by,l.branch_id,b.code AS branch_code,b.name AS branch_name,b.needs_review,rv.reason AS rejection_reason FROM ct_cutovers x JOIN ct_cutover_branch l ON l.cutover_id=x.id JOIN ct_branches b ON b.id=l.branch_id LEFT JOIN ct_cutover_reviews rv ON rv.cutover_id=x.id'
         rows=c.execute(sql+(' WHERE l.branch_id=%s' if branch_id else '')+' ORDER BY x.updated_at DESC',(branch_id,) if branch_id else ()).fetchall()
     return jsonify([dict(r) for r in rows])
 
@@ -217,8 +218,9 @@ def get_cutover(id):
     with db() as c:
         row=c.execute('SELECT * FROM ct_cutovers WHERE id=%s',(id,)).fetchone()
         branch=branch_for(c,id) if row else None
+        review=c.execute('SELECT reason,actor,created_at FROM ct_cutover_reviews WHERE cutover_id=%s',(id,)).fetchone() if row else None
     if not row:return error('Cutover não encontrado.',404)
-    return jsonify(id=id,branch_id=branch['id'] if branch else None,state=bound_meta(json.loads(row['state']),branch) if branch else json.loads(row['state']),version=row['version'],updated_at=row['updated_at'],updated_by=row['updated_by'])
+    return jsonify(rejection=dict(review) if review else None,id=id,branch_id=branch['id'] if branch else None,state=bound_meta(json.loads(row['state']),branch) if branch else json.loads(row['state']),version=row['version'],updated_at=row['updated_at'],updated_by=row['updated_by'])
 
 @app.put('/api/cutovers/<id>')
 def update_cutover(id):
@@ -229,6 +231,7 @@ def update_cutover(id):
     with db() as c:
         old=c.execute('SELECT state FROM ct_cutovers WHERE id=%s',(id,)).fetchone()
         if not old:return error('Cutover não encontrado.',404)
+        if c.execute('SELECT cutover_id FROM ct_cutover_reviews WHERE cutover_id=%s',(id,)).fetchone():return error('Cutover rejeitado. Consulte o motivo ou solicite ao Administrador a exclusão para refazer.',409)
         previous=json.loads(old['state'])
         branch=branch_for(c,id)
         if not branch:return error('Vincule esta execução a uma filial antes de salvar.')
@@ -259,6 +262,42 @@ def update_cutover(id):
         audit(c,g.user['email'],'atualização',id,diff)
     return jsonify(version=body['version']+1,updated_at=now(),updated_by=g.user['email'])
 
+@app.post('/api/cutovers/<id>/reject')
+def reject_cutover(id):
+    if g.user['role'] not in ['admin','manager']:return error('Somente Administrador ou Gestor pode rejeitar cutovers.',403)
+    body=request.get_json() or {};reason=body.get('reason');expected=body.get('version')
+    if not isinstance(reason,str) or not 3<=len(reason.strip())<=2000:return error('Informe o motivo da rejeição, de 3 a 2.000 caracteres.')
+    if type(expected) is not int:return error('Versão inválida.')
+    with db() as c:
+        lock=' FOR UPDATE' if DATABASE else ''
+        row=c.execute('SELECT * FROM ct_cutovers WHERE id=%s'+lock,(id,)).fetchone()
+        if not row:return error('Cutover não encontrado.',404)
+        if row['version']!=expected:return error('O cutover foi alterado. Atualize os dados antes de rejeitar.',409)
+        if c.execute('SELECT cutover_id FROM ct_cutover_reviews WHERE cutover_id=%s',(id,)).fetchone():return error('Este cutover já está rejeitado.',409)
+        stamp=now()
+        changed=c.execute('UPDATE ct_cutovers SET version=version+1,updated_at=%s,updated_by=%s WHERE id=%s AND version=%s',(stamp,g.user['email'],id,expected))
+        if changed.rowcount!=1:return error('O cutover foi alterado. Atualize os dados antes de rejeitar.',409)
+        c.execute('INSERT INTO ct_cutover_reviews (cutover_id,reason,actor,created_at) VALUES (%s,%s,%s,%s)',(id,reason.strip(),g.user['email'],stamp))
+        audit(c,g.user['email'],'rejeição do cutover',id,{'reason':reason.strip()})
+    return jsonify(ok=True,version=expected+1)
+
+@app.delete('/api/cutovers/<id>')
+def delete_cutover(id):
+    if g.user['role']!='admin':return error('Somente Administrador pode excluir cutovers.',403)
+    body=request.get_json() or {};expected=body.get('version')
+    if type(expected) is not int:return error('Versão inválida.')
+    with db() as c:
+        lock=' FOR UPDATE' if DATABASE else ''
+        row=c.execute('SELECT * FROM ct_cutovers WHERE id=%s'+lock,(id,)).fetchone()
+        if not row:return error('Cutover não encontrado.',404)
+        if row['version']!=expected:return error('O cutover foi alterado. Atualize os dados antes de excluir.',409)
+        branch=branch_for(c,id)
+        audit(c,g.user['email'],'exclusão do cutover',id,{'title':row['title'],'branch_id':branch['id'] if branch else None,'version':expected})
+        c.execute('DELETE FROM ct_cutover_reviews WHERE cutover_id=%s',(id,))
+        c.execute('DELETE FROM ct_cutover_branch WHERE cutover_id=%s',(id,))
+        c.execute('DELETE FROM ct_cutovers WHERE id=%s',(id,))
+    return jsonify(ok=True,branch_id=branch['id'] if branch else None)
+
 @app.get('/api/cutovers/<id>/audit')
 def history(id):
     with db() as c:rows=c.execute('SELECT actor,action,created_at,detail FROM ct_audit WHERE cutover_id=%s ORDER BY created_at DESC LIMIT 200',(id,)).fetchall()
@@ -271,13 +310,15 @@ def download_pdf(id):
     with db() as c:
         row=c.execute('SELECT * FROM ct_cutovers WHERE id=%s',(id,)).fetchone()
         branch=branch_for(c,id) if row else None
+        review=c.execute('SELECT reason,actor,created_at FROM ct_cutover_reviews WHERE cutover_id=%s',(id,)).fetchone() if row else None
     if not row:return error('Cutover não encontrado.',404)
     expected=request.args.get('version')
     if expected is not None and str(row['version'])!=expected:
         return error('O checklist foi atualizado por outra pessoa. Atualize os dados e gere o PDF novamente.',409)
     state=json.loads(row['state'])
     if branch:bound_meta(state,branch)
-    return send_file(create_report(SOURCE,state,dict(row)),mimetype='application/pdf',as_attachment=True,download_name=report_filename(state,row['version']),max_age=0)
+    report_saved={**dict(row),'rejection':dict(review) if review else None}
+    return send_file(create_report(SOURCE,state,report_saved),mimetype='application/pdf',as_attachment=True,download_name=report_filename(state,row['version']),max_age=0)
 
 @app.route('/api/users',methods=['GET','POST'])
 def users():

@@ -1,10 +1,16 @@
-# Cutover Linx Agiliza → Orion · v2.7
+# Cutover Linx Agiliza → Orion · v2.8
 
 Consulte `ATUALIZAR_RENDER.md` para atualizar o Start Command para `bash start.sh` e acompanhar os novos logs de inicialização.
 
-## Preenchimento manual e pesquisa — v2.7
+## Seleção com busca, rejeição e exclusão — v2.8
 
-O checklist só é gravado pelo botão **Salvar checklist**. A busca **Pesquisar filial**, abaixo do seletor, filtra por código, nome ou localidade sem alterar o cutover aberto. O ícone de conclusão usa um desenho centralizado e mantém o controle por teclado.
+Digite diretamente em **Selecione a filial** para listar as lojas por código, nome ou localidade. Clique em um resultado ou use as setas e Enter; Escape cancela. A lista mostra até 100 resultados por busca, preservando a seleção enquanto você digita. O campo separado de pesquisa foi removido.
+
+**Rejeitar cutover** fica disponível para Administrador e Gestor, com motivo obrigatório. Mantém o checklist para consulta, registra autor/data e bloqueia novas edições. A rejeição aparece no seletor, no histórico e no PDF.
+
+**Excluir cutover** é exclusivo do Administrador, exige confirmação e verifica a versão atual para evitar apagar uma execução alterada por outra pessoa. Remove o checklist e seu vínculo, preserva a filial e os eventos de auditoria, e permite iniciar outra execução do zero para o mesmo PDV. Baixe o PDF antes de excluir se precisar manter uma cópia do checklist.
+
+O preenchimento continua sendo gravado somente por **Salvar checklist**. Rejeição e exclusão são ações explícitas, confirmadas separadamente. Salve ou descarte alterações pendentes antes de usá-las.
 
 ## Filiais a inaugurar e exclusão — v2.6
 

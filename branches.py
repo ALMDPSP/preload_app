@@ -105,6 +105,7 @@ def register_branches(app,core):
         with db() as c:
             row=c.execute('SELECT * FROM ct_cutovers WHERE id=%s',(id,)).fetchone()
             if not row:return error('Cutover não encontrado.',404)
+            if c.execute('SELECT cutover_id FROM ct_cutover_reviews WHERE cutover_id=%s',(id,)).fetchone():return error('Cutover rejeitado não pode ter o vínculo alterado.',409)
             previous=branch_for(c,id)
             if not previous or not previous['needs_review']:return error('Este cutover já está vinculado a uma filial. O vínculo não pode ser alterado.')
             target=c.execute('SELECT * FROM ct_branches WHERE id=%s',(body.get('branch_id',''),)).fetchone()

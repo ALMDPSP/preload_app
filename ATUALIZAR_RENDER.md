@@ -1,3 +1,20 @@
+# Atualização v2.8 — Busca na seleção, rejeição e exclusão de cutovers
+
+1. Substitua no GitHub os arquivos pelo conteúdo completo deste pacote. Inclua o novo `static/cutover-actions.js`, além de `app.py`, `branches.py`, `pdf_report.py`, `templates/index.html` e os demais arquivos estáticos atualizados.
+2. No Render, mantenha as variáveis atuais, Build Command `pip install -r requirements.txt` e Start Command `bash start.sh`.
+3. Faça o deploy. A tabela adicional de rejeições é criada automaticamente; filiais, usuários e checklists existentes são preservados.
+4. Use Ctrl+F5 para carregar os arquivos novos.
+
+## Usar
+
+- Em **Selecione a filial**, clique no próprio campo e digite código ou nome. Os resultados aparecem abaixo. Escolha por clique ou setas/Enter. Não há mais um campo separado de pesquisa. Só selecionar um resultado troca a filial; as proteções de alterações pendentes continuam disponíveis.
+- Administrador e Gestor podem clicar em **Rejeitar cutover**, informar o motivo e confirmar. A execução fica bloqueada para edição, mas permanece disponível para consulta e download de PDF com o motivo registrado.
+- O Administrador pode clicar em **Excluir cutover** e confirmar **Excluir e liberar para refazer**. A filial permanece e o botão **Iniciar cutover** permite refazer o checklist do zero, inclusive para o mesmo PDV. A exclusão não restaura os processos anteriores; baixe o PDF antes se precisar guardá-los. Os eventos de auditoria permanecem no banco.
+- As ações verificam a versão para rejeitar solicitações desatualizadas. Gestor, Operador e Consulta não conseguem excluir nem pela API.
+- Os campos do checklist continuam sendo gravados apenas ao clicar em **Salvar checklist**.
+
+Validação desta revisão: testes automatizados de permissões, CSRF, versão desatualizada, motivo obrigatório, bloqueio da edição rejeitada, PDF, exclusão e nova execução; testes de interface de busca integrada (incluindo teclado, acentos e nenhum resultado), manutenção do salvamento manual, rejeição, cancelamento e confirmação da exclusão. Testes usam SQLite e simulação de interface. Não foi executado deploy no Render nem conexão ao Neon do usuário.
+
 # Atualização v2.7 — Check, salvamento manual e pesquisa
 
 1. Atualize o conteúdo completo deste pacote no GitHub, incluindo `templates/index.html`, `static/server.js`, `static/checklist.js`, `static/checklist.css`, `static/branches.js` e `static/branches.css`.

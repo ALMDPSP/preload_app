@@ -6,13 +6,13 @@ function renderChecklistTasks(openIds=[]){
  }).join('')}</section>`}).join('');
 }
 function processPermissions(){
- document.querySelectorAll('[data-check]').forEach(c=>c.disabled=!currentId||READONLY);
- if($('saveChecklist'))$('saveChecklist').disabled=!currentId||READONLY;
+ document.querySelectorAll('[data-check]').forEach(c=>c.disabled=!currentId||READONLY||!!currentRejection);
+ if($('saveChecklist'))$('saveChecklist').disabled=!currentId||READONLY||!!currentRejection;
  document.querySelectorAll('.phase-heading').forEach(h=>{const group=h.closest('.group'),ids=[...group.querySelectorAll('.task')].map(x=>x.dataset.id),n=ids.filter(done).length;h.querySelector('h3').nextElementSibling.textContent=n+' de '+ids.length+' concluídos';h.querySelector('.phase-track span').style.width=(n/ids.length*100)+'%'});
  if($('dockProgress'))$('dockProgress').textContent=ALL.filter(t=>done(t.id)).length+' de '+ALL.length+' processos marcados';
 }
 function setProcessStatus(id,next,control){
- if(READONLY||!currentId){if(control?.type==='checkbox')control.checked=done(id);return}
+ if(READONLY||currentRejection||!currentId){if(control?.type==='checkbox')control.checked=done(id);return}
  if(['Em andamento','Concluído'].includes(next)&&id==='orion4'&&!authorized()){
   if(control?.type==='checkbox')control.checked=done(id);else if(control)control.value=status(id);
   toast('Antes da instalação, registre o GO da retirada em Decisões e aceite.');return;
@@ -29,7 +29,7 @@ function setProcessStatus(id,next,control){
  save();render();
 }
 async function saveAndOfferPdf(){
- if(READONLY||saving)return;
+ if(READONLY||currentRejection||saving)return;
  if(!currentId){toast('Crie ou selecione uma execução antes de salvar.');return}
  const button=$('saveChecklist');button.disabled=true;button.textContent='Salvando…';
  try{
@@ -37,7 +37,7 @@ async function saveAndOfferPdf(){
   const count=ALL.filter(t=>done(t.id)).length;
   modal(`<div class="saved-icon">✓</div><h2>Checklist salvo!</h2><p class="muted">${esc(state.meta.branch)} · ${count} de ${ALL.length} processos marcados.</p>${count<ALL.length?'<p class="notice">Esta é uma versão parcial do checklist. Os processos pendentes também aparecerão no relatório.</p>':''}<div class="download-note"><b>Salve uma cópia em PDF na pasta Downloads.</b><p>Clique abaixo para baixar o arquivo. Se o navegador perguntar onde salvar, escolha a pasta <b>Downloads</b>.</p></div><div class="dialog-actions"><button id="continueChecklist">Continuar preenchendo</button><button class="primary" id="downloadChecklist">↓ Baixar checklist em PDF</button></div><p id="pdfError" role="alert"></p>`);
   $('continueChecklist').onclick=()=>$('modal').close();$('downloadChecklist').onclick=()=>downloadChecklistPdf();
- }finally{button.disabled=READONLY||!currentId;button.textContent='Salvar checklist'}
+ }finally{button.disabled=READONLY||!!currentRejection||!currentId;button.textContent='Salvar checklist'}
 }
 async function downloadChecklistPdf(){
  const button=$('downloadChecklist');if(button){button.disabled=true;button.textContent='Gerando PDF…'}

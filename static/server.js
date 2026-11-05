@@ -1,20 +1,20 @@
 let currentId=null,version=0,dirty=false,saving=false,timer=null,conflict=false;
-let selectedBranchId="";
+let selectedBranchId="",currentRejection=null;
 const csrf=document.querySelector('meta[name="csrf-token"]').content;
 const ROLE=document.body.dataset.role,READONLY=ROLE==='viewer',DECIDE=['admin','manager'].includes(ROLE);
 const ROLES={admin:'Administrador',manager:'Gestor',operator:'Operador',viewer:'Consulta'};
 const originalRender=render;
-render=function(){originalRender();document.querySelectorAll('[data-meta],[data-task],[data-decision],[data-task-action],[data-use-name]').forEach(e=>e.disabled=!currentId||READONLY||!!e.dataset.decision&&!DECIDE)};
+render=function(){originalRender();document.querySelectorAll('[data-meta],[data-task],[data-decision],[data-task-action],[data-use-name]').forEach(e=>e.disabled=!currentId||READONLY||!!currentRejection||!!e.dataset.decision&&!DECIDE)};
 render();
 if(!DECIDE)$('newExecution').hidden=true;if(READONLY)$('import').hidden=true;
 function syncText(text,bad=false){$('syncState').textContent=text;$('syncState').style.color=bad?'#ad332d':'#007f70'}
 async function api(path,method='GET',body){let r=await fetch(path,{method,headers:{'Content-Type':'application/json','X-CSRF-Token':csrf},body:body===undefined?undefined:JSON.stringify(body)});let data=await r.json();if(!r.ok){let e=Error(data.error||'Falha na solicitação');e.status=r.status;if(r.status===401)syncText('Sessão expirada. Exporte os registros e faça login novamente.',true);throw e}return data}
-function scheduleSave(){if(READONLY)return;if(!currentId){syncText('Crie ou selecione um cutover antes de preencher.',true);return}dirty=true;syncText('Alterações não salvas. Clique em Salvar checklist.');clearTimeout(timer)}
+function scheduleSave(){if(READONLY||currentRejection)return;if(!currentId){syncText('Crie ou selecione um cutover antes de preencher.',true);return}dirty=true;syncText('Alterações não salvas. Clique em Salvar checklist.');clearTimeout(timer)}
 let pendingSave=null;
 function persist(){
  clearTimeout(timer);
  if(saving)return pendingSave;
- if(READONLY)return Promise.resolve(false);
+ if(READONLY||currentRejection)return Promise.resolve(false);
  if(conflict){toast('O registro foi alterado por outra pessoa. Exporte sua cópia antes de atualizar os dados.');return Promise.resolve(false)}
  if(!currentId)return Promise.resolve(false);
  if(!dirty)return Promise.resolve(true);
@@ -38,7 +38,7 @@ async function refreshList(selectId){
  if(!branch){$('execution').innerHTML='<option value="">Selecione uma filial primeiro</option>';return []}
  const rows=await api('/api/cutovers?branch_id='+encodeURIComponent(branch));
  if(selectedBranchId!==branch)return [];
- $('execution').innerHTML='<option value="">Selecione um cutover desta filial</option>'+rows.map(r=>`<option value="${esc(r.id)}">${esc(r.title)} · ${esc(new Date(r.updated_at).toLocaleString('pt-BR'))}</option>`).join('');
+ $('execution').innerHTML='<option value="">Selecione um cutover desta filial</option>'+rows.map(r=>`<option value="${esc(r.id)}">${r.rejection_reason?'[Rejeitado] ':''}${esc(r.title)} · ${esc(new Date(r.updated_at).toLocaleString('pt-BR'))}</option>`).join('');
  $('execution').value=selectId||'';return rows;
 }
 function allowDiscard(){
@@ -53,7 +53,7 @@ async function loadExecution(id){
  try{
   clearTimeout(timer);let r=await api('/api/cutovers/'+id);
   if(r.branch_id!==branch||selectedBranchId!==branch){toast('Este cutover não pertence à filial selecionada.');return}
-  currentId=id;version=r.version;state=validate(r.state);dirty=false;conflict=false;render();
+  currentId=id;currentRejection=r.rejection||null;version=r.version;state=validate(r.state);dirty=false;conflict=false;render();updateCutoverActions();
   syncText('Dados carregados · '+new Date(r.updated_at).toLocaleString('pt-BR'));
   $('saved').textContent='Última atualização: '+r.updated_by+' · '+new Date(r.updated_at).toLocaleString('pt-BR');
  }catch(e){syncText(e.message,true)}
