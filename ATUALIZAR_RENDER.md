@@ -1,3 +1,11 @@
+# Atualização v2.6.1 — Painel único da filial
+
+O bloco superior duplicado foi removido. O painel “Execução da loja” agora se chama “Filial deste cutover” e reúne a seleção da filial, do cutover e todos os botões atuais. O acesso a Filiais cadastradas continua nesse painel.
+
+Atualize os arquivos deste pacote no GitHub e faça o deploy no Render. Mantenha as variáveis, o Build Command e o Start Command `bash start.sh`. Depois use Ctrl+F5 para atualizar a página.
+
+Esta mudança é de interface. Mantém os cadastros, vínculos, importação, situação A inaugurar e exclusão administrativa da v2.6.
+
 # Atualização v2.6 — Filiais a inaugurar e exclusão
 
 1. Substitua no GitHub os arquivos pelo conteúdo completo deste pacote, incluindo o novo `branch_values.py`.

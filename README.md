@@ -1,4 +1,4 @@
-# Cutover Linx Agiliza → Orion · v2.6
+# Cutover Linx Agiliza → Orion · v2.6.1
 
 Consulte `ATUALIZAR_RENDER.md` para atualizar o Start Command para `bash start.sh` e acompanhar os novos logs de inicialização.
 
