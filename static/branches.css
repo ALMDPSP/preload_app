@@ -5,3 +5,5 @@
 button.danger{color:#b2372b;border-color:#e6b4ac;background:#fff6f4}button.danger:hover{background:#ffe6e1}
 
 .cutover-store-picker{display:grid;grid-template-columns:minmax(0,1fr) auto;gap:16px;align-items:end;margin:18px 0 10px}.cutover-store-picker select{padding:12px}.cutover-store-picker button{min-height:43px}@media(max-width:700px){.cutover-store-picker{grid-template-columns:1fr}.cutover-store-picker button{width:100%}}
+
+.branch-search-label{margin-top:12px}#cutoverBranchSearch{max-width:none}#cutoverBranchResults{display:block;color:#617d70;font-size:12px;margin-top:5px;min-height:16px}.cutover-store-picker{align-items:start}.cutover-store-picker>button{margin-top:23px}

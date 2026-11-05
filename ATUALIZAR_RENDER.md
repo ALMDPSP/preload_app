@@ -1,3 +1,20 @@
+# Atualização v2.7 — Check, salvamento manual e pesquisa
+
+1. Atualize o conteúdo completo deste pacote no GitHub, incluindo `templates/index.html`, `static/server.js`, `static/checklist.js`, `static/checklist.css`, `static/branches.js` e `static/branches.css`.
+2. Faça o deploy no Render mantendo as variáveis e o Start Command `bash start.sh`.
+3. Atualize a página com Ctrl+F5.
+
+- Ícone de conclusão redesenhado e centralizado, com borda, foco de teclado e estado desabilitado.
+- O preenchimento do checklist só é gravado ao clicar em **Salvar checklist**. Trocar de filial, trocar de execução, atualizar dados, sair e baixar PDF não fazem gravação automática.
+- Ao navegar com alterações pendentes, Cancelar mantém o preenchimento. Confirmar descarta as alterações da tela. A página avisa também ao fechar ou recarregar a aba.
+- PDF exige que o checklist esteja salvo. Após salvar com sucesso, o popup de download continua disponível.
+- Edições feitas durante uma gravação permanecem pendentes para outro clique em Salvar checklist; não são enviadas em segundo plano.
+- **Pesquisar filial** aparece abaixo do seletor. Aceita código, nome, cidade ou UF; ignora acentos e mantém a filial/cutover atual durante a busca.
+
+Iniciar cutover continua criando uma execução, e os botões de cadastro/edição/importação de filiais mantêm suas próprias confirmações. O salvamento manual aqui se refere aos campos e processos do checklist.
+
+Validação desta revisão: interface automatizada para Administrador e Consulta, edição sem gravação após o antigo intervalo automático, salvamento por clique, falha e nova tentativa, edições durante a requisição, PDF sem gravação, troca de filial/atualização/saída com cancelamento, descarte explícito e pesquisa sem alterar a seleção. Nenhuma alteração do backend ou das tabelas nesta revisão. Deploy no Render não executado.
+
 # Atualização v2.6.1 — Painel único da filial
 
 O bloco superior duplicado foi removido. O painel “Execução da loja” agora se chama “Filial deste cutover” e reúne a seleção da filial, do cutover e todos os botões atuais. O acesso a Filiais cadastradas continua nesse painel.

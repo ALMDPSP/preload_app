@@ -6,28 +6,29 @@ const ROLES={admin:'Administrador',manager:'Gestor',operator:'Operador',viewer:'
 const originalRender=render;
 render=function(){originalRender();document.querySelectorAll('[data-meta],[data-task],[data-decision],[data-task-action],[data-use-name]').forEach(e=>e.disabled=!currentId||READONLY||!!e.dataset.decision&&!DECIDE)};
 render();
-const retryButton=document.createElement('button');retryButton.textContent='Tentar salvar';retryButton.onclick=()=>{if(conflict){toast('Exporte sua cópia e atualize os dados antes de continuar.');return}persist()};$('refreshExecution').after(retryButton);
-if(!DECIDE)$('newExecution').hidden=true;if(READONLY){$('import').hidden=true;retryButton.hidden=true}
+if(!DECIDE)$('newExecution').hidden=true;if(READONLY)$('import').hidden=true;
 function syncText(text,bad=false){$('syncState').textContent=text;$('syncState').style.color=bad?'#ad332d':'#007f70'}
 async function api(path,method='GET',body){let r=await fetch(path,{method,headers:{'Content-Type':'application/json','X-CSRF-Token':csrf},body:body===undefined?undefined:JSON.stringify(body)});let data=await r.json();if(!r.ok){let e=Error(data.error||'Falha na solicitação');e.status=r.status;if(r.status===401)syncText('Sessão expirada. Exporte os registros e faça login novamente.',true);throw e}return data}
-function scheduleSave(){if(READONLY)return;if(!currentId){syncText('Crie ou selecione um cutover antes de preencher.',true);return}dirty=true;syncText('Alterações aguardando salvamento…');clearTimeout(timer);timer=setTimeout(persist,800)}
+function scheduleSave(){if(READONLY)return;if(!currentId){syncText('Crie ou selecione um cutover antes de preencher.',true);return}dirty=true;syncText('Alterações não salvas. Clique em Salvar checklist.');clearTimeout(timer)}
 let pendingSave=null;
 function persist(){
  clearTimeout(timer);
  if(saving)return pendingSave;
- if(conflict||!currentId)return Promise.resolve(false);
+ if(READONLY)return Promise.resolve(false);
+ if(conflict){toast('O registro foi alterado por outra pessoa. Exporte sua cópia antes de atualizar os dados.');return Promise.resolve(false)}
+ if(!currentId)return Promise.resolve(false);
  if(!dirty)return Promise.resolve(true);
  saving=true;
  pendingSave=(async()=>{
   try{
-   while(dirty){
+   {
     dirty=false;const id=currentId,snapshot=JSON.parse(JSON.stringify(state));syncText('Salvando…');
     const r=await api('/api/cutovers/'+id,'PUT',{state:snapshot,version});version=r.version;
     $('saved').textContent='Salvo por '+r.updated_by+' · '+new Date(r.updated_at).toLocaleString('pt-BR');
-    syncText('Salvo · '+new Date(r.updated_at).toLocaleTimeString('pt-BR'));
+    syncText(dirty?'Há novas alterações não salvas. Clique em Salvar checklist.':'Salvo · '+new Date(r.updated_at).toLocaleTimeString('pt-BR'));
     const option=$('execution').selectedOptions[0];if(option)option.textContent=snapshot.meta.branch+' · '+new Date(r.updated_at).toLocaleString('pt-BR');
    }
-   return true;
+   return !dirty;
   }catch(e){dirty=true;if(e.status===409)conflict=true;syncText(e.message+' Seus dados continuam na tela. Exporte uma cópia antes de atualizar.',true);return false}
   finally{saving=false;pendingSave=null}
  })();return pendingSave;
@@ -40,10 +41,14 @@ async function refreshList(selectId){
  $('execution').innerHTML='<option value="">Selecione um cutover desta filial</option>'+rows.map(r=>`<option value="${esc(r.id)}">${esc(r.title)} · ${esc(new Date(r.updated_at).toLocaleString('pt-BR'))}</option>`).join('');
  $('execution').value=selectId||'';return rows;
 }
+function allowDiscard(){
+ if(saving){toast('Aguarde o salvamento terminar.');return false}
+ return !dirty||confirm('Há alterações não salvas. Clique em Cancelar para voltar e usar Salvar checklist. Deseja descartar as alterações e continuar?');
+}
 async function loadExecution(id){
  if(!id)return;
  if(saving){toast('Aguarde o salvamento antes de trocar de cutover.');$('execution').value=currentId||'';return}
- if(dirty&&!confirm('Há alterações não salvas. Exporte uma cópia antes de trocar. Deseja descartar as alterações da tela?')){$('execution').value=currentId||'';return}
+ if(!allowDiscard()){$('execution').value=currentId||'';return}
  const branch=selectedBranchId;
  try{
   clearTimeout(timer);let r=await api('/api/cutovers/'+id);
@@ -66,7 +71,7 @@ $('logoutForm').addEventListener('submit',async event=>{
  if(event.defaultPrevented)return;
  event.preventDefault();const form=event.currentTarget;
  if(saving){toast('Aguarde o salvamento antes de sair.');return}
- if(dirty){await persist();if(dirty){if(!confirm('Há alterações não salvas. Exporte os registros para guardar uma cópia. Deseja sair mesmo assim?'))return;dirty=false;clearTimeout(timer)}}
+ if(!allowDiscard())return;dirty=false;clearTimeout(timer);
  // A saída é sempre uma requisição POST com o token de sessão existente.
  form.submit();
 });

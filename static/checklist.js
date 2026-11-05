@@ -29,10 +29,11 @@ function setProcessStatus(id,next,control){
  save();render();
 }
 async function saveAndOfferPdf(){
+ if(READONLY||saving)return;
  if(!currentId){toast('Crie ou selecione uma execução antes de salvar.');return}
  const button=$('saveChecklist');button.disabled=true;button.textContent='Salvando…';
  try{
-  if(!await persist())return;
+  if(!await persist()){if(dirty&&!conflict)toast('O checklist ainda tem alterações pendentes. Confira a mensagem de salvamento.');return;}
   const count=ALL.filter(t=>done(t.id)).length;
   modal(`<div class="saved-icon">✓</div><h2>Checklist salvo!</h2><p class="muted">${esc(state.meta.branch)} · ${count} de ${ALL.length} processos marcados.</p>${count<ALL.length?'<p class="notice">Esta é uma versão parcial do checklist. Os processos pendentes também aparecerão no relatório.</p>':''}<div class="download-note"><b>Salve uma cópia em PDF na pasta Downloads.</b><p>Clique abaixo para baixar o arquivo. Se o navegador perguntar onde salvar, escolha a pasta <b>Downloads</b>.</p></div><div class="dialog-actions"><button id="continueChecklist">Continuar preenchendo</button><button class="primary" id="downloadChecklist">↓ Baixar checklist em PDF</button></div><p id="pdfError" role="alert"></p>`);
   $('continueChecklist').onclick=()=>$('modal').close();$('downloadChecklist').onclick=()=>downloadChecklistPdf();
@@ -55,7 +56,7 @@ function initChecklistUX(){
  document.addEventListener('change',e=>{if(e.target.dataset.check)setProcessStatus(e.target.dataset.check,e.target.checked?'Concluído':'Pendente',e.target)});
  $('saveChecklist').onclick=()=>saveAndOfferPdf();
  if(READONLY)$('saveChecklist').hidden=true;
- $('print').textContent='↓ Baixar PDF';$('print').onclick=async()=>{if(!currentId){toast('Selecione uma execução.');return}if(await persist())await downloadChecklistPdf()};
+ $('print').textContent='↓ Baixar PDF';$('print').onclick=async()=>{if(!currentId){toast('Selecione uma execução.');return}if(dirty||saving){toast('Clique em Salvar checklist antes de baixar o PDF.');return}await downloadChecklistPdf()};
  if($('quickCreateUser'))$('quickCreateUser').onclick=async()=>{await showUsers();$('userName')?.focus();$('userName')?.scrollIntoView?.({behavior:'smooth',block:'center'})};
  if($('users')){const nav=document.createElement('button');nav.textContent='⚙ Usuários e acessos';nav.onclick=()=>showUsers();document.querySelector('.nav').append(nav)}
  const originalSync=syncText;syncText=function(message,bad){originalSync(message,bad);$('dockSync').textContent=message;$('dockSync').classList.toggle('sync-error',!!bad)};

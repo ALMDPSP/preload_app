@@ -11,9 +11,17 @@ function showCutoverWorkspace(){
 }
 async function refreshBranches(){
  registeredBranches=await api('/api/branches');
- $('selectedBranch').innerHTML='<option value="">Selecione uma filial cadastrada</option>'+registeredBranches.map(b=>`<option value="${esc(b.id)}">${esc(b.code)} · ${esc(b.name)}${b.opening_soon?' (a inaugurar)':b.active?'':' (inativa)'}${b.needs_review?' (revisar vínculo)':''}</option>`).join('');
- $('selectedBranch').value=selectedBranchId;
+ renderBranchOptions();
  renderBranchRegistry();branchPermissions();
+}
+function renderBranchOptions(){
+ const normalize=text=>String(text||'').normalize('NFD').replace(/[\u0300-\u036f]/g,'').toLocaleLowerCase('pt-BR');
+ const query=normalize($('cutoverBranchSearch').value.trim());
+ const matches=registeredBranches.filter(b=>normalize(b.code+' '+b.name+' '+b.city+' '+b.uf).includes(query));
+ const visible=registeredBranches.filter(b=>b.id===selectedBranchId||matches.includes(b));
+ $('selectedBranch').innerHTML='<option value="">'+(matches.length?'Selecione uma filial cadastrada':'Nenhuma filial encontrada')+'</option>'+visible.map(b=>`<option value="${esc(b.id)}">${esc(b.code)} · ${esc(b.name)}${b.opening_soon?' (a inaugurar)':b.active?'':' (inativa)'}${b.needs_review?' (revisar vínculo)':''}</option>`).join('');
+ $('selectedBranch').value=selectedBranchId;
+ $('cutoverBranchResults').textContent=query?matches.length+' filial(is) encontrada(s). A seleção atual é mantida.':'';
 }
 function renderBranchRegistry(){
  const q=$('branchSearch').value.toLocaleLowerCase('pt-BR');
@@ -42,10 +50,11 @@ function branchPermissions(){
 }
 async function switchBranch(id){
  if(switchingBranch)return false;
- if(dirty||saving){if(!await persist()){$('selectedBranch').value=selectedBranchId;toast('Salve ou exporte as alterações antes de trocar de filial.');return false}}
+ if(id===selectedBranchId){$('selectedBranch').value=selectedBranchId;return true}
+ if(!allowDiscard()){$('selectedBranch').value=selectedBranchId;return false}
  switchingBranch=true;$('selectedBranch').disabled=true;
  try{
-  selectedBranchId=id;currentId=null;version=0;dirty=false;conflict=false;clearTimeout(timer);
+  selectedBranchId=id;renderBranchOptions();currentId=null;version=0;dirty=false;conflict=false;clearTimeout(timer);
   state={meta:{},tasks:{},decisions:{linx:{},orion:{}}};$('selectedBranch').value=id;render();
   const rows=await refreshList();
   if(rows.length){$('execution').value=rows[0].id;await loadExecution(rows[0].id)}
@@ -59,24 +68,26 @@ function branchForm(existing=null){
 }
 function startBoundCutover(){
  const b=currentBranch();if(!b||!DECIDE||!b.active||b.needs_review)return;
- if(dirty||saving){toast('Aguarde o salvamento antes de iniciar outra execução.');return}
+ if(dirty||saving){toast('Salve o checklist antes de iniciar outra execução.');return}
  modal(`<h2>Iniciar cutover</h2><div class="bound-store"><b>${esc(b.code)}</b><span>${esc(b.name)}</span></div><p class="muted">Esta execução ficará vinculada somente à loja acima.</p><form id="boundCutoverForm" class="form-stack"><label for="boundPdv">PDV que será atendido *</label><input id="boundPdv" placeholder="Ex.: 01" maxlength="40" required><p id="startCutoverError" role="alert" class="sync-error"></p><button class="primary" id="startBoundButton">Iniciar cutover desta filial</button></form>`);
  $('boundCutoverForm').onsubmit=async e=>{e.preventDefault();$('startBoundButton').disabled=true;try{const r=await api('/api/cutovers','POST',{branch_id:b.id,pdv:$('boundPdv').value.trim()});await refreshList(r.id);await loadExecution(r.id);$('modal').close();await refreshBranches();toast('Cutover iniciado para '+b.code+'.')}catch(err){$('startCutoverError').textContent=err.message;$('startBoundButton').disabled=false}};
 }
 function resolveLegacy(){
  if(!currentId){toast('Selecione a execução anterior para vincular.');return}
  modal(`<h2>Confirmar filial da execução anterior</h2><p>Os processos e observações serão mantidos. Este ajuste é permitido apenas para registros antigos sem uma filial identificada.</p><form id="legacyForm" class="form-stack"><label for="targetBranch">Filial correta</label><select id="targetBranch" required><option value="">Selecione</option>${registeredBranches.filter(b=>b.active&&!b.needs_review).map(b=>`<option value="${b.id}">${esc(b.code+' · '+b.name)}</option>`).join('')}</select><label for="legacyPdv">PDV (opcional)</label><input id="legacyPdv" maxlength="40"><p id="legacyError" role="alert" class="sync-error"></p><button class="primary">Confirmar vínculo</button></form>`);
- $('legacyForm').onsubmit=async e=>{e.preventDefault();if(dirty&&!await persist())return;try{const r=await api('/api/cutovers/'+currentId+'/branch','PUT',{branch_id:$('targetBranch').value,pdv:$('legacyPdv').value.trim(),version});$('modal').close();await refreshBranches();await switchBranch(r.branch_id)}catch(err){$('legacyError').textContent=err.message}};
+ $('legacyForm').onsubmit=async e=>{e.preventDefault();if(dirty||saving){$('legacyError').textContent='Salve o checklist antes de alterar o vínculo.';return;}try{const r=await api('/api/cutovers/'+currentId+'/branch','PUT',{branch_id:$('targetBranch').value,pdv:$('legacyPdv').value.trim(),version});$('modal').close();await refreshBranches();await switchBranch(r.branch_id)}catch(err){$('legacyError').textContent=err.message}};
 }
 function initBranches(){
  document.querySelector('main').append($('modal'));
  const nav=document.createElement('button');nav.id='branchesNav';nav.textContent='▦ Filiais';nav.onclick=showBranches;document.querySelector('.nav').prepend(nav);
  document.querySelectorAll('[data-view]').forEach(b=>{const prior=b.onclick;b.onclick=()=>{showCutoverWorkspace();prior()}});
  $('manageBranches').onclick=showBranches;$('addBranch').onclick=()=>branchForm();$('branchSearch').oninput=()=>{branchPage=1;clearTimeout(branchSearchTimer);branchSearchTimer=setTimeout(renderBranchRegistry,150)};
+ $('cutoverBranchSearch').oninput=renderBranchOptions;
  $('selectedBranch').onchange=()=>switchBranch($('selectedBranch').value);
  $('execution').onchange=async()=>{
   const id=$('execution').value;if(id){await loadExecution(id);return}
-  if((dirty||saving)&&!await persist()){$('execution').value=currentId||'';return}
+  if(!allowDiscard()){$('execution').value=currentId||'';return}
+  dirty=false;conflict=false;
   currentId=null;version=0;state={meta:{},tasks:{},decisions:{linx:{},orion:{}}};render();syncText('Selecione ou inicie um cutover desta filial.');
  };
  $('newExecution').textContent='▶ Iniciar cutover';$('newExecution').onclick=startBoundCutover;

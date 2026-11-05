@@ -1,6 +1,10 @@
-# Cutover Linx Agiliza → Orion · v2.6.1
+# Cutover Linx Agiliza → Orion · v2.7
 
 Consulte `ATUALIZAR_RENDER.md` para atualizar o Start Command para `bash start.sh` e acompanhar os novos logs de inicialização.
+
+## Preenchimento manual e pesquisa — v2.7
+
+O checklist só é gravado pelo botão **Salvar checklist**. A busca **Pesquisar filial**, abaixo do seletor, filtra por código, nome ou localidade sem alterar o cutover aberto. O ícone de conclusão usa um desenho centralizado e mantém o controle por teclado.
 
 ## Filiais a inaugurar e exclusão — v2.6
 
@@ -156,9 +160,9 @@ O administrador tem também **Cadastrar usuário** no topo e **Usuários e acess
 
 - **Novo cutover:** informe filial, PDV e identificação/data da execução. Cada cadastro possui dados próprios e fica disponível no seletor.
 - **Usuários:** o administrador cria contas nos quatro perfis acima, altera perfis, bloqueia/reativa acessos e redefine senhas temporárias ou MFA de outros usuários. Não existe cadastro público. A troca da senha temporária é obrigatória. Troca de senha, bloqueio, redefinição e mudança de perfil invalidam sessões anteriores.
-- **Salvamento:** automático após a edição. Confira o aviso “Salvo no banco”. Em erro de conexão, os dados continuam na tela; use **Exportar registros** e tente **Atualizar dados** após resolver a conexão. Não feche a aba enquanto houver alterações pendentes.
+- **Salvamento:** somente ao clicar em **Salvar checklist**. Marcar processos, preencher observações, pesquisar filiais, baixar PDF ou sair não grava o checklist automaticamente. Ao trocar de filial/cutover, atualizar ou sair com alterações pendentes, cancele para salvar ou confirme o descarte. Em erro de conexão, os dados continuam na tela; tente salvar novamente ou use **Exportar registros**. Não feche a aba enquanto houver alterações pendentes.
 - **Concorrência:** o servidor rejeita gravações com versão antiga. Exporte sua cópia, atualize e reaplique as alterações necessárias. A página não combina edições nem atualiza automaticamente a tela de outros usuários; use **Atualizar dados** para consultar mudanças da equipe.
-- **Importação:** selecione ou crie a execução de destino e importe o JSON exportado na versão HTML. Os dados substituem o conteúdo desse cutover após passarem pelas validações do servidor. Exporte uma cópia do destino antes de importar.
+- **Importação:** selecione ou crie a execução de destino e importe o JSON exportado na versão HTML. Os dados ficam na tela até clicar em **Salvar checklist**; o servidor valida a gravação nesse momento. Exporte uma cópia do destino antes de importar.
 - **Histórico:** registra autor, horário e valores anteriores/novos das alterações; mostra os últimos 200 eventos do cutover. É histórico operacional, sem assinatura digital.
 - **Evidências:** são links ou texto. Esta versão não recebe anexos de arquivos.
 - **Salvar e PDF:** use **Salvar checklist**. Somente após o servidor confirmar o salvamento aparece um popup com o botão **Baixar checklist em PDF**. O relatório é gerado no servidor, inclui processos, marcações, observações preenchidas, decisões e rede, e é enviado como arquivo para download. A pasta final é determinada pelo navegador; normalmente Downloads. Se aparecer o seletor de pasta, escolha Downloads. O relatório parcial também pode ser salvo e mostra os processos pendentes. O PDF corresponde à versão salva; se outra pessoa atualizar antes do download, o sistema pede para atualizar e gerar novamente.
