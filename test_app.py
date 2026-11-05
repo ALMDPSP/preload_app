@@ -187,9 +187,12 @@ def test_gates_and_invalid_data(isolated):
     s['tasks']['orion4']={'status':'Em andamento'}
     assert save(a,id,s,1).status_code==400
     s['tasks']={'linx1':{'status':'Concluído'}}
-    assert save(a,id,s,1).status_code==400
+    assert save(a,id,s,1).status_code==200
+    record=a.get('/api/cutovers/'+id).json['state']['tasks']['linx1']
+    assert record['owner'] and record['checkedByEmail']=='admin@example.test'
+    assert not record.get('notes') and not record.get('evidence')
     s['tasks']={'linx1':{'status':'Qualquer'}}
-    assert save(a,id,s,1).status_code==400
+    assert save(a,id,s,2).status_code==400
 
 
 def test_mfa_key_fallback_matches_ativos_and_preserves_explicit_v2_key():
@@ -216,14 +219,67 @@ def test_production_starts_without_extra_mfa_variable():
     assert r.stdout.strip()=='configuration-ok'
 
 
-def test_create_with_simple_form_metadata_and_logout(isolated):
+def test_admin_recovery_preserves_password_mfa_and_cutover(isolated):
+    from manage import set_admin
+    a=admin(isolated);id=create(a)
+    user,_=add_user(a,'owner@example.test','operator',isolated)
+    before=auth_row('owner@example.test')
+    with module.db() as c:
+        password=c.execute('SELECT password FROM ct_users WHERE email=%s',('owner@example.test',)).fetchone()['password']
+        c.execute('UPDATE ct_users SET active=0 WHERE email=%s',('owner@example.test',))
+    set_admin(' OWNER@example.test ')
+    after=auth_row('owner@example.test')
+    assert before['secret']==after['secret']
+    assert after['auth_version']==before['auth_version']+1
+    with module.db() as c:
+        row=c.execute('SELECT role,active,password FROM ct_users WHERE email=%s',('owner@example.test',)).fetchone()
+        assert row['role']=='admin' and row['active']==1 and row['password']==password
+        assert c.execute('SELECT id FROM ct_cutovers WHERE id=%s',(id,)).fetchone()
+        assert c.execute('SELECT action FROM ct_audit WHERE action=%s',('recuperação de acesso administrativo',)).fetchone()
+    assert user.get('/api/users').status_code==401
+    user=begin('owner@example.test','Permanent-user-2026!');complete(user,'owner@example.test',clock=isolated)
+    assert user.get('/api/users').status_code==200
+    with pytest.raises(ValueError):set_admin('missing@example.test')
+
+
+def test_visible_account_and_logout_preserve_access_protection(isolated):
     a=admin(isolated)
-    body={'title':'VD266 / PDV 01','meta':{'date':'2026-11-04','coordinator':'Alexandre','window':'20h às 22h'}}
-    r=a.post('/api/cutovers',headers=headers(a),json=body)
-    assert r.status_code==201
-    saved=a.get('/api/cutovers/'+r.json['id']).json
-    assert saved['state']['meta']=={**body['meta'],'branch':body['title']}
-    bad=a.post('/api/cutovers',headers=headers(a),json={'title':'X','meta':{'role':'admin'}})
-    assert bad.status_code==400
+    html=a.get('/').text
+    assert 'Gerenciar acessos' in html and 'Sair da conta' in html
+    assert 'data-user-name=' in html and 'id="saveChecklist"' in html
+    assert a.post('/logout').status_code==403
+    assert a.get('/api/cutovers').status_code==200
     assert a.post('/logout',headers=headers(a)).status_code==302
     assert a.get('/api/cutovers').status_code==401
+    again=begin(password=ADMIN_PASSWORD);complete(again,'admin@example.test',clock=isolated)
+    viewer,_=add_user(again,'view-only@example.test','viewer',isolated)
+    assert 'id="users"' not in viewer.get('/').text
+    assert viewer.get('/api/users').status_code==403
+
+
+def test_checkbox_without_notes_pdf_download_and_version_guard(isolated):
+    import io
+    from pypdf import PdfReader
+    a=admin(isolated);id=create(a);state=a.get('/api/cutovers/'+id).json['state']
+    state['tasks']['linx1']={'status':'Concluído','notes':''}
+    response=save(a,id,state,1)
+    assert response.status_code==200
+    pdf=a.get('/api/cutovers/'+id+'/pdf?version=2')
+    assert pdf.status_code==200 and pdf.mimetype=='application/pdf'
+    assert 'attachment;' in pdf.headers['Content-Disposition']
+    assert pdf.data.startswith(b'%PDF-')
+    text='\n'.join(page.extract_text() for page in PdfReader(io.BytesIO(pdf.data)).pages)
+    assert 'VD266' in text and '1 de 11' in text and 'CONCLUÍDO' in text
+    assert a.get('/api/cutovers/'+id+'/pdf?version=1').status_code==409
+    viewer,_=add_user(a,'pdf-viewer@example.test','viewer',isolated)
+    assert viewer.get('/api/cutovers/'+id+'/pdf').status_code==200
+    assert module.app.test_client().get('/api/cutovers/'+id+'/pdf').status_code==401
+
+
+def test_observations_optional_for_go(isolated):
+    a=admin(isolated);id=create(a);state=a.get('/api/cutovers/'+id).json['state']
+    for key in ['orion1','orion2','orion3','linx1','linx2','linx3','linx4','linx5']:
+        state['tasks'][key]={'status':'Concluído'}
+    state['decisions']['linx']={'value':'GO','owner':'Gestor','at':'2026-11-05T12:00','reason':''}
+    state['tasks']['orion4']={'status':'Concluído'}
+    assert save(a,id,state,1).status_code==200

@@ -150,7 +150,6 @@ def valid_state(s):
         if any(not isinstance(v,str) for v in t.values()):raise ValueError('Campo de etapa inválido.')
         if t.get('status','Pendente') not in STATUSES:raise ValueError('Status inválido.')
         if t.get('duration') and (not t['duration'].isdigit() or not 0<int(t['duration'])<=10080):raise ValueError('Duração deve ser de 1 a 10080 minutos.')
-        if t.get('status')=='Concluído' and not (t.get('owner','').strip() and t.get('evidence','').strip()):raise ValueError('Etapa concluída exige responsável e evidência.')
     done=lambda id:s['tasks'].get(id,{}).get('status')=='Concluído'
     pre=all(done(id) for id in ['orion1','orion2','orion3','linx1','linx2','linx3','linx4','linx5'])
     for k in ['linx','orion']:
@@ -158,7 +157,7 @@ def valid_state(s):
         if not isinstance(d,dict) or any(not isinstance(v,str) for v in d.values()) or d.get('value','Pendente') not in ['Pendente','GO','NO-GO']:raise ValueError('Decisão inválida.')
         if d.get('value')=='GO' and not (pre if k=='linx' else all(done(id) for id in IDS)):raise ValueError('GO sem os pré-requisitos concluídos.')
     # A decision can be drafted while the owner fills the remaining fields.
-    d=s['decisions']['linx'];authorized=pre and d.get('value')=='GO' and all(d.get(k,'').strip() for k in ['owner','at','reason'])
+    d=s['decisions']['linx'];authorized=pre and d.get('value')=='GO' and all(d.get(k,'').strip() for k in ['owner','at'])
     if s['tasks'].get('orion4',{}).get('status') in ['Em andamento','Concluído'] and not authorized:raise ValueError('Instalação exige GO da retirada registrado e completo.')
     if done('orion5') and not done('orion4') or done('orion6') and not done('orion5'):raise ValueError('Conclua a etapa anterior do Orion.')
     return s
@@ -171,12 +170,9 @@ def cutovers():
 @app.post('/api/cutovers')
 def create_cutover():
     if g.user['role'] not in ['admin','manager']:return error('Somente Administrador ou Gestor pode criar cutovers.',403)
-    body=request.get_json() or {}
-    title=str(body.get('title','')).strip()[:160]
+    title=str((request.get_json() or {}).get('title','')).strip()[:160]
     if not title:return error('Informe filial / PDV.')
-    meta=body.get('meta',{})
-    if not isinstance(meta,dict) or any(k not in ['date','window','coordinator'] or not isinstance(v,str) or len(v)>250 for k,v in meta.items()):return error('Dados da execução inválidos.')
-    id=secrets.token_hex(16);s={'meta':{**meta,'branch':title},'tasks':{},'decisions':{'linx':{},'orion':{}}}
+    id=secrets.token_hex(16);s={'meta':{'branch':title},'tasks':{},'decisions':{'linx':{},'orion':{}}}
     with db() as c:
         c.execute('INSERT INTO ct_cutovers VALUES (%s,%s,%s,1,%s,%s)',(id,title,json.dumps(s),now(),g.user['email']))
         audit(c,g.user['email'],'criação',id)
@@ -198,6 +194,16 @@ def update_cutover(id):
         old=c.execute('SELECT state FROM ct_cutovers WHERE id=%s',(id,)).fetchone()
         if not old:return error('Cutover não encontrado.',404)
         previous=json.loads(old['state'])
+        for task_id, record in s['tasks'].items():
+            prior=previous.get('tasks',{}).get(task_id,{})
+            if record.get('status')=='Concluído' and prior.get('status')!='Concluído':
+                record['owner']=record.get('owner','').strip() or g.user['name']
+                record['checkedByEmail']=g.user['email']
+                record['checkedAt']=now()
+            else:
+                for key in ['checkedByEmail','checkedAt']:
+                    if key in prior:record[key]=prior[key]
+                    else:record.pop(key,None)
         if g.user['role']=='operator':
             for k in ['linx','orion']:
                 before=previous['decisions'].get(k,{})
@@ -215,6 +221,18 @@ def update_cutover(id):
 def history(id):
     with db() as c:rows=c.execute('SELECT actor,action,created_at,detail FROM ct_audit WHERE cutover_id=%s ORDER BY created_at DESC LIMIT 200',(id,)).fetchall()
     return jsonify([dict(r) for r in rows])
+
+@app.get('/api/cutovers/<id>/pdf')
+def download_pdf(id):
+    from flask import send_file
+    from pdf_report import create_report, report_filename
+    with db() as c:row=c.execute('SELECT * FROM ct_cutovers WHERE id=%s',(id,)).fetchone()
+    if not row:return error('Cutover não encontrado.',404)
+    expected=request.args.get('version')
+    if expected is not None and str(row['version'])!=expected:
+        return error('O checklist foi atualizado por outra pessoa. Atualize os dados e gere o PDF novamente.',409)
+    state=json.loads(row['state'])
+    return send_file(create_report(SOURCE,state,dict(row)),mimetype='application/pdf',as_attachment=True,download_name=report_filename(state,row['version']),max_age=0)
 
 @app.route('/api/users',methods=['GET','POST'])
 def users():

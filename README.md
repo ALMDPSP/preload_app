@@ -1,18 +1,34 @@
-# Cutover Linx Agiliza → Orion · Render + Neon · v2.2
+# Cutover Linx Agiliza → Orion · v2.3
 
-## Interface simplificada na versão 2.2
+Atualização aplicada exclusivamente ao projeto `preload_app` do anexo. Este pacote não contém o Controle de Ativos/Estoque.
 
-- **Sua conta:** nome, e-mail, perfil, último acesso, **Minha senha** e **Sair da conta** ficam no menu lateral. O botão de saída encerra a sessão e tenta salvar alterações pendentes; se houver falha, solicita confirmação antes de descartá-las.
-- **Administrador:** use **Gestão de acessos** no menu lateral para cadastrar usuários, pesquisar pessoas e gerenciar perfis, bloqueios, senhas temporárias e Authenticator. O botão **Minha conta** identifica seu próprio acesso administrativo e impede bloqueio ou alteração do próprio perfil pela tela.
-- **Novo cutover:** formulário com Filial, PDV e Data, mais coordenador opcional. Não precisa juntar todos os dados num único campo. Ao criar, os dados são gravados juntos no banco.
-- **Etapas:** abra uma etapa e preencha responsável e resultado. Use **Usar meu nome**, **Iniciar etapa** ou **Concluir**. Campos obrigatórios ausentes ficam destacados com mensagem na própria etapa. O status também pode ser escolhido na lista.
-- **Detalhes opcionais:** horários e observações ficam em **Mais informações**, preservando os dados já cadastrados. As condições para avançar continuam visíveis.
+- Conta conectada e botão **Sair da conta** no topo, inclusive no celular. A saída usa POST com proteção CSRF; alterações pendentes são tratadas antes de encerrar a sessão.
+- Administrador tem o botão **Gerenciar acessos** em destaque: pesquisar usuários, cadastrar contas, escolher os quatro perfis, bloquear/reativar e redefinir senha temporária ou Authenticator. A própria conta é identificada e protegida contra bloqueio ou perda acidental do perfil.
+- Processos em formato de checklist: marque a caixa ao concluir. Observações são opcionais. O responsável e a autoria são registrados automaticamente. Dados antigos, horários, evidências e orientações continuam disponíveis em **Ver orientações e informações adicionais**.
+- Novo cutover por formulário de filial e PDV, sem prompt do navegador.
+- Mantém os 11 passos, os pré-requisitos de GO, MFA, recuperação, histórico, impressão/PDF, dados existentes e controle de concorrência. Não é necessário criar novas variáveis de ambiente ou alterar o banco manualmente.
 
-O usuário criado pelo primeiro cadastro (`ADMIN_EMAIL`) tem perfil Administrador. Entre com esse e-mail para gerenciar os acessos. Alterar `ADMIN_EMAIL` no Render depois que o banco já possui usuários não promove outra conta. Para alterar uma conta existente, entre com um administrador e ajuste seu perfil em **Gestão de acessos**.
+## Garantir o perfil de Administrador da sua conta
 
-Para atualizar, envie todos os arquivos deste pacote ao GitHub, inclusive `static/simple.js`, `static/simple.css` e o novo template. Mantenha as variáveis atuais no Render e faça o deploy. Não há novas variáveis obrigatórias nem alteração da estrutura do banco nesta versão.
+Se sua conta já é Administrador, basta entrar normalmente. Caso uma conta existente esteja com outro perfil ou bloqueada, quem tem acesso ao servidor pode aplicar o perfil administrativo:
 
-## Configuração preservada da versão 2.1
+```sh
+python manage.py set-admin SEU_EMAIL_CADASTRADO
+```
+
+O comando atua somente na conta indicada, registra a ação no histórico e encerra suas sessões anteriores. Ele preserva senha, Authenticator e cutovers. Entre novamente com sua senha e seu MFA habituais. Não existe promoção automática de perfil pela página de login.
+
+No Render sem Shell, execute o comando uma única vez entre `python init_db.py &&` e o Gunicorn no Start Command, usando seu e-mail já cadastrado. Após confirmar o acesso, remova essa etapa do Start Command. Não mantenha recuperação administrativa automática no reinício.
+
+## Publicação
+
+Envie os arquivos de dentro de `preload_app-main/` para a raiz do repositório do **Cutover**. Preserve `DATABASE_URL`, `SECRET_KEY` e a configuração MFA existente. Consulte `ATUALIZAR_RENDER.md` para os passos de atualização. Testes locais usam SQLite temporário; a conexão real ao Neon e o deploy continuam dependendo do ambiente do Render.
+
+---
+
+# Cutover Linx Agiliza → Orion · Render + Neon · v2.1
+
+## Configuração mantida desde a versão 2.1
 
 1. Substitua os arquivos do projeto no GitHub pelo conteúdo desta pasta. Preserve os nomes `static`, `templates` e `requirements.txt`.
 2. Mantenha `DATABASE_URL` e `SECRET_KEY` atuais no Render. Não é necessário cadastrar `MFA_ENCRYPTION_KEY`: quando ela não existe, a aplicação deriva a chave de criptografia de `SECRET_KEY`, seguindo o comportamento do Controle de Ativos.
@@ -54,7 +70,7 @@ python manage.py reset-mfa email-do-administrador
 
 O comando invalida as sessões e o MFA desse administrador, preservando a senha. Se o plano do Render não disponibilizar Shell, use temporariamente o comando como etapa do Start Command depois de `python init_db.py &&` e antes do Gunicorn. Após executar uma única vez, remova a etapa de recuperação para que ela não rode novamente a cada reinício. Nunca deixe recuperação automática configurada.
 
-Aplicação Flask com login e dados compartilhados em PostgreSQL. Mantém as 11 etapas das planilhas, requisitos de rede, observações, responsáveis, evidências, decisões e impressão pelo navegador. O aceite Orion foi corrigido para a etapa 6 (a planilha referenciava uma etapa 7 inexistente).
+Aplicação Flask com login e dados compartilhados em PostgreSQL. Mantém as 11 etapas das planilhas, requisitos de rede, observações, responsáveis, evidências, decisões e PDF para download. O aceite Orion foi corrigido para a etapa 6 (a planilha referenciava uma etapa 7 inexistente).
 
 ## Publicar no Render
 
@@ -86,6 +102,8 @@ Alternativa: o `render.yaml` permite cadastrar por Blueprint e solicitar as vari
 
 ## Uso em equipe
 
+O administrador tem também **Cadastrar usuário** no topo e **Usuários e acessos** no menu lateral. O botão abre diretamente o formulário de novo usuário. Contas Gestor, Operador ou Consulta não podem cadastrar pessoas nem se promover a administrador.
+
 - **Novo cutover:** informe filial, PDV e identificação/data da execução. Cada cadastro possui dados próprios e fica disponível no seletor.
 - **Usuários:** o administrador cria contas nos quatro perfis acima, altera perfis, bloqueia/reativa acessos e redefine senhas temporárias ou MFA de outros usuários. Não existe cadastro público. A troca da senha temporária é obrigatória. Troca de senha, bloqueio, redefinição e mudança de perfil invalidam sessões anteriores.
 - **Salvamento:** automático após a edição. Confira o aviso “Salvo no banco”. Em erro de conexão, os dados continuam na tela; use **Exportar registros** e tente **Atualizar dados** após resolver a conexão. Não feche a aba enquanto houver alterações pendentes.
@@ -93,12 +111,12 @@ Alternativa: o `render.yaml` permite cadastrar por Blueprint e solicitar as vari
 - **Importação:** selecione ou crie a execução de destino e importe o JSON exportado na versão HTML. Os dados substituem o conteúdo desse cutover após passarem pelas validações do servidor. Exporte uma cópia do destino antes de importar.
 - **Histórico:** registra autor, horário e valores anteriores/novos das alterações; mostra os últimos 200 eventos do cutover. É histórico operacional, sem assinatura digital.
 - **Evidências:** são links ou texto. Esta versão não recebe anexos de arquivos.
-- **PDF:** utilize **Imprimir / PDF** e selecione **Salvar como PDF** no navegador. O relatório inclui roteiro, rede e decisões. Antes de imprimir, confira o salvamento; textos muito longos em campos podem exigir ajuste na impressão.
+- **Salvar e PDF:** use **Salvar checklist**. Somente após o servidor confirmar o salvamento aparece um popup com o botão **Baixar checklist em PDF**. O relatório é gerado no servidor, inclui processos, marcações, observações preenchidas, decisões e rede, e é enviado como arquivo para download. A pasta final é determinada pelo navegador; normalmente Downloads. Se aparecer o seletor de pasta, escolha Downloads. O relatório parcial também pode ser salvo e mostra os processos pendentes. O PDF corresponde à versão salva; se outra pessoa atualizar antes do download, o sistema pede para atualizar e gerar novamente.
 - **Horários:** eventos do servidor são armazenados em UTC e exibidos no fuso do navegador. Horários previstos são informados como hora local da operação.
 
 ## Regras de execução
 
-Orion 1–3 e Linx 1–5 devem estar concluídos antes do GO da retirada. Para iniciar Orion 4, esse GO precisa ter responsável, data/hora e motivo preenchidos. Etapas concluídas exigem responsável e evidência. Orion 5 depende de Orion 4 concluído e Orion 6 depende de Orion 5. GO da operação exige todas as etapas concluídas. Preenchimento é declaração do operador, não teste automático dos equipamentos. Se reabrir um pré-requisito depois de iniciar a instalação, ajuste também o status das etapas posteriores e a decisão antes de salvar.
+Orion 1–3 e Linx 1–5 devem estar concluídos antes do GO da retirada. Para iniciar Orion 4, esse GO precisa ter responsável e data/hora preenchidos; as observações são opcionais. Etapas podem ser concluídas apenas pela marcação, sem evidência textual obrigatória; o servidor registra automaticamente quem marcou e quando. Orion 5 depende de Orion 4 concluído e Orion 6 depende de Orion 5. GO da operação exige todas as etapas concluídas. Preenchimento é declaração do operador, não teste automático dos equipamentos. Ao desmarcar um pré-requisito na tela, a liberação e as etapas dependentes voltam a Pendente para manter a coerência do roteiro.
 
 ## Desenvolvimento e testes
 
@@ -111,7 +129,7 @@ pip install -r requirements.txt
 Defina `APP_ENV=development`, `SECRET_KEY`, `ADMIN_EMAIL` e `ADMIN_PASSWORD` no ambiente e execute `python app.py`. Sem `DATABASE_URL`, **apenas em desenvolvimento**, utiliza SQLite em `dev.sqlite`. O arquivo `.env.example` é um modelo; o programa não o carrega automaticamente. Para testar Neon localmente, configure `DATABASE_URL`.
 
 ```sh
-pip install pytest==8.4.2
+pip install pytest==8.4.2 pypdf
 python -m pytest -q
 ```
 
