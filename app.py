@@ -76,6 +76,8 @@ def init_db(log=None):
         for sql in SCHEMA: c.execute(sql)
         report('Conferindo filiais e migrando vínculos anteriores...')
         migrated=migrate_branches(c,now,postgres=bool(DATABASE))
+        from dashboard import PLAN_SCHEMA
+        c.execute(PLAN_SCHEMA)
         report(f'Filiais conferidas. Vínculos migrados: {migrated}. Conferindo usuários...')
         email = os.getenv('ADMIN_EMAIL', '').strip().lower()
         password = os.getenv('ADMIN_PASSWORD', '')
@@ -374,6 +376,8 @@ from reports import register_reports
 from pwa import register_pwa
 register_reports(app,globals())
 register_pwa(app,ROOT)
+from dashboard import register_dashboard
+register_dashboard(app,globals())
 
 if __name__=='__main__':
     init_db();app.run(host='127.0.0.1',port=5000)

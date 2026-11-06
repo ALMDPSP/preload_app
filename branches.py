@@ -91,6 +91,7 @@ def register_branches(app,core):
                 if c.execute('SELECT cutover_id FROM ct_cutover_branch WHERE branch_id=%s LIMIT 1',(id,)).fetchone():
                     return error('Esta filial possui cutovers vinculados. Inative o cadastro para preservar o histórico.',409)
                 audit(c,g.user['email'],'exclusão de filial',detail={'id':id,'code':row['code'],'name':row['name']})
+                c.execute('DELETE FROM ct_branch_pdv_plan WHERE branch_id=%s',(id,))
                 c.execute('DELETE FROM ct_branches WHERE id=%s',(id,))
         except Exception as exc:
             if getattr(exc,'sqlstate',None)=='23503' or type(exc).__name__=='IntegrityError':

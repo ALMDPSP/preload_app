@@ -3,6 +3,7 @@ const reportLabels=['Concluído','Pendente','Em andamento','Bloqueado','Aguardan
 const reportNormalize=value=>String(value||'').normalize('NFD').replace(/[\u0300-\u036f]/g,'').toLocaleLowerCase('pt-BR');
 function filteredReports(){const q=reportNormalize($('reportSearch').value.trim()),status=$('reportStatus').value,uf=$('reportUf').value;return reportRows.filter(r=>(!status||r.status===status)&&(!uf||r.uf===uf)&&reportNormalize([r.code,r.name,r.city,r.uf,r.pdv,r.title].join(' ')).includes(q))}
 async function showReports(){
+ $('dashboardPage').classList.add('hidden');$('dashboardNav')?.classList.remove('active');
  $('cutoverWorkspace').classList.add('hidden');$('branchesPage').classList.add('hidden');$('reportsPage').classList.remove('hidden');
  document.querySelectorAll('.nav button').forEach(b=>b.classList.toggle('active',b.id==='reportsNav'));
  await refreshReports();

@@ -2,12 +2,14 @@ let registeredBranches=[],switchingBranch=false,branchPage=1,branchSearchTimer=n
 const BRANCH_PAGE_SIZE=50;
 function currentBranch(){return registeredBranches.find(b=>b.id===selectedBranchId)}
 function showBranches(){
+ $('dashboardPage').classList.add('hidden');$('dashboardNav')?.classList.remove('active');
  $('reportsPage').classList.add('hidden');$('reportsNav')?.classList.remove('active');
  $('cutoverWorkspace').classList.add('hidden');$('branchesPage').classList.remove('hidden');
  document.querySelectorAll('[data-view]').forEach(b=>b.classList.remove('active'));$('branchesNav').classList.add('active');branchPage=1;
  refreshBranches().catch(e=>toast(e.message));
 }
 function showCutoverWorkspace(){
+ $('dashboardPage').classList.add('hidden');$('dashboardNav')?.classList.remove('active');
  $('reportsPage').classList.add('hidden');$('reportsNav')?.classList.remove('active');
  $('cutoverWorkspace').classList.remove('hidden');$('branchesPage').classList.add('hidden');$('branchesNav').classList.remove('active');
 }

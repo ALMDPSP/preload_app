@@ -1,6 +1,18 @@
-# Cutover Linx Agiliza → Orion · v2.9
+# Cutover Linx Agiliza → Orion · v3.0
 
 Consulte `ATUALIZAR_RENDER.md` para atualizar o Start Command para `bash start.sh` e acompanhar os novos logs de inicialização.
+
+## Dashboard por loja e número de PDV — v3.0
+
+A página inicial agora é **Dashboard**. A meta padrão é **4 PDVs (01, 02, 03, 04) por filial ativa e aberta**. Filiais inativas, a inaugurar e cadastros legados que exigem revisão não entram nesse recorte. Os demais módulos continuam no menu.
+
+Cada máquina é identificada por filial + número do PDV. 1, 01 e PDV 1 representam a mesma máquina; a execução mais recente prevalece, sem somar repetidas tentativas. **Orion OK** exige todos os processos concluídos e GO da retirada/operação com responsável e data. Todos os demais casos, inclusive sem cutover e rejeitado, contam como pendentes.
+
+**Ajustar PDVs**, disponível para Administrador/Gestor, permite informar a lista real de números por loja, entre 1 e 50 equipamentos. A quantidade da meta corresponde ao tamanho dessa lista. Números observados fora dela ou não identificados geram alertas e ficam fora das métricas até ajuste. Cutovers existentes não são apagados ao mudar o plano.
+
+O dashboard exibe PDVs previstos, virados e OK, pendentes, percentual e lojas completas. Os filtros de loja/UF valem para os totais e para o **Relatório executivo PDF**. A tabela e o PDF mostram os números OK e pendentes por filial; o CSV detalha cada PDV.
+
+A curva mostra as aprovações dos **PDVs atualmente OK**, com transições identificadas no histórico. Quando não há histórico suficiente, usa a última gravação como referência e sinaliza essa limitação. Não é uma fotografia histórica de todo o parque: nova execução, rejeição, exclusão ou alteração do plano podem mudar esse recorte.
 
 ## Aplicativo com ícone e Relatórios — v2.9
 

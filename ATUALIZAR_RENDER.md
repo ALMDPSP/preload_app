@@ -1,3 +1,29 @@
+# Atualização v3.0 — Dashboard e relatório executivo por PDV
+
+1. Atualize o conteúdo completo no GitHub. Inclua os novos `dashboard.py`, `executive_report.py`, `static/dashboard.js`, e os arquivos atualizados `app.py`, `branches.py`, `templates/index.html`, `static/branches.js`, `static/reports.js` e `static/branches.css`.
+2. No Render, mantenha as variáveis existentes, Build Command `pip install -r requirements.txt` e Start Command `bash start.sh`. Nenhuma nova chave é necessária.
+3. Faça o deploy. A tabela `ct_branch_pdv_plan` é criada automaticamente, sem apagar lojas, cutovers ou usuários.
+4. Atualize a página com Ctrl+F5. O Dashboard passa a ser a página inicial; os módulos anteriores ficam no menu.
+
+## Contagem
+
+- Padrão: **4 PDVs por filial ativa**, com números **01, 02, 03 e 04**. Lojas a inaugurar e vínculos legados em revisão ficam fora do escopo de ativas abertas.
+- Uma máquina = filial + número do PDV. Diferentes grafias numéricas, como 1, 01 ou PDV 1, são normalizadas. Só a execução mais recente entra; não se somam tentativas repetidas.
+- **Orion OK**: todos os 11 processos concluídos e os dois GO com responsável/data. Sem cutover, em andamento, bloqueado, rejeitado e aguardando aceite permanecem pendentes.
+- Se uma filial tiver outra quantidade/numeração, Administrador e Gestor usam **Ajustar PDVs**. Edite a lista real ou gere de 01 até a quantidade desejada. O tamanho da lista define a meta daquela loja. O cadastro verifica versão para evitar sobrescrever alterações de outra pessoa.
+- Execuções com número não identificado ou fora do plano aparecem em Numeração para revisar e não entram no numerador/denominador. Corrija o plano ou refaça a execução com o número correto antes de considerá-las na meta.
+- A alteração do plano não apaga os cutovers existentes. O checklist continua sendo gravado exclusivamente por Salvar checklist.
+
+## Dashboard e executivo
+
+Cartões de máquinas previstas, viradas e OK, pendentes e lojas completas; percentual; filtros por loja/UF; evolução das aprovações; tabela com cada filial e seus números de PDV; detalhamento da execução mais recente. A tabela pagina 25 lojas por vez.
+
+**Relatório executivo PDF** inclui resumo, curva, critério de OK, lojas e números dos PDVs OK/pendentes e exceções de numeração. O CSV exporta uma linha por máquina planejada. Os filtros aplicados valem para os dois arquivos. Downloads exigem usuário autenticado.
+
+A curva é uma visão dos PDVs que estão OK no momento, por data de aprovação obtida do histórico. Ela não representa fotos antigas do parque inteiro. Sem transição de aprovação identificável, a última gravação é usada como referência e o relatório informa a quantidade desses casos. Não são inventadas datas reais de virada. Mudanças de plano, novas tentativas, rejeições ou exclusões podem alterar esse recorte.
+
+Validação: 35 testes automatizados com SQLite, incluindo 1.800 lojas ativas = 7.200 PDVs pendentes, deduplicação de numeração, última execução rejeitada, plano por loja, acesso por perfil, concorrência de versão, persistência, curva e PDF. Interface testada para Administrador e Consulta. PDF executivo renderizado e conferido visualmente com dados de demonstração. Não foi realizado deploy no Render nem conexão ao Neon do usuário.
+
 # Atualização v2.9 — Aplicativo instalável e Relatórios
 
 1. Atualize no GitHub o conteúdo completo deste pacote. Inclua os novos `reports.py`, `pwa.py`, `static/reports.js`, `static/pwa.js`, `static/sw.js` e ícones PNG, além de `app.py`, templates e demais arquivos estáticos.
