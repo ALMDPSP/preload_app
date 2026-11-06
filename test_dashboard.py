@@ -57,7 +57,8 @@ def test_scope_plan_numbers_exceptions_permissions_and_pdf(isolated):
     from pypdf import PdfReader
     response=a.get('/api/dashboard/executive.pdf');assert response.status_code==200
     text=' '.join(p.extract_text() for p in PdfReader(io.BytesIO(response.data)).pages)
-    assert 'VD266' in text and '01, 05' in text and 'Evolução' in text
+    assert 'VD266' not in text and '01, 05' not in text and 'Evolução' in text
+    assert len(PdfReader(io.BytesIO(response.data)).pages)==1
     module.init_db();assert a.get('/api/dashboard').json['stores'][0]['pdvs']==['01','05']
 
 def test_approval_dates_survive_note_edits_and_reference_fallback():

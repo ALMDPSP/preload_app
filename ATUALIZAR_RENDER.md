@@ -1,3 +1,15 @@
+# Atualização v3.1.1 — Relatório executivo macro em uma página
+
+1. Atualize no GitHub o pacote completo. As alterações principais estão em `executive_report.py`, `dashboard.py`, `templates/index.html` e `static/dashboard.js`.
+2. Faça o deploy no Render mantendo as variáveis e o Start Command `bash start.sh`. Nenhuma nova chave ou migração é necessária.
+3. Atualize a página com Ctrl+F5. No Dashboard, use **Executivo resumido PDF**.
+
+O arquivo agora apresenta somente indicadores gerais: PDVs previstos, Orion OK, pendentes, percentual, lojas completas, gráfico de execução e curva de evolução das aprovações vigentes. A geração do documento não percorre listagens de lojas/PDVs e o endpoint envia ao gerador somente o resumo calculado. Os cálculos continuam consultando os registros salvos para manter os totais corretos.
+
+A listagem individual de lojas e máquinas foi removida do executivo. Não há apêndice de numeração a revisar; aparece apenas a quantidade de alertas. O detalhamento continua no Dashboard, em Ver PDVs e nos CSVs.
+
+Validação: 40 testes automatizados. O executivo foi verificado com meta de 7.200 PDVs em 1.800 lojas: mantém uma página e não acessa os objetos de detalhamento de lojas/máquinas. O layout foi renderizado e conferido visualmente. Sem teste de tempo no Neon/Render do usuário.
+
 # Atualização v3.1 — Quantidade de PDVs, aceites e usuários
 
 1. Atualize no GitHub os arquivos completos deste pacote. As mudanças estão em `dashboard.py`, `templates/index.html`, `static/dashboard.js`, `static/checklist.js`, `static/users.js`, `static/branches.js`, `static/reports.js` e `static/branches.css`.

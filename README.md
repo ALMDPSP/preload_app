@@ -1,6 +1,10 @@
-# Cutover Linx Agiliza → Orion · v3.1
+# Cutover Linx Agiliza → Orion · v3.1.1
 
 Consulte `ATUALIZAR_RENDER.md` para atualizar o Start Command para `bash start.sh` e acompanhar os novos logs de inicialização.
+
+## Executivo macro — v3.1.1
+
+O botão **Executivo resumido PDF** gera uma página com PDVs previstos/Orion OK/pendentes, percentual, lojas completas, gráfico de execução do parque e curva das aprovações vigentes. Não há listagem individual de filiais, máquinas ou exceções. Os totais usam os mesmos filtros e critérios do dashboard. O detalhamento permanece na tela e no CSV.
 
 ## Mais PDVs, aceites na sequência e página de usuários — v3.1
 
@@ -22,7 +26,7 @@ Cada máquina é identificada por filial + número do PDV. 1, 01 e PDV 1 represe
 
 **Ajustar PDVs**, disponível para Administrador/Gestor, permite informar a lista real de números por loja, entre 1 e 50 equipamentos. A quantidade da meta corresponde ao tamanho dessa lista. Números observados fora dela ou não identificados geram alertas e ficam fora das métricas até ajuste. Cutovers existentes não são apagados ao mudar o plano.
 
-O dashboard exibe PDVs previstos, virados e OK, pendentes, percentual e lojas completas. Os filtros de loja/UF valem para os totais e para o **Relatório executivo PDF**. A tabela e o PDF mostram os números OK e pendentes por filial; o CSV detalha cada PDV.
+O dashboard exibe PDVs previstos, virados e OK, pendentes, percentual e lojas completas. Os filtros de loja/UF valem para os totais e para o **Relatório executivo PDF**. A tabela e o CSV mostram os números OK e pendentes por filial. O PDF executivo apresenta somente a visão macro com indicadores e gráficos.
 
 A curva mostra as aprovações dos **PDVs atualmente OK**, com transições identificadas no histórico. Quando não há histórico suficiente, usa a última gravação como referência e sinaliza essa limitação. Não é uma fotografia histórica de todo o parque: nova execução, rejeição, exclusão ou alteração do plano podem mudar esse recorte.
 

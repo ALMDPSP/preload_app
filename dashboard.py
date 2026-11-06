@@ -30,7 +30,7 @@ def approval_time(state,events,fallback,ids):
         current=before
     return fallback,True
 
-def dashboard_data(core,q='',uf=''):
+def dashboard_data(core,q='',uf='',summary_only=False):
     db,ids=core['db'],core['IDS']
     with db() as c:
         branches=[dict(r) for r in c.execute('SELECT * FROM ct_branches ORDER BY code').fetchall()]
@@ -90,7 +90,11 @@ def dashboard_data(core,q='',uf=''):
     total=len(all_machines);ok=sum(m['ok'] for m in all_machines)
     for e in exceptions:
         b=next(b for b in selected if b['id']==e['branch_id']);e.update(code=b['code'],name=b['name'])
-    return {'generated_at':core['now'](),'filters':{'q':q,'uf':uf},'ufs':ufs,'stores':stores,'machines':all_machines,'exceptions':exceptions,'evolution':series,'date_references':baseline,'totals':{'stores':len(stores),'expected':total,'ok':ok,'pending':total-ok,'percent':round(ok/total*100,1) if total else 0,'stores_ok':sum(s['pending']==0 for s in stores),'stores_pending':sum(s['pending']>0 for s in stores),'exceptions':len(exceptions)},'excluded':{'inactive':sum(not b['active'] for b in branches),'opening_soon':sum(bool(b['active'] and b['opening_soon']) for b in branches),'needs_review':sum(bool(b['active'] and not b['opening_soon'] and b['needs_review']) for b in branches)}}
+    result={'generated_at':core['now'](),'filters':{'q':q,'uf':uf},'ufs':ufs,'stores':stores,'machines':all_machines,'exceptions':exceptions,'evolution':series,'date_references':baseline,'totals':{'stores':len(stores),'expected':total,'ok':ok,'pending':total-ok,'percent':round(ok/total*100,1) if total else 0,'stores_ok':sum(s['pending']==0 for s in stores),'stores_pending':sum(s['pending']>0 for s in stores),'exceptions':len(exceptions)},'excluded':{'inactive':sum(not b['active'] for b in branches),'opening_soon':sum(bool(b['active'] and b['opening_soon']) for b in branches),'needs_review':sum(bool(b['active'] and not b['opening_soon'] and b['needs_review']) for b in branches)}}
+
+    if summary_only:
+        for key in ['stores','machines','exceptions']:result.pop(key,None)
+    return result
 
 def register_dashboard(app,core):
     db,error,audit,now=(core[k] for k in ['db','error','audit','now'])
@@ -100,7 +104,7 @@ def register_dashboard(app,core):
     @app.get('/api/dashboard/executive.pdf')
     def executive():
         from executive_report import create_executive_pdf
-        return send_file(create_executive_pdf(read_data()),mimetype='application/pdf',as_attachment=True,download_name='Relatorio_Executivo_PDV_Orion.pdf',max_age=0)
+        return send_file(create_executive_pdf(dashboard_data(core,request.args.get('q','')[:200],request.args.get('uf','').upper()[:2],summary_only=True)),mimetype='application/pdf',as_attachment=True,download_name='Relatorio_Executivo_PDV_Orion.pdf',max_age=0)
     @app.get('/api/branches/<id>/pdv-plan')
     def get_plan(id):
         with db() as c:
