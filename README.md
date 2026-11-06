@@ -1,6 +1,14 @@
-# Cutover Linx Agiliza → Orion · v3.0.1
+# Cutover Linx Agiliza → Orion · v3.1
 
 Consulte `ATUALIZAR_RENDER.md` para atualizar o Start Command para `bash start.sh` e acompanhar os novos logs de inicialização.
+
+## Mais PDVs, aceites na sequência e página de usuários — v3.1
+
+Na tela do Cutover, escolha a filial e use **+ Adicionar PDV à loja**. No Dashboard, **Ajustar PDVs** abre o mesmo cadastro. Use **+ Adicionar próximo PDV** para passar de 4 para 5, 6 ou mais; ou informe a quantidade e clique em **Aumentar até essa quantidade**. Os números existentes são mantidos. Salve em **Salvar PDVs previstos** para atualizar a meta. O limite é 50 PDVs por filial; números reais diferentes podem ser editados na lista.
+
+As decisões agora aparecem no checklist: **Entrega do Linx** após os processos de retirada e antes da instalação do Orion; **Aceite do Orion** após instalação, testes e aceite da loja. O menu **Aceites do cutover** leva até a primeira decisão no próprio fluxo. As validações e o salvamento pelo botão **Salvar checklist** permanecem.
+
+**Usuários e acessos** agora abre uma página no mesmo padrão de Filiais, Relatórios e Dashboard, com cartões, pesquisa, lista de permissões e formulário de cadastro. **Novo usuário** ou o atalho do cabeçalho abre o formulário na página. Redefinição de senha/MFA mantém uma confirmação específica. A área é exclusiva do Administrador e continua protegida pela API.
 
 ## Recuperação de senha — v3.0.1
 

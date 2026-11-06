@@ -1,5 +1,6 @@
 let dashboardData=null,dashboardPage=1,dashboardRequest=0,dashboardSearchTimer;
 async function showDashboard(){
+ $('usersPage').classList.add('hidden');$('usersNav')?.classList.remove('active');
  ['cutoverWorkspace','branchesPage','reportsPage'].forEach(id=>$(id).classList.add('hidden'));$('dashboardPage').classList.remove('hidden');
  document.querySelectorAll('.nav button').forEach(b=>b.classList.toggle('active',b.id==='dashboardNav'));
  await refreshDashboard();
@@ -34,11 +35,23 @@ function dashboardStore(id){
  modal(`<h2>${esc(s.code)} · ${esc(s.name)}</h2><p>${s.ok} de ${s.expected} PDVs Orion OK · ${s.pending} pendente(s)</p><div class="report-table-wrap"><table class="branch-table"><thead><tr><th>PDV</th><th>Situação atual</th><th>Processos</th><th>Execução</th></tr></thead><tbody>${s.machines.map(m=>`<tr><td><b>${esc(m.pdv)}</b></td><td>${esc(m.status)}${m.rejection_reason?'<br>'+esc(m.rejection_reason):''}</td><td>${m.completed} / 11</td><td>${m.cutover_id?`<button data-dashboard-open="${esc(m.cutover_id)}">Abrir</button>`:'Não iniciada'}</td></tr>`).join('')}</tbody></table></div>`);
  document.querySelectorAll('[data-dashboard-open]').forEach(b=>b.onclick=async()=>{if(!await switchBranch(id))return;await loadExecution(b.dataset.dashboardOpen);$('modal').close();document.querySelector('[data-view="run"]').click()});
 }
-function dashboardPlan(id){
- const s=dashboardData.stores.find(s=>s.id===id);if(!s||!DECIDE)return;
- modal(`<h2>PDVs previstos · ${esc(s.code)}</h2><p>O padrão é 4 PDVs por loja. Ajuste a lista para corresponder aos números reais dos equipamentos.</p><form id="pdvPlanForm" class="form-stack"><div class="row2"><div><label for="pdvPlanCount">Quantidade</label><input id="pdvPlanCount" type="number" min="1" max="50" value="${s.expected}"></div><div><label>&nbsp;</label><button type="button" id="generatePdvNumbers">Gerar de 01 até a quantidade</button></div></div><label for="pdvPlanNumbers">Números dos PDVs (separados por vírgula)</label><input id="pdvPlanNumbers" value="${esc(s.pdvs.join(', '))}" required><p class="muted">Exemplo: 01, 02, 03, 04. Se a loja usa outra numeração, informe os números reais. Alterar a lista muda a meta; os cutovers existentes permanecem.</p><p id="pdvPlanError" role="alert" class="sync-error"></p><button class="primary" id="savePdvPlan">Salvar PDVs previstos</button></form>`);
- $('generatePdvNumbers').onclick=()=>{const n=Number($('pdvPlanCount').value);if(!Number.isInteger(n)||n<1||n>50){$('pdvPlanError').textContent='Use uma quantidade entre 1 e 50.';return}$('pdvPlanNumbers').value=Array.from({length:n},(_,i)=>String(i+1).padStart(2,'0')).join(', ')};
- $('pdvPlanForm').onsubmit=async e=>{e.preventDefault();$('savePdvPlan').disabled=true;try{await api('/api/branches/'+id+'/pdv-plan','PUT',{pdvs:$('pdvPlanNumbers').value.split(/[,;]+/).map(s=>s.trim()).filter(Boolean),version:s.plan_version});$('modal').close();await refreshDashboard();toast('Plano de PDVs atualizado.')}catch(err){$('pdvPlanError').textContent=err.message;$('savePdvPlan').disabled=false}};
+async function dashboardPlan(id){return editBranchPdvPlan(id)}
+async function editBranchPdvPlan(id){
+ if(!DECIDE||!id)return;
+ let s;try{s=await api('/api/branches/'+encodeURIComponent(id)+'/pdv-plan')}catch(e){toast(e.message);return}
+ modal(`<h2>PDVs previstos · ${esc(s.code)}</h2><p>${esc(s.name)}</p><p>A loja pode ter mais de 4 PDVs. Adicione os equipamentos e salve para atualizar a meta no dashboard e nos relatórios.</p><form id="pdvPlanForm" class="form-stack"><div class="pdv-plan-toolbar"><strong id="pdvPlanTotal">${s.pdvs.length} PDVs previstos</strong><button type="button" id="appendPdvNumber">+ Adicionar próximo PDV</button></div><div class="row2"><div><label for="pdvPlanCount">Quantidade desejada</label><input id="pdvPlanCount" type="number" min="1" max="50" value="${s.pdvs.length}"></div><div><label>&nbsp;</label><button type="button" id="generatePdvNumbers">Aumentar até essa quantidade</button></div></div><label for="pdvPlanNumbers">Números reais dos PDVs (separados por vírgula)</label><input id="pdvPlanNumbers" value="${esc(s.pdvs.join(', '))}" required><p class="muted">Os botões acrescentam números sem remover os existentes. Para reduzir ou usar outra numeração, edite a lista. Os cutovers e checklists anteriores permanecem.</p><p id="pdvPlanError" role="alert" class="sync-error"></p><button class="primary" id="savePdvPlan">Salvar PDVs previstos</button></form>`);
+ const values=()=>$('pdvPlanNumbers').value.split(/[,;]+/).map(v=>v.trim()).filter(Boolean);
+ const display=list=>{$('pdvPlanNumbers').value=list.join(', ');$('pdvPlanTotal').textContent=list.length+' PDVs previstos';$('pdvPlanCount').value=list.length;$('pdvPlanError').textContent=''};
+ function extend(target){
+  const list=values();if(!Number.isInteger(target)||target<list.length||target>50){$('pdvPlanError').textContent='Informe uma quantidade maior ou igual à lista atual, até 50. Para reduzir, edite os números manualmente.';return}
+  const numbers=list.map(v=>/^\d+$/.test(v)?Number(v):NaN);
+  if(numbers.some(n=>!Number.isInteger(n)||n<1||n>9999)||new Set(numbers).size!==numbers.length){$('pdvPlanError').textContent='Confira a lista: use números únicos de 1 a 9999.';return}
+  let next=Math.max(0,...numbers)+1;
+  while(list.length<target){if(next>9999){next=1;while(numbers.includes(next))next++}list.push(String(next).padStart(2,'0'));numbers.push(next);next++}
+  display(list);
+ }
+ $('appendPdvNumber').onclick=()=>extend(values().length+1);$('generatePdvNumbers').onclick=()=>extend(Number($('pdvPlanCount').value));$('pdvPlanNumbers').oninput=()=>{$('pdvPlanTotal').textContent=values().length+' PDVs previstos'};
+ $('pdvPlanForm').onsubmit=async e=>{e.preventDefault();$('savePdvPlan').disabled=true;try{await api('/api/branches/'+id+'/pdv-plan','PUT',{pdvs:values(),version:s.plan_version});$('modal').close();if(!$('dashboardPage').classList.contains('hidden'))await refreshDashboard();toast('PDVs previstos atualizados. A loja já pode ter cutovers para os novos números.')}catch(err){$('pdvPlanError').textContent=err.message;$('savePdvPlan').disabled=false}};
 }
 async function executiveDownload(){
  if(!dashboardData)return;const button=$('dashboardPdf');button.disabled=true;

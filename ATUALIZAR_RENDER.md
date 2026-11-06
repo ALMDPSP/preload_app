@@ -1,3 +1,31 @@
+# Atualização v3.1 — Quantidade de PDVs, aceites e usuários
+
+1. Atualize no GitHub os arquivos completos deste pacote. As mudanças estão em `dashboard.py`, `templates/index.html`, `static/dashboard.js`, `static/checklist.js`, `static/users.js`, `static/branches.js`, `static/reports.js` e `static/branches.css`.
+2. No Render, mantenha as variáveis atuais e Start Command **`bash start.sh`**. A recuperação de senha não precisa ser executada novamente.
+3. Faça o deploy e atualize a página com Ctrl+F5.
+
+## Mais de 4 PDVs por loja
+
+Na tela Cutover, selecione a filial e clique em **+ Adicionar PDV à loja**. O mesmo formulário aparece no Dashboard em **Ajustar PDVs**. Disponível para Administrador e Gestor.
+
+- **+ Adicionar próximo PDV** acrescenta um equipamento à lista sem remover os atuais; 01-04 passa para 01-05 e pode continuar crescendo.
+- **Quantidade desejada → Aumentar até essa quantidade** acrescenta o necessário até o total informado.
+- Se a loja usa números diferentes, edite a lista real. Para reduzir a quantidade, remova os números manualmente na lista.
+- Confirme em **Salvar PDVs previstos**. A meta do Dashboard e do relatório executivo usa a lista salva, com limite de 50 equipamentos por filial.
+- O cadastro do plano não apaga os cutovers e não cria automaticamente um checklist. Depois use **Iniciar cutover** e informe o número do novo PDV.
+
+## Aceites na sequência
+
+O aceite da retirada (Entrega do Linx / GO para formatação) está logo após os processos Linx, antes de instalar Orion. O aceite da operação está após instalação, testes e aceite da loja. O atalho **Aceites do cutover** apenas rola para a decisão dentro do checklist. A antiga aba separada foi removida. Operador/Consulta continuam sem permissão para aprovar GO, e os pré-requisitos continuam validados no servidor.
+
+As observações das decisões são opcionais. Decisões e campos do checklist só são gravados ao clicar em **Salvar checklist**.
+
+## Usuários como página
+
+A gestão de usuários agora ocupa uma página no mesmo padrão dos demais módulos, com resumo de ativos/bloqueados/MFA pendente, pesquisa, tabela e **Novo usuário**. O cadastro abre na própria página. Confirmações de redefinição de senha e MFA continuam em janela específica. As restrições sobre a própria conta do Administrador permanecem.
+
+Validação: 38 testes automatizados com SQLite, incluindo leitura e ampliação do plano 4 → 6, versão concorrente, preservação dos cutovers e perfis. Testes de interface para Administrador e Consulta confirmam cadastro de usuário em página, pesquisa e navegação, confirmação de MFA, aceites na ordem correta, bloqueio de GO sem pré-requisitos e adição do quinto/sexto PDV sem gravação automática do checklist. Sem deploy no Render ou conexão ao Neon do usuário.
+
 # Atualização v3.0.1 — Recuperação de senha administrativa
 
 Inclui `manage.py reset-password email` para recuperar uma conta administrativa existente, mantendo dados e Authenticator. Confira `RECUPERAR_SENHA_ADM.md`. Nenhuma recuperação automática foi adicionada ao `start.sh`. Use o comando somente quando necessário.

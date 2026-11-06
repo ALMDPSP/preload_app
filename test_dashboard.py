@@ -77,3 +77,17 @@ def test_1800_active_stores_include_7200_unstarted_pdvs(isolated):
     assert data['totals']['stores']==1800 and data['totals']['expected']==7200
     assert data['totals']['ok']==0 and data['totals']['pending']==7200
     assert len(data['machines'])==7200 and data['evolution']==[]
+
+def test_read_and_expand_pdv_plan_preserves_cutovers(isolated):
+    a=admin(isolated);id=create(a);branch=a.get('/api/cutovers/'+id).json['branch_id'];url='/api/branches/'+branch+'/pdv-plan'
+    assert module.app.test_client().get(url).status_code==401
+    viewer,_=add_user(a,'plan-read@example.test','viewer',isolated)
+    initial=viewer.get(url);assert initial.status_code==200
+    assert initial.json['pdvs']==['01','02','03','04'] and initial.json['plan_version']==0
+    assert a.get('/api/branches/missing/pdv-plan').status_code==404
+    six=['01','02','03','04','05','06']
+    assert a.put(url,headers=headers(a),json={'pdvs':six,'version':0}).status_code==200
+    assert a.get(url).json['pdvs']==six and a.get(url).json['plan_version']==1
+    assert a.get('/api/dashboard').json['totals']['expected']==6
+    assert a.get('/api/cutovers/'+id).status_code==200
+    assert a.put(url,headers=headers(a),json={'pdvs':['01'],'version':0}).status_code==409

@@ -101,6 +101,13 @@ def register_dashboard(app,core):
     def executive():
         from executive_report import create_executive_pdf
         return send_file(create_executive_pdf(read_data()),mimetype='application/pdf',as_attachment=True,download_name='Relatorio_Executivo_PDV_Orion.pdf',max_age=0)
+    @app.get('/api/branches/<id>/pdv-plan')
+    def get_plan(id):
+        with db() as c:
+            branch=c.execute('SELECT id,code,name FROM ct_branches WHERE id=%s',(id,)).fetchone()
+            if not branch:return error('Filial não encontrada.',404)
+            plan=c.execute('SELECT * FROM ct_branch_pdv_plan WHERE branch_id=%s',(id,)).fetchone()
+        return jsonify(id=branch['id'],code=branch['code'],name=branch['name'],pdvs=json.loads(plan['pdvs']) if plan else DEFAULT_PDVS,plan_version=plan['version'] if plan else 0)
     @app.put('/api/branches/<id>/pdv-plan')
     def save_plan(id):
         if g.user['role'] not in ['admin','manager']:return error('Somente Administrador ou Gestor pode ajustar os PDVs previstos.',403)

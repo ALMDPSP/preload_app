@@ -2,6 +2,7 @@ let registeredBranches=[],switchingBranch=false,branchPage=1,branchSearchTimer=n
 const BRANCH_PAGE_SIZE=50;
 function currentBranch(){return registeredBranches.find(b=>b.id===selectedBranchId)}
 function showBranches(){
+ $('usersPage').classList.add('hidden');$('usersNav')?.classList.remove('active');
  $('dashboardPage').classList.add('hidden');$('dashboardNav')?.classList.remove('active');
  $('reportsPage').classList.add('hidden');$('reportsNav')?.classList.remove('active');
  $('cutoverWorkspace').classList.add('hidden');$('branchesPage').classList.remove('hidden');
@@ -9,6 +10,7 @@ function showBranches(){
  refreshBranches().catch(e=>toast(e.message));
 }
 function showCutoverWorkspace(){
+ $('usersPage').classList.add('hidden');$('usersNav')?.classList.remove('active');
  $('dashboardPage').classList.add('hidden');$('dashboardNav')?.classList.remove('active');
  $('reportsPage').classList.add('hidden');$('reportsNav')?.classList.remove('active');
  $('cutoverWorkspace').classList.remove('hidden');$('branchesPage').classList.add('hidden');$('branchesNav').classList.remove('active');
@@ -82,6 +84,8 @@ function branchPermissions(){
  const branch=currentBranch();$('branchIdentity').textContent=branch?branch.code+' · '+branch.name:'Escolha uma loja para visualizar os cutovers.';
  $('newExecution').disabled=!branch||!branch.active||!!branch.needs_review||!DECIDE;
  $('addBranch').hidden=!DECIDE;
+ $('addStorePdv').hidden=!DECIDE||!branch;
+ $('addStorePdv').disabled=!branch||!!branch.needs_review;
  $('branch').readOnly=true;
  if($('linkLegacy'))$('linkLegacy').remove();
  if(branch?.needs_review&&DECIDE){const button=document.createElement('button');button.id='linkLegacy';button.textContent='Vincular execução à filial correta';button.onclick=resolveLegacy;$('branchIdentity').append(document.createElement('br'),button)}
@@ -119,6 +123,7 @@ function initBranches(){
  document.querySelector('main').append($('modal'));
  const nav=document.createElement('button');nav.id='branchesNav';nav.textContent='▦ Filiais';nav.onclick=showBranches;document.querySelector('.nav').prepend(nav);
  document.querySelectorAll('[data-view]').forEach(b=>{const prior=b.onclick;b.onclick=()=>{showCutoverWorkspace();prior()}});
+ $('addStorePdv').onclick=()=>editBranchPdvPlan(selectedBranchId);
  $('manageBranches').onclick=showBranches;$('addBranch').onclick=()=>branchForm();$('branchSearch').oninput=()=>{branchPage=1;clearTimeout(branchSearchTimer);branchSearchTimer=setTimeout(renderBranchRegistry,150)};
  initBranchPicker();
  $('selectedBranch').onchange=()=>switchBranch($('selectedBranch').value);
