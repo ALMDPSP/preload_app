@@ -1,6 +1,27 @@
-# Cutover Linx Agiliza → Orion · v3.1.1
+# Cutover Linx Agiliza → Orion · v4.0
 
 Consulte `ATUALIZAR_RENDER.md` para atualizar o Start Command para `bash start.sh` e acompanhar os novos logs de inicialização.
+
+## Gestão profissional do rollout — v4.0
+
+- **Dashboard acionável:** clique nos cartões para ver os PDVs correspondentes; metas semanais, atrasos de cronograma e pendências abertas têm atalhos próprios. Os filtros de loja/UF valem para o parque; metas e alertas são identificados como visão global.
+- **Cronograma:** responsável, início previsto, prazo e observações por filial/PDV. A conclusão vem do checklist salvo e dos aceites. Datas antigas sem auditoria são identificadas como referência estimada. Administrador e Gestor podem planejar; demais perfis consultam.
+- **Pendências:** filial/PDV, prioridade, responsável, prazo, tratamento e resolução obrigatória ao encerrar. Administrador, Gestor e Operador registram; Consulta somente lê. Resolver pendência não marca processos nem emite GO.
+- **Histórico diário:** gráfico, comparativos semanais/mensais, consulta por período e CSV. O dia atual é provisório; dias passados permanecem preservados. Variações são líquidas entre registros, podem ser negativas e não representam volume bruto de instalações. Datas-base aparecem nos comparativos; sem base, o sistema mostra “—”.
+- **Checklist guiado:** cinco etapas, próxima ação, acesso ao impedimento e aviso de alterações não salvas. O botão **Salvar checklist** continua sendo o único que grava alterações no checklist.
+- **Interface:** indicadores de carregamento, estados vazios, foco acessível, navegação e adaptação para celular.
+
+### Atualizar no Render
+
+Substitua no GitHub os arquivos desta versão (incluindo `operations.py`, `static/operations.js`, `static/guided.js` e `static/professional.*`). Mantenha o Build Command `pip install -r requirements.txt` e o Start Command **`bash start.sh`**. A inicialização cria as novas tabelas sem apagar usuários, filiais ou cutovers existentes. Não há novas dependências nem variáveis de ambiente obrigatórias. Não coloque novamente o comando temporário de recuperação de senha no Start Command.
+
+### Como o histórico é registrado
+
+Os consolidados começam a partir da instalação desta versão. Consultas do dashboard global, abertura da visão operacional e alterações salvas de filiais/PDVs/cutovers atualizam o dia corrente no horário de São Paulo. Ao mudar o dia, o último registro capturado do dia anterior fica preservado com seu horário; isso não garante uma captura exatamente à meia-noite. Dias sem uso/captura ficam ausentes, sem preenchimento estimado. O gráfico usa as datas reais dos registros disponíveis.
+
+Para uma captura diária mesmo sem usuários conectados, pode-se configurar um agendador externo no mesmo banco/ambiente com `python manage.py snapshot-rollout`. Esse agendamento não é criado pelo pacote; o histórico durante o uso funciona sem ele. O comando altera apenas o consolidado atual. Não troque o Start Command do serviço web para esse comando.
+
+Os registros usam versão para impedir que edições concorrentes sobrescrevam alterações silenciosamente. Se outro usuário salvar antes, atualize a tela. Metas, cronograma e pendências têm salvamentos próprios e não gravam o checklist aberto. O relatório executivo continua macro, em uma página, sem listar todas as lojas.
 
 ## Executivo macro — v3.1.1
 

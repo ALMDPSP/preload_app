@@ -1,5 +1,6 @@
 let dashboardData=null,dashboardPage=1,dashboardRequest=0,dashboardSearchTimer;
 async function showDashboard(){
+ if(typeof hideOperations==='function')hideOperations();
  $('usersPage').classList.add('hidden');$('usersNav')?.classList.remove('active');
  ['cutoverWorkspace','branchesPage','reportsPage'].forEach(id=>$(id).classList.add('hidden'));$('dashboardPage').classList.remove('hidden');
  document.querySelectorAll('.nav button').forEach(b=>b.classList.toggle('active',b.id==='dashboardNav'));
@@ -11,12 +12,14 @@ async function refreshDashboard(){
  try{const data=await api('/api/dashboard?'+dashboardQuery());if(sequence!==dashboardRequest)return;dashboardData=data;dashboardPage=1;
  const uf=$('dashboardUf').value;$('dashboardUf').innerHTML='<option value="">Todas as UFs</option>'+data.ufs.map(u=>`<option>${esc(u)}</option>`).join('');$('dashboardUf').value=uf;
  $('dashboardMessage').textContent='Dados salvos · '+new Date(data.generated_at).toLocaleString('pt-BR')+' · Uma máquina por filial + número de PDV. O preenchimento ainda não salvo não entra na contagem.';
- renderDashboard();$('dashboardPdf').disabled=false;$('dashboardCsv').disabled=false;
- }catch(e){if(sequence!==dashboardRequest)return;dashboardData=null;$('dashboardMessage').textContent=e.message;$('dashboardCards').innerHTML='';$('dashboardStores').innerHTML='';$('dashboardEvolution').innerHTML='';$('dashboardProgress').innerHTML='';$('dashboardExceptions').hidden=true;}
+ renderDashboard();if(typeof refreshDashboardOperations==='function')refreshDashboardOperations();$('dashboardPdf').disabled=false;$('dashboardCsv').disabled=false;
+ }catch(e){if(sequence!==dashboardRequest)return;dashboardData=null;$('dashboardMessage').textContent=e.message;$('dashboardCards').innerHTML='';$('dashboardStores').innerHTML='';$('dashboardEvolution').innerHTML='';document.querySelectorAll('[data-dashboard-focus]').forEach(b=>b.onclick=()=>dashboardMachines(b.dataset.dashboardFocus));
+ $('dashboardProgress').innerHTML='';$('dashboardExceptions').hidden=true;}
 }
 function renderDashboard(){
  if(!dashboardData)return;const d=dashboardData,t=d.totals;
- $('dashboardCards').innerHTML=[['PDVs previstos',t.expected,'Meta das lojas ativas'],['Virados e Orion OK',t.ok,t.percent+'% do parque previsto'],['PDVs pendentes',t.pending,'Inclui os ainda não iniciados'],['Lojas completas',t.stores_ok,t.stores+' lojas no escopo']].map(([label,n,detail])=>`<div class="stat"><small>${label}</small><strong>${n}</strong><small>${detail}</small></div>`).join('');
+ $('dashboardCards').innerHTML=[['PDVs previstos',t.expected,'Meta das lojas ativas'],['Virados e Orion OK',t.ok,t.percent+'% do parque previsto'],['PDVs pendentes',t.pending,'Inclui os ainda não iniciados'],['Lojas completas',t.stores_ok,t.stores+' lojas no escopo']].map(([label,n,detail])=>`<button class="stat action-stat" data-dashboard-focus="${label}"><small>${label}</small><strong>${n}</strong><small>${detail} · Ver lista →</small></button>`).join('');
+ document.querySelectorAll('[data-dashboard-focus]').forEach(b=>b.onclick=()=>dashboardMachines(b.dataset.dashboardFocus));
  $('dashboardProgress').innerHTML=`<div class="dashboard-progress-label"><b>${t.percent}% concluído</b><span>${t.ok} de ${t.expected} PDVs</span></div><div class="bar"><span style="width:${t.percent}%"></span></div><p class="muted">${t.stores_pending} loja(s) com pendências. Fora do escopo: ${d.excluded.inactive} inativa(s), ${d.excluded.opening_soon} a inaugurar e ${d.excluded.needs_review} vínculo(s) a revisar.</p>`;
  $('dashboardEvolution').innerHTML=dashboardChart(d.evolution,t.ok)+`<p class="muted dashboard-small">A curva considera as datas de aprovação dos PDVs que estão OK hoje; não representa fotografias históricas do parque.${d.date_references?' '+d.date_references+' PDV(s) sem histórico de aprovação usam a última gravação como referência.':''}</p>`;
  const pages=Math.max(1,Math.ceil(d.stores.length/25));dashboardPage=Math.max(1,Math.min(pages,dashboardPage));const stores=d.stores.slice((dashboardPage-1)*25,dashboardPage*25);
@@ -70,3 +73,10 @@ function initDashboard(){
  showDashboard();
 }
 initDashboard();
+function dashboardMachines(focus,page=1){
+ if(!dashboardData)return;const complete=new Set(dashboardData.stores.filter(s=>s.pending===0).map(s=>s.id));
+ const machines=dashboardData.machines.filter(m=>focus==='Virados e Orion OK'?m.ok:focus==='PDVs pendentes'?!m.ok:focus==='Lojas completas'?complete.has(m.branch_id):true),pages=Math.max(1,Math.ceil(machines.length/40)),rows=machines.slice((page-1)*40,page*40);
+ modal(`<h2>${esc(focus)}</h2><p>${machines.length} PDV(s) no recorte atual · Página ${page} de ${pages}</p><div class="report-table-wrap"><table class="branch-table"><thead><tr><th>Filial / PDV</th><th>Situação</th><th>Ação</th></tr></thead><tbody>${rows.map((m,i)=>`<tr><td><b>${esc(m.code)} · PDV ${esc(m.pdv)}</b><span>${esc(m.name)}</span></td><td>${esc(m.status)}</td><td><button data-machine-index="${i}">Ver loja / execução</button></td></tr>`).join('')||'<tr><td colspan="3">Nenhum PDV neste filtro.</td></tr>'}</tbody></table></div><div class="actions"><button id="machinePrevious" ${page<=1?'disabled':''}>Anterior</button><button id="machineNext" ${page>=pages?'disabled':''}>Próxima</button></div>`);
+ $('machinePrevious').onclick=()=>dashboardMachines(focus,page-1);$('machineNext').onclick=()=>dashboardMachines(focus,page+1);
+ document.querySelectorAll('[data-machine-index]').forEach(b=>b.onclick=async()=>{const m=rows[Number(b.dataset.machineIndex)];if(!await switchBranch(m.branch_id))return;if(m.cutover_id)await loadExecution(m.cutover_id);$('modal').close();document.querySelector('[data-view="run"]').click();});
+}

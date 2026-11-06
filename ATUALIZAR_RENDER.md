@@ -1,3 +1,9 @@
+## Atualização v4.0
+
+Envie ao GitHub todos os arquivos do pacote, preservando a estrutura de pastas. O Start Command continua **`bash start.sh`**, e o Build Command continua `pip install -r requirements.txt`. Não há novas variáveis obrigatórias. As tabelas de cronograma, pendências, metas e histórico são criadas automaticamente no Neon durante a inicialização.
+
+Após o deploy, confirme Dashboard, Cronograma, Pendências e Histórico diário. As novas metas e o cronograma começam vazios; preencha os responsáveis e prazos reais. O histórico começa nesta versão e não reconstrói dias anteriores. O checklist continua salvando somente ao clicar em Salvar checklist. Consulte o README para os detalhes e o comando opcional de captura agendada.
+
 # Atualização v3.1.1 — Relatório executivo macro em uma página
 
 1. Atualize no GitHub o pacote completo. As alterações principais estão em `executive_report.py`, `dashboard.py`, `templates/index.html` e `static/dashboard.js`.

@@ -2,6 +2,7 @@ let registeredBranches=[],switchingBranch=false,branchPage=1,branchSearchTimer=n
 const BRANCH_PAGE_SIZE=50;
 function currentBranch(){return registeredBranches.find(b=>b.id===selectedBranchId)}
 function showBranches(){
+ if(typeof hideOperations==='function')hideOperations();
  $('usersPage').classList.add('hidden');$('usersNav')?.classList.remove('active');
  $('dashboardPage').classList.add('hidden');$('dashboardNav')?.classList.remove('active');
  $('reportsPage').classList.add('hidden');$('reportsNav')?.classList.remove('active');
@@ -10,6 +11,8 @@ function showBranches(){
  refreshBranches().catch(e=>toast(e.message));
 }
 function showCutoverWorkspace(){
+ if(typeof updateGuidedChecklist==='function')updateGuidedChecklist();
+ if(typeof hideOperations==='function')hideOperations();
  $('usersPage').classList.add('hidden');$('usersNav')?.classList.remove('active');
  $('dashboardPage').classList.add('hidden');$('dashboardNav')?.classList.remove('active');
  $('reportsPage').classList.add('hidden');$('reportsNav')?.classList.remove('active');

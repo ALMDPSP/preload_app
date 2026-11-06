@@ -30,7 +30,7 @@ function persist(){
    }
    return !dirty;
   }catch(e){dirty=true;if(e.status===409)conflict=true;syncText(e.message+' Seus dados continuam na tela. Exporte uma cópia antes de atualizar.',true);return false}
-  finally{saving=false;pendingSave=null}
+  finally{saving=false;pendingSave=null;if(typeof updateGuidedChecklist==='function')updateGuidedChecklist()}
  })();return pendingSave;
 }
 async function refreshList(selectId){

@@ -30,7 +30,7 @@ def approval_time(state,events,fallback,ids):
         current=before
     return fallback,True
 
-def dashboard_data(core,q='',uf='',summary_only=False):
+def dashboard_data(core,q='',uf='',summary_only=False,include_evolution=True):
     db,ids=core['db'],core['IDS']
     with db() as c:
         branches=[dict(r) for r in c.execute('SELECT * FROM ct_branches ORDER BY code').fetchall()]
@@ -54,7 +54,7 @@ def dashboard_data(core,q='',uf='',summary_only=False):
             plan=json.loads(plans[b['id']]['pdvs']) if b['id'] in plans else list(DEFAULT_PDVS)
             for pdv in plan:
                 entry=latest.get((b['id'],pdv))
-                if entry and summarize(entry[1],bool(entry[0]['rejection_reason']),ids)[0]=='Concluído':
+                if include_evolution and entry and summarize(entry[1],bool(entry[0]['rejection_reason']),ids)[0]=='Concluído':
                     approved_ids.append(entry[0]['id']);approved_states[entry[0]['id']]=entry
         approved_dates={}
         # Batches stay below SQLite's conservative parameter limit and avoid loading unrelated history.
@@ -73,7 +73,7 @@ def dashboard_data(core,q='',uf='',summary_only=False):
             entry=latest.get((b['id'],pdv));run,state=entry if entry else ({},{})
             status,complete,blocked=summarize(state,bool(run.get('rejection_reason')),ids) if entry else ('Sem cutover',0,0)
             ok=status=='Concluído';approved_at=None;estimated=False
-            if ok:
+            if ok and include_evolution:
                 approved_at,estimated=approved_dates.get(run['id'],(run['updated_at'],True))
                 baseline+=int(estimated)
                 try:day=datetime.fromisoformat(approved_at).astimezone(ZoneInfo('America/Sao_Paulo')).date().isoformat()

@@ -3,6 +3,7 @@ function showNewUserForm(){
  if(!$('newUserPanel'))return;$('newUserPanel').classList.remove('hidden');$('userName').focus();$('newUserPanel').scrollIntoView?.({behavior:'smooth',block:'start'});
 }
 async function showUsers(focusCreate=false){
+ if(typeof hideOperations==='function')hideOperations();
  if(ROLE!=='admin'){toast('Somente o Administrador pode gerenciar usuários.');return}
  const sequence=++usersRequest;
  ['cutoverWorkspace','branchesPage','reportsPage','dashboardPage'].forEach(id=>$(id).classList.add('hidden'));$('usersPage').classList.remove('hidden');

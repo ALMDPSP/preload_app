@@ -37,6 +37,10 @@ def reset_password(email,password):
 
 def main(argv=None):
     argv=sys.argv[1:] if argv is None else argv
+    if argv==['snapshot-rollout']:
+        import app as module
+        from operations import capture_snapshot
+        init_db();day=capture_snapshot(vars(module));print('Consolidado diário atualizado: '+day);return
     if len(argv)!=2 or argv[0] not in ('reset-mfa','set-admin','reset-password'):
         raise SystemExit('Uso: python manage.py set-admin email-do-usuario | python manage.py reset-mfa email-do-administrador | python manage.py reset-password email-do-administrador')
     init_db()

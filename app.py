@@ -78,6 +78,8 @@ def init_db(log=None):
         migrated=migrate_branches(c,now,postgres=bool(DATABASE))
         from dashboard import PLAN_SCHEMA
         c.execute(PLAN_SCHEMA)
+        from operations import migrate_operations
+        migrate_operations(c)
         report(f'Filiais conferidas. Vínculos migrados: {migrated}. Conferindo usuários...')
         email = os.getenv('ADMIN_EMAIL', '').strip().lower()
         password = os.getenv('ADMIN_PASSWORD', '')
@@ -378,6 +380,8 @@ register_reports(app,globals())
 register_pwa(app,ROOT)
 from dashboard import register_dashboard
 register_dashboard(app,globals())
+from operations import register_operations
+register_operations(app,globals())
 
 if __name__=='__main__':
     init_db();app.run(host='127.0.0.1',port=5000)
