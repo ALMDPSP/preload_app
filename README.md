@@ -1,6 +1,10 @@
-# Cutover Linx Agiliza → Orion · v3.0
+# Cutover Linx Agiliza → Orion · v3.0.1
 
 Consulte `ATUALIZAR_RENDER.md` para atualizar o Start Command para `bash start.sh` e acompanhar os novos logs de inicialização.
+
+## Recuperação de senha — v3.0.1
+
+Use `python manage.py reset-password email-do-administrador` em terminal interativo ou consulte `RECUPERAR_SENHA_ADM.md` para recuperação sem Shell. O comando preserva dados e MFA, reativa a conta admin existente, invalida sessões e exige senha definitiva no próximo acesso. Alterar `ADMIN_PASSWORD` não troca senhas existentes.
 
 ## Dashboard por loja e número de PDV — v3.0
 

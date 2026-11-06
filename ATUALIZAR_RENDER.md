@@ -1,3 +1,7 @@
+# Atualização v3.0.1 — Recuperação de senha administrativa
+
+Inclui `manage.py reset-password email` para recuperar uma conta administrativa existente, mantendo dados e Authenticator. Confira `RECUPERAR_SENHA_ADM.md`. Nenhuma recuperação automática foi adicionada ao `start.sh`. Use o comando somente quando necessário.
+
 # Atualização v3.0 — Dashboard e relatório executivo por PDV
 
 1. Atualize o conteúdo completo no GitHub. Inclua os novos `dashboard.py`, `executive_report.py`, `static/dashboard.js`, e os arquivos atualizados `app.py`, `branches.py`, `templates/index.html`, `static/branches.js`, `static/reports.js` e `static/branches.css`.
