@@ -1,6 +1,14 @@
-# Cutover Linx Agiliza → Orion · v4.0
+# Cutover Linx Agiliza → Orion · v4.1
 
 Consulte `ATUALIZAR_RENDER.md` para atualizar o Start Command para `bash start.sh` e acompanhar os novos logs de inicialização.
+
+## Identidade visual — v4.1
+
+Login com painel de apresentação em verde petróleo, formulário redesenhado e botão Mostrar/Ocultar senha. O mesmo padrão foi aplicado ao MFA, à ativação de senha e aos códigos de recuperação. Menu com ícones vetoriais consistentes, grupos de navegação e opção de recolher no computador; no celular, o menu abre pelo botão Menu e fecha após selecionar uma página. A preferência de menu compacto é guardada somente no navegador, sem dados de acesso.
+
+Dashboard, tabelas, filtros, formulários, caixas de diálogo, marcações do checklist e barra de salvamento seguem a nova identidade visual, com estados de foco e suporte a movimento reduzido. Todos os recursos anteriores permanecem; nenhuma alteração no banco, nas permissões ou no salvamento manual é necessária para esta atualização visual.
+
+Atualize os arquivos do pacote no GitHub, incluindo `static/auth-design.css`, `static/auth-design.js`, `static/design.css` e `static/design.js`. Mantenha o Start Command **`bash start.sh`**. Não há novas dependências ou variáveis obrigatórias.
 
 ## Gestão profissional do rollout — v4.0
 

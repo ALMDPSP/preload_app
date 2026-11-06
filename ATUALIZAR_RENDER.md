@@ -1,3 +1,7 @@
+## Atualização visual v4.1
+
+Substitua os arquivos do pacote no GitHub, preservando as pastas `templates` e `static`. Esta versão inclui novos estilos e scripts para o login, MFA e navegação. Mantenha **`bash start.sh`** como Start Command. Após o deploy, recarregue a página para carregar os novos estilos. Não é necessário redefinir senhas, alterar chaves ou importar as filiais novamente.
+
 ## Atualização v4.0
 
 Envie ao GitHub todos os arquivos do pacote, preservando a estrutura de pastas. O Start Command continua **`bash start.sh`**, e o Build Command continua `pip install -r requirements.txt`. Não há novas variáveis obrigatórias. As tabelas de cronograma, pendências, metas e histórico são criadas automaticamente no Neon durante a inicialização.
