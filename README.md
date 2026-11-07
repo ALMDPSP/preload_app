@@ -1,6 +1,12 @@
-# Cutover Linx Agiliza → Orion · v4.2
+# Cutover Linx Agiliza → Orion · v4.2.1
 
 Consulte `ATUALIZAR_RENDER.md` para atualizar o Start Command para `bash start.sh` e acompanhar os novos logs de inicialização.
+
+## Paleta Drogaria São Paulo — v4.2.1
+
+Login, MFA, navegação e dashboard usam vermelho, azul-claro, azul-escuro e superfícies neutras, tomando como referência a marca publicada pelo Grupo DPSP: https://www.grupodpsp.com.br/marcas/ . O arquivo `static/drogaria-sao-paulo.png` é o logo publicado nessa página, sem alteração. Vermelho de referência `#FB363D`, azul-claro `#A8DDEB` e azul-escuro `#242735`; ações usam vermelho mais escuro (`#CE2431`) para melhorar a leitura. São adaptações de interface, sem substituir um manual de identidade visual corporativo. O verde permanece semântico para conclusão; amarelo indica pendência/atenção. Gráficos de evolução usam azul.
+
+Não houve alteração de regras de aprovação, perfis ou banco. O vínculo nominal a um analista validador é uma sugestão de próxima evolução, ainda não implementada nesta atualização de cores. A atualização mantém o carregamento otimizado e o salvamento manual. Envie os arquivos ao GitHub e mantenha `bash start.sh` no Render. Não são necessárias novas chaves.
 
 ## Dashboard executivo e carregamento — v4.2
 
