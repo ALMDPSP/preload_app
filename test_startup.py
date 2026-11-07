@@ -33,7 +33,7 @@ def test_postgres_connection_timeouts_and_cleanup(monkeypatch,isolated):
     import psycopg
     class Fake:
         def __init__(self):self.sql=[];self.committed=False;self.closed=False;self.rolled_back=False
-        def execute(self,sql,params=()):self.sql.append(sql)
+        def execute(self,sql,params=()):self.sql.append((sql,params))
         def commit(self):self.committed=True
         def rollback(self):self.rolled_back=True
         def close(self):self.closed=True
@@ -45,12 +45,12 @@ def test_postgres_connection_timeouts_and_cleanup(monkeypatch,isolated):
     with module.db():pass
     kwargs,normal=calls[-1]
     assert kwargs['connect_timeout']==15 and kwargs['tcp_user_timeout']==20000
-    assert "SET LOCAL statement_timeout = '45000ms'" in normal.sql
-    assert "SET LOCAL lock_timeout = '8000ms'" in normal.sql
+    assert normal.sql[0][1]==('45000ms','8000ms')
+    assert all(key in normal.sql[0][0] for key in ['statement_timeout','lock_timeout','idle_in_transaction_session_timeout'])
     assert normal.committed and normal.closed
     with pytest.raises(RuntimeError):
         with module.db(healthcheck=True):raise RuntimeError('test')
     kwargs,health=calls[-1]
     assert kwargs['connect_timeout']==2
-    assert "SET LOCAL statement_timeout = '1500ms'" in health.sql
+    assert health.sql[0][1]==('1500ms','1000ms')
     assert health.rolled_back and health.closed

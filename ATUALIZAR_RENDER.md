@@ -1,3 +1,12 @@
+## Atualização v4.2 — desempenho e painel executivo
+
+1. Substitua no GitHub todos os arquivos do pacote, incluindo `executive_dashboard.py` e `static/executive-dashboard.*`.
+2. Mantenha Build Command `pip install -r requirements.txt` e Start Command **`bash start.sh`**.
+3. A inicialização cria automaticamente o índice de auditoria e a tabela derivada de datas de aprovação, preservando cadastros, usuários e cutovers.
+4. Após o deploy, abra o Dashboard, filtre uma UF e consulte os PDVs pelo indicador. As lojas agora aparecem em páginas de 25; listas de PDVs, em páginas de 40.
+
+Nenhuma chave nova é necessária. Não redefina senhas nem reimporte filiais. O primeiro carregamento pode reconstruir o histórico de aprovação; os seguintes usam o índice e as versões já calculadas. Os tempos reais de produção devem ser conferidos após a atualização.
+
 ## Atualização visual v4.1
 
 Substitua os arquivos do pacote no GitHub, preservando as pastas `templates` e `static`. Esta versão inclui novos estilos e scripts para o login, MFA e navegação. Mantenha **`bash start.sh`** como Start Command. Após o deploy, recarregue a página para carregar os novos estilos. Não é necessário redefinir senhas, alterar chaves ou importar as filiais novamente.

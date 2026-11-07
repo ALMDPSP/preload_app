@@ -44,7 +44,7 @@ def capture_snapshot(core,summary=None,advance=False):
         if advance:revision=c.execute('UPDATE ct_rollout_clock SET revision=revision+1 WHERE id=1 RETURNING revision').fetchone()['revision']
         else:revision=c.execute('SELECT revision FROM ct_rollout_clock WHERE id=1').fetchone()['revision']
     # Read the revision before recomputing; a supplied older dashboard must not overwrite a newer save.
-    data=dashboard_data(core,summary_only=True,include_evolution=False)
+    data=summary if summary and summary.get('_revision')==revision and not any(summary.get('filters',{}).values()) else dashboard_data(core,summary_only=True,include_evolution=False)
     stamp=data['generated_at'];day=datetime.fromisoformat(stamp).astimezone(ZoneInfo('America/Sao_Paulo')).date().isoformat()
     if day!=today(core).isoformat():raise ValueError('Não é permitido gravar um consolidado retroativo.')
     # Only today's record can change. Earlier days are never recalculated or backfilled.
@@ -52,8 +52,8 @@ def capture_snapshot(core,summary=None,advance=False):
         c.execute('INSERT INTO ct_rollout_snapshots (day,payload,captured_at,revision) VALUES (%s,%s,%s,%s) ON CONFLICT(day) DO UPDATE SET payload=excluded.payload,captured_at=excluded.captured_at,revision=excluded.revision WHERE ct_rollout_snapshots.revision<=excluded.revision AND ct_rollout_snapshots.captured_at<=excluded.captured_at',(day,json.dumps(data['totals']),stamp,revision))
     return day
 
-def operation_overview(core):
-    data=dashboard_data(core,include_evolution=True);current=today(core);week=(current-timedelta(days=current.weekday())).isoformat()
+def operation_overview(core,data=None):
+    data=data if data is not None else dashboard_data(core,include_evolution=True);current=today(core);week=(current-timedelta(days=current.weekday())).isoformat()
     machines={(m['branch_id'],m['pdv']):m for m in data['machines']}
     with core['db']() as c:
         schedules=[dict(r) for r in c.execute('SELECT s.*,b.code,b.name,b.uf FROM ct_rollout_schedule s JOIN ct_branches b ON b.id=s.branch_id ORDER BY s.due_date,b.code,s.pdv').fetchall()]
@@ -188,6 +188,6 @@ def register_operations(app,core):
             mutation=request.method in ['POST','PUT','DELETE'] and (path.startswith('/api/cutovers') or path.startswith('/api/branches')) and not path.endswith('/import/preview')
             dashboard=path=='/api/dashboard' and not request.args.get('q') and not request.args.get('uf')
             if mutation or dashboard:
-                try:capture_snapshot(core,response.get_json() if dashboard else None,advance=mutation)
+                try:capture_snapshot(core,getattr(g,'dashboard_snapshot',None) if dashboard else None,advance=mutation)
                 except Exception as exc:app.logger.warning('Daily consolidation pending: %s',type(exc).__name__)
         return response

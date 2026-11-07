@@ -1,6 +1,20 @@
-# Cutover Linx Agiliza → Orion · v4.1
+# Cutover Linx Agiliza → Orion · v4.2
 
 Consulte `ATUALIZAR_RENDER.md` para atualizar o Start Command para `bash start.sh` e acompanhar os novos logs de inicialização.
+
+## Dashboard executivo e carregamento — v4.2
+
+O dashboard abre com uma única consulta principal, trazendo resumo executivo e 25 lojas por página. As listas de PDVs e as outras páginas carregam quando solicitadas; o cadastro de filiais deixa de concorrer com o painel na abertura. Os números continuam vindo dos registros salvos, sem cache de totais entre usuários ou salvamento automático do checklist.
+
+A nova leitura executiva inclui estágio de todos os PDVs, lojas sem execução/com execução aberta/completas, aprovações vigentes dos últimos sete dias, volume por UF, prazos vencidos e pendências críticas. A lista de atenção prioriza pendências críticas, PDVs atrasados e demais ocorrências. Os indicadores respeitam os filtros de loja/UF; metas semanais e alertas globais continuam identificados como globais. Datas legadas estimadas não entram na contagem dos últimos sete dias.
+
+O cálculo passou a usar um índice por filial, eliminando a passagem repetida por todas as execuções. Datas de aprovação são reaproveitadas em uma tabela derivada vinculada à versão do cutover; novas versões invalidam esse reaproveitamento. Novos índices e a tabela derivada são criados na inicialização. Não são alterados os dados do checklist ou os aceites.
+
+Arquivos públicos não abrem conexões no Neon. CSS, JavaScript e ícones têm cache de navegador com versão; páginas privadas e APIs mantêm `no-store`. Respostas JSON maiores usam gzip quando aceito pelo navegador. Dentro de uma requisição, os acessos ao PostgreSQL reutilizam a conexão e preservam os commits/rollbacks e limites de tempo de cada operação; a conexão é encerrada ao final da requisição.
+
+**Teste local sintético (1.800 lojas, 7.200 PDVs):** mediana do cálculo de aproximadamente 1,11 s para 0,31 s; JSON completo de cerca de 4,38 MB para 34 KB no resumo paginado. Essa comparação é de CPU e tamanho de resposta em SQLite local. Não é uma medição do Render/Neon nem uma garantia de tempo em produção. O primeiro cálculo pode precisar reconstruir datas de aprovação; os seguintes reaproveitam as versões válidas.
+
+Atualize todos os arquivos do pacote no GitHub, preservando as pastas. Mantenha **`bash start.sh`** no Start Command e `pip install -r requirements.txt` no Build Command. Não há nova dependência nem chave obrigatória. Se alterar arquivos estáticos em versões futuras, atualize o identificador `?v=4.2` nas páginas para renovar o cache. O PDF executivo permanece macro, de uma página.
 
 ## Identidade visual — v4.1
 

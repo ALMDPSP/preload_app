@@ -3,7 +3,7 @@ from contextlib import contextmanager
 from datetime import datetime, timezone, timedelta
 from functools import wraps
 from pathlib import Path
-from flask import Flask, request, session, jsonify, render_template, redirect, g
+from flask import Flask, request, session, jsonify, render_template, redirect, g, has_request_context
 from werkzeug.security import generate_password_hash, check_password_hash
 from werkzeug.middleware.proxy_fix import ProxyFix
 from branches import migrate_branches, branch_for, bound_meta, register_branches
@@ -40,8 +40,11 @@ def db(*, healthcheck=False):
     if DATABASE:
         import psycopg
         from psycopg.rows import dict_row
-        conn = psycopg.connect(DATABASE, connect_timeout=2 if healthcheck else 15,row_factory=dict_row,
-                               keepalives=1,keepalives_idle=15,keepalives_interval=5,keepalives_count=3,tcp_user_timeout=20000)
+        conn = getattr(g,'postgres_connection',None) if has_request_context() else None
+        if conn is None or conn.closed:
+            conn = psycopg.connect(DATABASE, connect_timeout=2 if healthcheck else 15,row_factory=dict_row,
+                                   keepalives=1,keepalives_idle=15,keepalives_interval=5,keepalives_count=3,tcp_user_timeout=20000)
+            if has_request_context():g.postgres_connection=conn
     else:
         conn = sqlite3.connect(os.getenv('SQLITE_PATH', str(ROOT / 'dev.sqlite')), timeout=15)
         conn.row_factory = sqlite3.Row
@@ -57,15 +60,19 @@ def db(*, healthcheck=False):
     try:
         if DATABASE:
             # SET LOCAL is scoped to this transaction and compatible with pooled connections.
-            conn.execute("SET LOCAL statement_timeout = '1500ms'" if healthcheck else "SET LOCAL statement_timeout = '45000ms'")
-            conn.execute("SET LOCAL lock_timeout = '1000ms'" if healthcheck else "SET LOCAL lock_timeout = '8000ms'")
-            conn.execute("SET LOCAL idle_in_transaction_session_timeout = '30000ms'")
+            conn.execute("SELECT set_config('statement_timeout',%s,true),set_config('lock_timeout',%s,true),set_config('idle_in_transaction_session_timeout','30000',true)",('1500ms' if healthcheck else '45000ms','1000ms' if healthcheck else '8000ms'))
         yield Connection()
         conn.commit()
     except Exception:
         conn.rollback()
         raise
-    finally: conn.close()
+    finally:
+        if not DATABASE or not has_request_context():conn.close()
+
+@app.teardown_request
+def close_request_database(exception=None):
+    conn=g.pop('postgres_connection',None)
+    if conn is not None:conn.close()
 
 def init_db(log=None):
     report=log or (lambda message:None)
@@ -78,6 +85,8 @@ def init_db(log=None):
         migrated=migrate_branches(c,now,postgres=bool(DATABASE))
         from dashboard import PLAN_SCHEMA
         c.execute(PLAN_SCHEMA)
+        from dashboard import PERFORMANCE_SCHEMA
+        for sql in PERFORMANCE_SCHEMA:c.execute(sql)
         from operations import migrate_operations
         migrate_operations(c)
         report(f'Filiais conferidas. Vínculos migrados: {migrated}. Conferindo usuários...')
@@ -107,7 +116,8 @@ def error(message, code=400): return jsonify(error=message), code
 @app.before_request
 def protect():
     g.user = None
-    if request.path=='/healthz':return
+    # Public assets do not need to authenticate the session or open a Neon connection.
+    if request.method in ('GET','HEAD') and (request.path=='/healthz' or request.path.startswith('/static/') or request.path in ('/manifest.webmanifest','/sw.js')):return
     if session.get('uid'):
         with db() as c: row = c.execute('SELECT u.id,u.email,u.name,u.role,u.active,u.last_login,a.auth_version,a.secret,a.must_change FROM ct_users u JOIN ct_auth a ON a.user_id=u.id WHERE u.id=%s', (session['uid'],)).fetchone()
         if row and row['active'] and row['secret'] and not row['must_change'] and session.get('mfa_verified') and session.get('auth_version')==row['auth_version']:
@@ -120,6 +130,20 @@ def protect():
     if request.path.startswith('/api/') and not g.user: return error('Faça login novamente.',401)
     if request.path.startswith('/api/') and request.method in ('POST','PUT','PATCH','DELETE') and g.user and g.user['role']=='viewer' and request.path!='/api/password':
         return error('Perfil Consulta permite somente leitura.',403)
+
+@app.after_request
+def optimize_transfers(response):
+    if request.path.startswith('/static/') and response.status_code in (200,304):
+        response.headers['Cache-Control']='public, max-age=3600' if request.args.get('v') else 'public, max-age=300'
+    if response.is_json and response.status_code==200 and not response.direct_passthrough:
+        response.vary.add('Accept-Encoding')
+        if request.accept_encodings['gzip']>0 and not response.headers.get('Content-Encoding'):
+            import gzip
+            raw=response.get_data()
+            if len(raw)>1400:
+                compressed=gzip.compress(raw,compresslevel=5,mtime=0)
+                if len(compressed)<len(raw):response.set_data(compressed);response.headers['Content-Encoding']='gzip'
+    return response
 
 @app.after_request
 def headers(response):

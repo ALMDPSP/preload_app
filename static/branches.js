@@ -11,6 +11,7 @@ function showBranches(){
  refreshBranches().catch(e=>toast(e.message));
 }
 function showCutoverWorkspace(){
+ if(!registeredBranches.length)ensureBranches().catch(e=>toast(e.message));
  if(typeof updateGuidedChecklist==='function')updateGuidedChecklist();
  if(typeof hideOperations==='function')hideOperations();
  $('usersPage').classList.add('hidden');$('usersNav')?.classList.remove('active');
@@ -94,6 +95,7 @@ function branchPermissions(){
  if(branch?.needs_review&&DECIDE){const button=document.createElement('button');button.id='linkLegacy';button.textContent='Vincular execução à filial correta';button.onclick=resolveLegacy;$('branchIdentity').append(document.createElement('br'),button)}
 }
 async function switchBranch(id){
+ if(!registeredBranches.length)await ensureBranches();
  if(switchingBranch)return false;
  if(id===selectedBranchId){syncBranchPicker();return true}
  if(!allowDiscard()){syncBranchPicker();return false}
@@ -138,5 +140,8 @@ function initBranches(){
  };
  $('newExecution').textContent='▶ Iniciar cutover';$('newExecution').onclick=startBoundCutover;
  const priorRender=render;render=function(){priorRender();branchPermissions()};render();
- refreshBranches().then(()=>refreshList()).catch(e=>syncText(e.message,true));
+ // Registry and execution lists are loaded when the user opens Cutover or Filiais.
 }
+
+let branchesLoading=null;
+async function ensureBranches(){if(registeredBranches.length)return registeredBranches;if(branchesLoading)return branchesLoading;$('branchPicker').disabled=true;branchesLoading=refreshBranches().then(()=>{if(!selectedBranchId)syncText('Selecione uma filial cadastrada para começar.');return refreshList()}).finally(()=>{branchesLoading=null;$('branchPicker').disabled=false});await branchesLoading;return registeredBranches}
