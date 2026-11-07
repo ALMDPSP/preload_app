@@ -1,6 +1,10 @@
-# Cutover Linx Agiliza → Orion · v4.2.2
+# Cutover Linx Agiliza → Orion · v4.2.3
 
 Consulte `ATUALIZAR_RENDER.md` para atualizar o Start Command para `bash start.sh` e acompanhar os novos logs de inicialização.
+
+## Identidade ALM — v4.2.3
+
+O logo da Drogaria São Paulo foi retirado do menu e do login, substituído pela imagem ALM / Expansão de TI / Cutover online, sem o símbolo de colchetes. O arquivo utilizado é `static/alm-expansao-cutover.png`, com fundo transparente, e sua apresentação é definida em `static/alm-brand.css`. O mesmo nome identifica a verificação de acesso. As cores e funções da versão anterior foram preservadas. Atualize os arquivos do pacote no GitHub; o Start Command continua `bash start.sh`.
 
 ## Salvar, localizar e continuar por PDV — v4.2.2
 
