@@ -33,17 +33,25 @@ async function saveAndOfferPdf(){
  if(!currentId){toast('Crie ou selecione uma execução antes de salvar.');return}
  const button=$('saveChecklist');button.disabled=true;button.textContent='Salvando…';
  try{
-  if(!await persist()){if(dirty&&!conflict)toast('O checklist ainda tem alterações pendentes. Confira a mensagem de salvamento.');return;}
-  const count=ALL.filter(t=>done(t.id)).length;
-  modal(`<div class="saved-icon">✓</div><h2>Checklist salvo!</h2><p class="muted">${esc(state.meta.branch)} · ${count} de ${ALL.length} processos marcados.</p>${count<ALL.length?'<p class="notice">Esta é uma versão parcial do checklist. Os processos pendentes também aparecerão no relatório.</p>':''}<div class="download-note"><b>Salve uma cópia em PDF na pasta Downloads.</b><p>Clique abaixo para baixar o arquivo. Se o navegador perguntar onde salvar, escolha a pasta <b>Downloads</b>.</p></div><div class="dialog-actions"><button id="continueChecklist">Continuar preenchendo</button><button class="primary" id="downloadChecklist">↓ Baixar checklist em PDF</button></div><p id="pdfError" role="alert"></p>`);
-  $('continueChecklist').onclick=()=>$('modal').close();$('downloadChecklist').onclick=()=>downloadChecklistPdf();
- }finally{button.disabled=READONLY||!!currentRejection||!currentId;button.textContent='Salvar checklist'}
+  if(!await persist(true)){toast('Ainda não foi possível confirmar o salvamento. Confira a mensagem exibida; suas alterações continuam na tela.');return;}
+  const savedId=currentId,savedVersion=version,savedBranch=state.meta.branch,count=ALL.filter(t=>done(t.id)).length;
+  const message='Checklist do '+savedBranch+' salvo. '+count+' de '+ALL.length+' processos marcados. Você pode abrir este PDV novamente para editar.';
+  $('saveFeedback').textContent=message;$('saveFeedback').hidden=false;
+  showBranchPdvs();
+  modal(`<div class="saved-icon">✓</div><h2>Checklist salvo!</h2><p class="muted">${esc(savedBranch)} · ${count} de ${ALL.length} processos marcados.</p><p class="notice">${count<ALL.length?'As pendências foram preservadas.':'Os processos foram gravados.'} Para continuar depois, busque a filial e clique em <b>Abrir e editar</b> no PDV.</p><div class="download-note"><b>Salve uma cópia em PDF na pasta Downloads.</b><p>O PDF é opcional. O checklist já está salvo no sistema.</p></div><div class="saved-summary-actions"><button id="backToSavedPdvs">Ver PDVs da filial</button><button id="continueChecklist">Continuar editando</button><button class="primary" id="downloadChecklist">↓ Baixar checklist em PDF</button></div><p id="pdfError" role="alert"></p>`);
+  $('backToSavedPdvs').onclick=()=>{$('modal').close();showBranchPdvs()};
+  $('continueChecklist').onclick=()=>{$('modal').close();continueEditingChecklist()};
+  $('downloadChecklist').onclick=()=>downloadChecklistPdf({id:savedId,version:savedVersion});
+  try{await refreshList(savedId)}catch(e){toast('Checklist salvo. Não foi possível atualizar a lista de PDVs: '+e.message)}
+ }catch(e){syncText('Não foi possível concluir a operação: '+e.message,true);toast(e.message)}
+ finally{button.disabled=READONLY||!!currentRejection||!currentId;button.textContent='Salvar checklist'}
 }
-async function downloadChecklistPdf(){
+async function downloadChecklistPdf(saved=null){
+ const targetId=saved?.id||currentId,targetVersion=saved?.version??version;
  const button=$('downloadChecklist');if(button){button.disabled=true;button.textContent='Gerando PDF…'}
  try{
-  if(!currentId)throw Error('Selecione uma execução.');
-  const response=await fetch('/api/cutovers/'+currentId+'/pdf?version='+version,{credentials:'same-origin'});
+  if(!targetId)throw Error('Selecione uma execução.');
+  const response=await fetch('/api/cutovers/'+targetId+'/pdf?version='+targetVersion,{credentials:'same-origin'});
   if(!response.ok){let payload=await response.json();throw Error(payload.error||'Não foi possível gerar o PDF.')}
   const content=await response.blob(),url=URL.createObjectURL(content),a=document.createElement('a');
   const header=response.headers.get('Content-Disposition')||'',match=header.match(/filename="?([^";]+)"?/i);
@@ -55,6 +63,7 @@ function initChecklistUX(){
  const priorRender=render;render=function(){priorRender();processPermissions()};render();
  document.addEventListener('change',e=>{if(e.target.dataset.check)setProcessStatus(e.target.dataset.check,e.target.checked?'Concluído':'Pendente',e.target)});
  $('saveChecklist').onclick=()=>saveAndOfferPdf();
+ $('backToBranchPdvs').onclick=()=>showBranchPdvs(true);
  if(READONLY)$('saveChecklist').hidden=true;
  $('print').textContent='↓ Baixar PDF';$('print').onclick=async()=>{if(!currentId){toast('Selecione uma execução.');return}if(dirty||saving){toast('Clique em Salvar checklist antes de baixar o PDF.');return}await downloadChecklistPdf()};
  if($('quickCreateUser'))$('quickCreateUser').onclick=async()=>{await showUsers(true)};

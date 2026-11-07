@@ -1,5 +1,5 @@
 let currentId=null,version=0,dirty=false,saving=false,timer=null,conflict=false;
-let selectedBranchId="",currentRejection=null;
+let selectedBranchId="",currentRejection=null,cutoverEditing=false,branchProgress=null;
 const csrf=document.querySelector('meta[name="csrf-token"]').content;
 const ROLE=document.body.dataset.role,READONLY=ROLE==='viewer',DECIDE=['admin','manager'].includes(ROLE);
 const ROLES={admin:'Administrador',manager:'Gestor',operator:'Operador',viewer:'Consulta'};
@@ -11,13 +11,13 @@ function syncText(text,bad=false){$('syncState').textContent=text;$('syncState')
 async function api(path,method='GET',body){let r=await fetch(path,{method,headers:{'Content-Type':'application/json','X-CSRF-Token':csrf},body:body===undefined?undefined:JSON.stringify(body)});let data=await r.json();if(!r.ok){let e=Error(data.error||'Falha na solicitação');e.status=r.status;if(r.status===401)syncText('Sessão expirada. Exporte os registros e faça login novamente.',true);throw e}return data}
 function scheduleSave(){if(READONLY||currentRejection)return;if(!currentId){syncText('Crie ou selecione um cutover antes de preencher.',true);return}dirty=true;syncText('Alterações não salvas. Clique em Salvar checklist.');clearTimeout(timer)}
 let pendingSave=null;
-function persist(){
+function persist(force=false){
  clearTimeout(timer);
  if(saving)return pendingSave;
  if(READONLY||currentRejection)return Promise.resolve(false);
  if(conflict){toast('O registro foi alterado por outra pessoa. Exporte sua cópia antes de atualizar os dados.');return Promise.resolve(false)}
  if(!currentId)return Promise.resolve(false);
- if(!dirty)return Promise.resolve(true);
+ if(!dirty&&!force)return Promise.resolve(true);
  saving=true;
  pendingSave=(async()=>{
   try{
@@ -35,11 +35,13 @@ function persist(){
 }
 async function refreshList(selectId){
  const branch=selectedBranchId;
- if(!branch){$('execution').innerHTML='<option value="">Selecione uma filial primeiro</option>';return []}
- const rows=await api('/api/cutovers?branch_id='+encodeURIComponent(branch));
+ if(!branch){$('execution').innerHTML='<option value="">Selecione uma filial primeiro</option>';branchProgress=null;if(typeof renderBranchProgress==='function')renderBranchProgress();return []}
+ const data=await api('/api/branches/'+encodeURIComponent(branch)+'/cutover-progress');
  if(selectedBranchId!==branch)return [];
- $('execution').innerHTML='<option value="">Selecione um cutover desta filial</option>'+rows.map(r=>`<option value="${esc(r.id)}">${r.rejection_reason?'[Rejeitado] ':''}${esc(r.title)} · ${esc(new Date(r.updated_at).toLocaleString('pt-BR'))}</option>`).join('');
- $('execution').value=selectId||'';return rows;
+ branchProgress=data;const rows=data.executions;
+ $('execution').innerHTML='<option value="">Todas as execuções / histórico da filial</option>'+rows.map(r=>`<option value="${esc(r.id)}">PDV ${esc(r.pdv)} · ${esc(r.status)} · ${esc(new Date(r.updated_at).toLocaleString('pt-BR'))}</option>`).join('');
+ $('execution').value=cutoverEditing?(selectId||currentId||''):'';
+ if(typeof renderBranchProgress==='function')renderBranchProgress();return rows;
 }
 function allowDiscard(){
  if(saving){toast('Aguarde o salvamento terminar.');return false}
@@ -53,9 +55,10 @@ async function loadExecution(id){
  try{
   clearTimeout(timer);let r=await api('/api/cutovers/'+id);
   if(r.branch_id!==branch||selectedBranchId!==branch){toast('Este cutover não pertence à filial selecionada.');return}
-  currentId=id;currentRejection=r.rejection||null;version=r.version;state=validate(r.state);dirty=false;conflict=false;render();updateCutoverActions();
+  currentId=id;cutoverEditing=true;currentRejection=r.rejection||null;version=r.version;state=validate(r.state);dirty=false;conflict=false;render();updateCutoverActions();
   syncText('Dados carregados · '+new Date(r.updated_at).toLocaleString('pt-BR'));
   $('saved').textContent='Última atualização: '+r.updated_by+' · '+new Date(r.updated_at).toLocaleString('pt-BR');
+  $('execution').value=id;if(typeof renderBranchProgress==='function')renderBranchProgress();return true;
  }catch(e){syncText(e.message,true)}
 }
 $('execution').onchange=()=>loadExecution($('execution').value);$('refreshExecution').onclick=()=>currentId?loadExecution(currentId):refreshList();$('newExecution').onclick=()=>{if(saving||dirty){toast('Salve ou exporte as alterações antes de criar outro cutover.');return}modal('<h2>Novo cutover</h2><p>Informe a loja e o equipamento que será migrado.</p><form id="newExecutionForm" class="form-stack"><label for="newBranch">Filial</label><input id="newBranch" required maxlength="80" placeholder="Ex.: VD266"><label for="newPdv">PDV</label><input id="newPdv" required maxlength="40" placeholder="Ex.: 01"><button class="primary" type="submit">Criar execução</button><p id="newExecutionError" role="alert"></p></form>');$('newExecutionForm').onsubmit=async e=>{e.preventDefault();const submit=e.currentTarget.querySelector('button');submit.disabled=true;try{let r=await api('/api/cutovers','POST',{title:$('newBranch').value.trim()+' / PDV '+$('newPdv').value.trim()});await refreshList(r.id);await loadExecution(r.id);$('modal').close()}catch(err){$('newExecutionError').textContent=err.message;submit.disabled=false}}};

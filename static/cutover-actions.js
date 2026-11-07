@@ -1,10 +1,11 @@
 /* Explicit review and administrative deletion of a saved cutover. */
 function updateCutoverActions(){
- $('rejectCutover').hidden=!DECIDE||!currentId||!!currentRejection;
- $('deleteCutover').hidden=ROLE!=='admin'||!currentId;
+ $('rejectCutover').hidden=!DECIDE||!currentId||!cutoverEditing||!!currentRejection;
+ $('deleteCutover').hidden=ROLE!=='admin'||!currentId||!cutoverEditing;
  const panel=$('cutoverRejection');panel.hidden=!currentRejection;
  panel.innerHTML=currentRejection?`<strong>Cutover rejeitado</strong><p>${esc(currentRejection.reason)}</p><small>${esc(currentRejection.actor)} · ${esc(new Date(currentRejection.created_at).toLocaleString('pt-BR'))}</small><p>Execução disponível para consulta. Solicite ao Administrador a exclusão para refazer.</p>`:'';
- $('import').disabled=!!currentRejection;
+ $('import').disabled=!!currentRejection||!currentId||!cutoverEditing;
+ $('history').disabled=!currentId||!cutoverEditing;
 }
 function clearCurrentCutover(){
  currentId=null;currentRejection=null;version=0;dirty=false;conflict=false;clearTimeout(timer);

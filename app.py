@@ -407,5 +407,8 @@ register_dashboard(app,globals())
 from operations import register_operations
 register_operations(app,globals())
 
+from branch_progress import register_branch_progress
+register_branch_progress(app,globals())
+
 if __name__=='__main__':
     init_db();app.run(host='127.0.0.1',port=5000)

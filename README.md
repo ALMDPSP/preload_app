@@ -1,6 +1,16 @@
-# Cutover Linx Agiliza → Orion · v4.2.1
+# Cutover Linx Agiliza → Orion · v4.2.2
 
 Consulte `ATUALIZAR_RENDER.md` para atualizar o Start Command para `bash start.sh` e acompanhar os novos logs de inicialização.
+
+## Salvar, localizar e continuar por PDV — v4.2.2
+
+Ao selecionar uma filial na aba Cutover, o sistema apresenta os PDVs previstos e as execuções existentes. Cada cartão informa situação, processos marcados, última gravação e responsável. PDVs sem execução aparecem como Não iniciado; os demais têm Abrir e editar (ou consulta, conforme o perfil/rejeição). A lista Todas as execuções preserva o acesso ao histórico e a outras execuções da mesma filial/PDV. Registros fora da numeração prevista aparecem identificados, sem desaparecer.
+
+**Salvar checklist** confirma a gravação no servidor mesmo quando o preenchimento está incompleto. Após a confirmação, o editor é recolhido e a tela retorna aos PDVs da filial, com mensagem de sucesso e opções para ver os PDVs, continuar editando ou baixar o PDF. O PDF é opcional; não é necessário baixá-lo para manter os dados salvos. Uma falha/conflito mantém as alterações no editor. Novas alterações feitas durante um salvamento continuam exigindo outro clique em Salvar checklist.
+
+O botão Voltar aos PDVs permite sair do editor e pede confirmação antes de descartar alterações não salvas. Ao tentar iniciar um PDV já existente, a interface abre o checklist salvo para continuar. Não é preciso excluir um checklist concluído ou parcial para editar seus campos; permissões, bloqueio de execuções rejeitadas, pré-requisitos GO e controle de versão continuam vigentes.
+
+Atualize os arquivos do pacote, incluindo `branch_progress.py`, `static/branch-progress.js`, `static/branch-progress.css` e os demais arquivos alterados. Mantenha `bash start.sh` no Render. Não há nova chave, dependência ou migração de dados nesta correção.
 
 ## Paleta Drogaria São Paulo — v4.2.1
 

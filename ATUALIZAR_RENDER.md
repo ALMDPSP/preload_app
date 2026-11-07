@@ -1,3 +1,9 @@
+## Correção v4.2.2 — salvamento e retomada por PDV
+
+Substitua no GitHub os arquivos deste pacote, incluindo `branch_progress.py` e os arquivos `static/branch-progress.*`. Mantenha Start Command **`bash start.sh`** e Build Command `pip install -r requirements.txt`. Não há novas chaves ou necessidade de reimportar filiais.
+
+Depois do deploy, busque uma filial em Cutover: os cartões mostram os PDVs e seus checklists salvos. Abra um PDV, altere uma observação e salve. O sistema confirma a gravação e volta aos PDVs; use Abrir e editar para continuar. Checklists incompletos também podem ser salvos.
+
 ## Atualização v4.2 — desempenho e painel executivo
 
 1. Substitua no GitHub todos os arquivos do pacote, incluindo `executive_dashboard.py` e `static/executive-dashboard.*`.

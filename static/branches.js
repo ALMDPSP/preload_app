@@ -85,6 +85,7 @@ async function deleteBranch(id){
  $('confirmBranchDelete').onclick=async()=>{const button=$('confirmBranchDelete');button.disabled=true;try{await api('/api/branches/'+id,'DELETE');$('modal').close();if(selectedBranchId===id)await switchBranch('');await refreshBranches();toast('Filial excluída.')}catch(e){$('deleteBranchError').textContent=e.message;button.disabled=false}};
 }
 function branchPermissions(){
+ if($('cutoverEditor'))$('cutoverEditor').classList.toggle('hidden',!currentId||!cutoverEditing);
  const branch=currentBranch();$('branchIdentity').textContent=branch?branch.code+' · '+branch.name:'Escolha uma loja para visualizar os cutovers.';
  $('newExecution').disabled=!branch||!branch.active||!!branch.needs_review||!DECIDE;
  $('addBranch').hidden=!DECIDE;
@@ -101,11 +102,10 @@ async function switchBranch(id){
  if(!allowDiscard()){syncBranchPicker();return false}
  switchingBranch=true;$('branchPicker').disabled=true;closeBranchPicker();
  try{
-  selectedBranchId=id;syncBranchPicker();currentRejection=null;currentId=null;version=0;dirty=false;conflict=false;clearTimeout(timer);
-  state={meta:{},tasks:{},decisions:{linx:{},orion:{}}};$('selectedBranch').value=id;render();
+  selectedBranchId=id;syncBranchPicker();currentRejection=null;currentId=null;cutoverEditing=false;branchProgress=null;version=0;dirty=false;conflict=false;clearTimeout(timer);
+  state={meta:{},tasks:{},decisions:{linx:{},orion:{}}};$('saveFeedback').hidden=true;$('selectedBranch').value=id;render();renderBranchProgress();
   const rows=await refreshList();
-  if(rows.length){$('execution').value=rows[0].id;await loadExecution(rows[0].id)}
-  else syncText(id?'Esta filial ainda não tem cutovers. Clique em Iniciar cutover.':'Selecione uma filial cadastrada.');
+  $('execution').value='';syncText(id?'Selecione um PDV abaixo para abrir, editar ou iniciar o checklist.':'Selecione uma filial cadastrada.');
   branchPermissions();return true;
  }catch(e){syncText(e.message,true);return false}finally{switchingBranch=false;$('branchPicker').disabled=false;syncBranchPicker()}
 }
@@ -113,11 +113,12 @@ function branchForm(existing=null){
  modal(`<h2>${existing?'Editar filial':'Cadastrar filial'}</h2><p class="muted">Código e nome identificam a loja. Cidade e UF são opcionais.</p><form id="branchForm" class="form-stack"><label for="branchCode">Código da filial *</label><input id="branchCode" placeholder="VD266" maxlength="30" value="${esc(existing?.code)}" ${existing?'readonly':''} required><label for="branchName">Nome da loja *</label><input id="branchName" placeholder="Shopping Vila Lobos" maxlength="160" value="${esc(existing?.name)}" required><div class="row2"><div><label for="branchCity">Cidade</label><input id="branchCity" maxlength="100" value="${esc(existing?.city)}"></div><div><label for="branchUf">UF</label><select id="branchUf"><option value="">Não informada</option>${['AC','AL','AP','AM','BA','CE','DF','ES','GO','MA','MT','MS','MG','PA','PB','PR','PE','PI','RJ','RN','RS','RO','RR','SC','SP','SE','TO'].map(uf=>`<option ${existing?.uf===uf?'selected':''}>${uf}</option>`).join('')}</select></div></div><label for="branchActive">Situação</label><select id="branchActive"><option value="Ativa" ${!existing||existing.active&&!existing.opening_soon?'selected':''}>Ativa</option><option value="A inaugurar" ${existing?.opening_soon?'selected':''}>A inaugurar</option><option value="Inativa" ${existing&&!existing.active?'selected':''}>Inativa - mantém o histórico</option></select><p id="branchError" role="alert" class="sync-error"></p><button class="primary" id="saveBranch">Salvar filial</button></form>`);
  $('branchForm').onsubmit=async e=>{e.preventDefault();$('saveBranch').disabled=true;const body={code:$('branchCode').value.trim().toUpperCase(),name:$('branchName').value.trim(),city:$('branchCity').value.trim(),uf:$('branchUf').value,status:$('branchActive').value};try{const result=await api('/api/branches'+(existing?'/'+existing.id:''),existing?'PUT':'POST',body);$('modal').close();await refreshBranches();toast('Filial salva. Selecione-a na aba Cutover para iniciar uma execução.')}catch(err){$('branchError').textContent=err.message;$('saveBranch').disabled=false}};
 }
-function startBoundCutover(){
+function startBoundCutover(pdv=''){
+ if(typeof pdv!=='string')pdv='';
  const b=currentBranch();if(!b||!DECIDE||!b.active||b.needs_review)return;
  if(dirty||saving){toast('Salve o checklist antes de iniciar outra execução.');return}
- modal(`<h2>Iniciar cutover</h2><div class="bound-store"><b>${esc(b.code)}</b><span>${esc(b.name)}</span></div><p class="muted">Esta execução ficará vinculada somente à loja acima.</p><form id="boundCutoverForm" class="form-stack"><label for="boundPdv">PDV que será atendido *</label><input id="boundPdv" placeholder="Ex.: 01" maxlength="40" required><p id="startCutoverError" role="alert" class="sync-error"></p><button class="primary" id="startBoundButton">Iniciar cutover desta filial</button></form>`);
- $('boundCutoverForm').onsubmit=async e=>{e.preventDefault();$('startBoundButton').disabled=true;try{const r=await api('/api/cutovers','POST',{branch_id:b.id,pdv:$('boundPdv').value.trim()});await refreshList(r.id);await loadExecution(r.id);$('modal').close();await refreshBranches();toast('Cutover iniciado para '+b.code+'.')}catch(err){$('startCutoverError').textContent=err.message;$('startBoundButton').disabled=false}};
+ modal(`<h2>Iniciar cutover</h2><div class="bound-store"><b>${esc(b.code)}</b><span>${esc(b.name)}</span></div><p class="muted">Esta execução ficará vinculada somente à loja acima.</p><form id="boundCutoverForm" class="form-stack"><label for="boundPdv">PDV que será atendido *</label><input id="boundPdv" value="${esc(pdv)}" placeholder="Ex.: 01" maxlength="40" required><p id="startCutoverError" role="alert" class="sync-error"></p><button class="primary" id="startBoundButton">Iniciar cutover desta filial</button></form>`);
+ $('boundCutoverForm').onsubmit=async e=>{e.preventDefault();$('startBoundButton').disabled=true;try{const entered=$('boundPdv').value.trim(),normalized=String(Number(entered.replace(/^PDV[\s_-]*/i,''))).padStart(2,'0');const existing=branchProgress?.machines.find(m=>m.pdv===normalized&&m.execution)?.execution;if(existing){if(await loadExecution(existing.id)){$('modal').close();$('context').scrollIntoView?.({behavior:'smooth',block:'start'})}else $('startBoundButton').disabled=false;return}const r=await api('/api/cutovers','POST',{branch_id:b.id,pdv:entered});await refreshList(r.id);await loadExecution(r.id);$('modal').close();await refreshBranches();toast('Cutover iniciado para '+b.code+'.')}catch(err){$('startCutoverError').textContent=err.message;$('startBoundButton').disabled=false}};
 }
 function resolveLegacy(){
  if(!currentId){toast('Selecione a execução anterior para vincular.');return}
