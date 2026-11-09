@@ -415,5 +415,8 @@ register_branch_progress(app,globals())
 from rollout_base import register_rollout_base
 register_rollout_base(app,globals())
 
+from pdv_renumber import register_pdv_renumber
+register_pdv_renumber(app,globals())
+
 if __name__=='__main__':
     init_db();app.run(host='127.0.0.1',port=5000)

@@ -1,6 +1,18 @@
-# Cutover Linx Agiliza → Orion · v4.3
+# Cutover Linx Agiliza → Orion · v4.3.1
 
 Consulte `ATUALIZAR_RENDER.md` para atualizar o Start Command para `bash start.sh` e acompanhar os novos logs de inicialização.
+
+## Dashboard principal e numeração dos PDVs — v4.3.1
+
+O Dashboard abre com a **Base de Rollout como visão principal**: percentual do parque implantado, PDVs previstos/implantados/pendentes, lojas previstas/atualizadas e avanço das lojas, além da distribuição por versão, GR e regional. Os filtros de loja e UF continuam valendo. Os indicadores de aceite, Orion OK, processos, evolução e pendências operacionais ficam na seção expansível **Validação do cutover**, inicialmente recolhida. CSV e PDF de validação estão nessa seção.
+
+Na Base de Rollout, **Cutover da filial** abre a loja já selecionada e mostra seus PDVs. Dentro do cadastro, **Abrir cutover do PDV** abre a execução existente; se não houver execução, Administrador/Gestor recebe o formulário de início com o PDV preenchido, sem criação automática. Operador/Consulta acessam as execuções conforme suas permissões.
+
+Administrador e Gestor podem usar **Alterar número** no cadastro de cada PDV. A confirmação troca a identificação nos PDVs previstos, no cadastro da implantação, nos cutovers existentes (incluindo execuções históricas), no cronograma e nas pendências da mesma filial. Os IDs, processos, aceites, observações e datas da última gravação dos checklists são preservados; a alteração tem auditoria própria. Nenhuma outra filial é alterada. O destino deve ser um número livre entre 1 e 9999. Para adicionar equipamentos, continue usando Ajustar PDVs; renumerar não acrescenta equipamentos.
+
+A alteração é transacional, verifica versões e bloqueia destinos com registros existentes. Uma tela antiga deve ser reaberta se houver conflito. Salve o cadastro da Base antes de renumerar ou abrir seus atalhos; salve o checklist em edição antes de renumerar. Os atalhos não gravam o checklist. Os critérios de implantação e aceite permanecem distintos.
+
+Atualize o pacote completo, especialmente `pdv_renumber.py`, `app.py`, `operations.py`, `static/rollout-base.js`, `static/rollout-priority.css` e `templates`. Start Command: **`bash start.sh`**. Não há novas dependências, chaves ou tabelas nesta versão. Validação local: 66 testes Python e verificações DOM dos fluxos de administrador/consulta, navegação, renumeração e salvamento manual; ambiente Neon/Render não executado localmente.
 
 ## Base de Rollout e indicadores gerais — v4.3
 

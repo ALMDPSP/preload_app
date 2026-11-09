@@ -1,3 +1,13 @@
+## Atualização v4.3.1 — Rollout principal e edição de numeração
+
+1. Extraia o ZIP e envie **o conteúdo da pasta preload_app-main** para a raiz do repositório GitHub, preservando as pastas. Inclua todos os arquivos, especialmente `pdv_renumber.py`, `static/rollout-priority.css`, `static/rollout-base.js`, `app.py`, `operations.py` e `templates`.
+2. No Render, mantenha Build Command `pip install -r requirements.txt` e Start Command **`bash start.sh`**. Nenhuma chave nova é necessária. Não execute novamente a recuperação de senha.
+3. Aguarde o deploy terminar e recarregue com Ctrl+F5. O painel principal passa a ser a Base de Rollout; expanda Validação do cutover para consultar os indicadores de aceite.
+4. Abra Base de Rollout → Abrir cadastro → Alterar número no PDV desejado → informe um número livre → Confirmar alteração. Disponível para Administrador/Gestor. Salve mudanças no cadastro ou checklist antes dessa operação.
+5. Use Cutover da filial na lista, ou Abrir cutover do PDV no cadastro, para continuar o preenchimento na loja correta. Os atalhos não salvam alterações do checklist.
+
+A renumeração acompanha os registros da mesma filial, sem duplicar equipamentos ou perder o checklist. O número de destino não pode ter cadastro ou cutover existente. Uma edição concorrente exige reabrir o cadastro. As datas da última gravação dos checklists e os IDs das execuções são preservados; a correção fica auditada separadamente.
+
 ## Atualização v4.3 — Base de Rollout
 
 Envie ao GitHub todos os arquivos do pacote, preservando as pastas, incluindo `rollout_base.py`, `static/rollout-base.js`, `static/rollout-base.css`, `app.py`, `executive_dashboard.py` e as páginas. Mantenha Start Command **`bash start.sh`** e Build Command `pip install -r requirements.txt`. As tabelas da Base são criadas automaticamente no Neon. Não são necessárias novas chaves.

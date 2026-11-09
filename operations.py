@@ -185,7 +185,7 @@ def register_operations(app,core):
     def snapshot_saved_rollout(response):
         if 200<=response.status_code<300:
             path=request.path
-            mutation=request.method in ['POST','PUT','DELETE'] and (path.startswith('/api/cutovers') or path.startswith('/api/branches')) and not path.endswith('/import/preview')
+            mutation=request.method in ['POST','PUT','DELETE'] and (path.startswith('/api/cutovers') or path.startswith('/api/branches') or path.startswith('/api/rollout-base/branches/') and path.endswith('/pdv-number')) and not path.endswith('/import/preview')
             dashboard=path=='/api/dashboard' and not request.args.get('q') and not request.args.get('uf')
             if mutation or dashboard:
                 try:capture_snapshot(core,getattr(g,'dashboard_snapshot',None) if dashboard else None,advance=mutation)
