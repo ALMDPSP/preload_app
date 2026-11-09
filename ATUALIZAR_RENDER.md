@@ -1,3 +1,14 @@
+## Atualização v4.4 — dashboard organizado e confirmação da versão
+
+1. Extraia o ZIP. **Os arquivos já estão diretamente na raiz**: app.py, release.py, start.sh, templates/, static/ e os demais arquivos.
+2. No GitHub ALMDPSP/preload_app → branch main → Add file → Upload files: envie o conteúdo extraído, preservando as pastas e substituindo os arquivos existentes. Não crie uma pasta preload_app-main dentro do repositório.
+3. Antes do commit, confira que templates/index.html contém dashboard-clean.css e v4.4, static/rollout-base.js contém Resumo do rollout e release.py contém APP_VERSION = "4.4".
+4. No Render, mantenha Build Command `pip install -r requirements.txt` e Start Command **`bash start.sh`**. Aguarde o novo commit ficar Live.
+5. Abra https://cutover-orion-linx.onrender.com/healthz. A resposta deve incluir **"version":"4.4"**. Se mostrar outra versão ou nenhuma versão, o servidor ainda não está com este pacote.
+6. Atualize o site com Ctrl+Shift+R. O menu mostra v4.4 e o painel abre em Resumo do rollout, com as abas GR e regionais e Validação do cutover.
+
+Nenhuma chave, redefinição de senha ou reimportação de lojas é necessária. Os cadastros, checklists, permissões e edição da numeração do PDV da v4.3.1 continuam preservados.
+
 ## Atualização v4.3.1 — Rollout principal e edição de numeração
 
 1. Extraia o ZIP e envie **o conteúdo da pasta preload_app-main** para a raiz do repositório GitHub, preservando as pastas. Inclua todos os arquivos, especialmente `pdv_renumber.py`, `static/rollout-priority.css`, `static/rollout-base.js`, `app.py`, `operations.py` e `templates`.

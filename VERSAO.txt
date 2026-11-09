@@ -1,0 +1,5 @@
+ALM - Expansão de TI | Cutover online
+Versão 4.4 - Dashboard organizado
+Arquivos diretamente na raiz do ZIP.
+Start Command: bash start.sh
+Confirmação após deploy: /healthz deve informar version 4.4.

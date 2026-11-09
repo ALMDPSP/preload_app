@@ -1,6 +1,22 @@
-# Cutover Linx Agiliza → Orion · v4.3.1
+# Cutover Linx Agiliza → Orion · v4.4
 
 Consulte `ATUALIZAR_RENDER.md` para atualizar o Start Command para `bash start.sh` e acompanhar os novos logs de inicialização.
+
+## Dashboard organizado — v4.4
+
+O painel tem três visões, com apenas uma aberta por vez:
+
+- **Resumo do rollout** (inicial): quatro indicadores — PDVs previstos, implantados, pendentes e lojas atualizadas —, gráfico do avanço do parque, versões instaladas e até cinco regionais por avanço.
+- **GR e regionais**: tabelas completas com lojas previstas, atualizadas e percentual. O grupo Não informado mantém os cadastros incompletos nos totais.
+- **Validação do cutover**: Orion OK, pendências operacionais e consulta por filial/PDV. As análises mais extensas ficam em Análise detalhada do cutover; CSV e PDF continuam sendo relatórios de validação.
+
+As três visões usam o mesmo filtro de loja/UF. Trocar de visão não faz nova consulta nem salva checklists. O menu Minha conta reúne os acessos administrativos, instalação, senha e saída. A aba Base de Rollout e seus botões Alterar número, Cutover da filial e Abrir cutover do PDV permanecem disponíveis com as mesmas permissões e salvamento explícito.
+
+**Confirmação da publicação:** o menu mostra v4.4; a resposta de `/healthz` inclui `"version":"4.4"` e o cabeçalho HTTP X-App-Version informa a versão servida. A inicialização registra a versão nos logs. A confirmação depende de o Render efetivamente receber o pacote atualizado; não é feita por esta entrega local.
+
+**Formato do ZIP:** os arquivos estão diretamente na raiz, sem pasta preload_app-main intermediária. Extraia e envie app.py, release.py, templates, static e os demais arquivos para a raiz do GitHub, substituindo os existentes. Não envie a pasta inteira para dentro de outra pasta do repositório. Mantenha Start Command `bash start.sh`; não há novas chaves, dependências ou migrações nesta atualização.
+
+Validação: testes Python da aplicação e testes DOM de administrador/consulta, abas, teclado, filtros, renumeração, navegação e salvamento manual. Produção Render/Neon não acessada por esta entrega.
 
 ## Dashboard principal e numeração dos PDVs — v4.3.1
 

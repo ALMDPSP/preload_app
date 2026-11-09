@@ -1,4 +1,5 @@
 import os, json, secrets, sqlite3, time
+from release import APP_VERSION
 from contextlib import contextmanager
 from datetime import datetime, timezone, timedelta
 from functools import wraps
@@ -153,6 +154,7 @@ def headers(response):
     response.headers['X-Frame-Options']='DENY'
     response.headers['Referrer-Policy']='same-origin'
     response.headers['Cache-Control']='no-store'
+    response.headers['X-App-Version']=APP_VERSION
     response.headers['Content-Security-Policy']="default-src 'self'; script-src 'self' 'unsafe-inline'; style-src 'self' 'unsafe-inline'; img-src 'self' data:; connect-src 'self'; object-src 'none'; base-uri 'self'; frame-ancestors 'none'"
     if not DEV: response.headers['Strict-Transport-Security']='max-age=31536000'
     return response
@@ -161,7 +163,7 @@ def headers(response):
 def health():
     try:
         with db(healthcheck=True) as c: c.execute('SELECT 1').fetchone()
-        return jsonify(status='ok')
+        return jsonify(status='ok',version=APP_VERSION)
     except Exception: return error('Banco indisponível',503)
 
 @app.route('/login', methods=['GET','POST'])

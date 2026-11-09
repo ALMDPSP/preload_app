@@ -9,7 +9,7 @@ async function showDashboard(){
 function dashboardQuery(){return new URLSearchParams({q:$('dashboardSearch').value.trim(),uf:$('dashboardUf').value}).toString()}
 async function refreshDashboard(page=1){
  if(!Number.isInteger(page)||page<1)page=1;
- const sequence=++dashboardRequest;if(!dashboardData)$('dashboardCards').innerHTML=Array.from({length:4},()=>'<div class="skeleton-line"></div>').join('');$('dashboardMessage').textContent='Atualizando máquinas e filiais…';$('dashboardPdf').disabled=true;$('dashboardCsv').disabled=true;
+ const sequence=++dashboardRequest;if(!dashboardData)$('dashboardCards').innerHTML=Array.from({length:4},()=>'<div class="skeleton-line"></div>').join('');$('dashboardMessage').textContent='Atualizando indicadores do rollout…';$('dashboardPdf').disabled=true;$('dashboardCsv').disabled=true;
  try{const data=await api('/api/dashboard?'+dashboardQuery()+'&compact=1&page='+page);if(sequence!==dashboardRequest)return;dashboardData=data;dashboardPage=data.pagination?.page||1;
  const uf=$('dashboardUf').value;$('dashboardUf').innerHTML='<option value="">Todas as UFs</option>'+data.ufs.map(u=>`<option>${esc(u)}</option>`).join('');$('dashboardUf').value=uf;
  $('dashboardMessage').textContent='Dados salvos · '+new Date(data.generated_at).toLocaleString('pt-BR')+' · Uma máquina por filial + número de PDV. O preenchimento ainda não salvo não entra na contagem.';
