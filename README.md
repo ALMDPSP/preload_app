@@ -1,6 +1,25 @@
-# Cutover Linx Agiliza → Orion · v4.2.4
+# Cutover Linx Agiliza → Orion · v4.3
 
 Consulte `ATUALIZAR_RENDER.md` para atualizar o Start Command para `bash start.sh` e acompanhar os novos logs de inicialização.
+
+## Base de Rollout e indicadores gerais — v4.3
+
+Nova aba **Base de Rollout**, com cadastro e edição por filial. GR e regional são dados da filial; situação declarada, versão instalada, data opcional e observações opcionais são registradas individualmente por número de PDV. A quantidade e a numeração vêm da lista de PDVs previstos, ajustável na aba Filiais. O cadastro usa as lojas existentes e não cria lojas ou equipamentos duplicados.
+
+Administrador e Gestor podem alterar GR, regional e os dados dos PDVs. Operador pode registrar implantação/versão/data/observações; Consulta somente lê. Salvamento próprio explícito, proteção contra edições concorrentes e histórico de alterações. O salvamento da Base não grava um checklist aberto, não emite GO e não muda as regras de aceite.
+
+O dashboard inclui PDVs rolloutados, percentual atualizado dos PDVs, lojas atualizadas, avanço percentual das lojas, distribuição por versão instalada, avanço por GR e por regional. Os grupos mostram lojas previstas, atualizadas e percentual, com os PDVs esperados/implantados como apoio. Os mesmos filtros de loja/UF do painel delimitam os novos indicadores.
+
+**Critérios de contagem:**
+- PDV previsto: número no plano de uma filial ativa, aberta e sem cadastro a revisar, dentro dos filtros do dashboard.
+- PDV rolloutado/implantado: situação Implantado registrada na Base **ou** Orion OK no checklist salvo. A mesma máquina (filial + PDV) conta uma única vez.
+- Loja atualizada: pelo menos um PDV implantado. É diferente de Loja completa, que continua exigindo todos os PDVs Orion OK.
+- Distribuição por versão: apenas PDVs implantados. A categoria Não informada mantém visíveis os equipamentos sem versão preenchida.
+- GR/regional não preenchidos: grupo Não informado; a filial permanece no denominador. Percentual = lojas atualizadas / lojas previstas daquele grupo; denominador zero resulta em 0%.
+
+A Base lista filiais fora do escopo (inativas, a inaugurar ou a revisar) para consulta/cadastro, mas elas não entram no resumo executivo ativo. Registros de PDVs retirados do plano ficam preservados e deixam de compor os totais atuais. Os indicadores de histórico diário e Orion OK mantêm os critérios anteriores de aceite, não sendo substituídos pela declaração de implantação.
+
+**Atualização:** envie todos os arquivos ao GitHub, incluindo `rollout_base.py`, `static/rollout-base.*` e `templates`. Mantenha `pip install -r requirements.txt` no Build Command e **`bash start.sh`** no Start Command. As duas tabelas novas são criadas automaticamente na inicialização. Nenhuma nova dependência ou chave é necessária; cadastros, logins e checklists existentes são preservados. O logo ALM e as otimizações da versão anterior continuam ativos.
 
 ## Exibição do logo — v4.2.4
 

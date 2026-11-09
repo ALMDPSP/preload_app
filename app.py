@@ -89,6 +89,8 @@ def init_db(log=None):
         for sql in PERFORMANCE_SCHEMA:c.execute(sql)
         from operations import migrate_operations
         migrate_operations(c)
+        from rollout_base import migrate_rollout_base
+        migrate_rollout_base(c)
         report(f'Filiais conferidas. Vínculos migrados: {migrated}. Conferindo usuários...')
         email = os.getenv('ADMIN_EMAIL', '').strip().lower()
         password = os.getenv('ADMIN_PASSWORD', '')
@@ -409,6 +411,9 @@ register_operations(app,globals())
 
 from branch_progress import register_branch_progress
 register_branch_progress(app,globals())
+
+from rollout_base import register_rollout_base
+register_rollout_base(app,globals())
 
 if __name__=='__main__':
     init_db();app.run(host='127.0.0.1',port=5000)

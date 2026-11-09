@@ -13,8 +13,8 @@ async function refreshDashboard(page=1){
  try{const data=await api('/api/dashboard?'+dashboardQuery()+'&compact=1&page='+page);if(sequence!==dashboardRequest)return;dashboardData=data;dashboardPage=data.pagination?.page||1;
  const uf=$('dashboardUf').value;$('dashboardUf').innerHTML='<option value="">Todas as UFs</option>'+data.ufs.map(u=>`<option>${esc(u)}</option>`).join('');$('dashboardUf').value=uf;
  $('dashboardMessage').textContent='Dados salvos · '+new Date(data.generated_at).toLocaleString('pt-BR')+' · Uma máquina por filial + número de PDV. O preenchimento ainda não salvo não entra na contagem.';
- renderDashboard();if(typeof refreshDashboardOperations==='function')refreshDashboardOperations(data.operations||null);$('dashboardPdf').disabled=false;$('dashboardCsv').disabled=false;
- }catch(e){if(sequence!==dashboardRequest)return;dashboardData=null;$('executiveDashboard').innerHTML='';$('dashboardAttention').innerHTML='';$('dashboardMessage').textContent=e.message;$('dashboardCards').innerHTML='';$('dashboardStores').innerHTML='';$('dashboardEvolution').innerHTML='';document.querySelectorAll('[data-dashboard-focus]').forEach(b=>b.onclick=()=>dashboardMachines(b.dataset.dashboardFocus));
+ renderDashboard();if(typeof renderRolloutBaseDashboard==='function')renderRolloutBaseDashboard(data);if(typeof refreshDashboardOperations==='function')refreshDashboardOperations(data.operations||null);$('dashboardPdf').disabled=false;$('dashboardCsv').disabled=false;
+ }catch(e){if(sequence!==dashboardRequest)return;dashboardData=null;$('executiveDashboard').innerHTML='';$('rolloutBaseDashboard').innerHTML='';$('dashboardAttention').innerHTML='';$('dashboardMessage').textContent=e.message;$('dashboardCards').innerHTML='';$('dashboardStores').innerHTML='';$('dashboardEvolution').innerHTML='';document.querySelectorAll('[data-dashboard-focus]').forEach(b=>b.onclick=()=>dashboardMachines(b.dataset.dashboardFocus));
  $('dashboardProgress').innerHTML='';$('dashboardExceptions').hidden=true;}
 }
 function renderDashboard(){

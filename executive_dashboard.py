@@ -58,6 +58,8 @@ def dashboard_bundle(core,args):
     pages=max(1,(len(scoped['stores'])+size-1)//size);page=min(page,pages)
     result={k:v for k,v in scoped.items() if k not in ['machines','stores','_revision']}
     result['exceptions']=result['exceptions'][:100]
+    from rollout_base import rollout_base_summary
+    result['rollout_base']=rollout_base_summary(core,scoped)
     result.update(compact=True,stores=scoped['stores'][(page-1)*size:page*size],pagination={'page':page,'pages':pages,'total':len(scoped['stores']),'size':size},executive=executive_metrics(scoped,operations,core),operations={'generated_at':operations['generated_at'],'goal':operations['goal'],'metrics':operations['metrics']},_snapshot=data)
     return result
 

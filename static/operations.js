@@ -1,7 +1,8 @@
 let operationsData=null,operationsTab='schedule',operationsRequest=0,operationsPageNumber=1,historyRows=[],dashboardOpsRequest=0;
 const OP_PRIORITIES=['Baixa','Normal','Alta','Crítica'],OP_STATUSES=['Aberta','Em tratamento','Resolvida'];
-function hideOperations(){if($('operationsPage'))$('operationsPage').classList.add('hidden');document.querySelectorAll('[data-operation]').forEach(b=>b.classList.remove('active'))}
+function hideOperations(){if(typeof hideRolloutBase==='function')hideRolloutBase();if($('operationsPage'))$('operationsPage').classList.add('hidden');document.querySelectorAll('[data-operation]').forEach(b=>b.classList.remove('active'))}
 async function showOperations(tab='schedule',quick=''){
+ if(typeof hideRolloutBase==='function')hideRolloutBase();
  operationsTab=tab;operationsPageNumber=1;operationsRequest++;['cutoverWorkspace','branchesPage','reportsPage','dashboardPage','usersPage'].forEach(id=>$(id).classList.add('hidden'));$('operationsPage').classList.remove('hidden');
  document.querySelectorAll('.nav button').forEach(b=>b.classList.toggle('active',b.dataset.operation===tab));
  $('operationsTitle').textContent={schedule:'Cronograma do rollout',issues:'Central de pendências',history:'Histórico diário'}[tab];$('operationFilters').hidden=tab==='history';$('historyFilters').hidden=tab!=='history';$('operationAdd').hidden=tab==='history'||(tab==='schedule'?!DECIDE:READONLY);$('operationAdd').textContent=tab==='schedule'?'+ Planejar PDV':'+ Registrar pendência';$('operationQuick').value=quick;

@@ -1,3 +1,9 @@
+## Atualização v4.3 — Base de Rollout
+
+Envie ao GitHub todos os arquivos do pacote, preservando as pastas, incluindo `rollout_base.py`, `static/rollout-base.js`, `static/rollout-base.css`, `app.py`, `executive_dashboard.py` e as páginas. Mantenha Start Command **`bash start.sh`** e Build Command `pip install -r requirements.txt`. As tabelas da Base são criadas automaticamente no Neon. Não são necessárias novas chaves.
+
+Depois do deploy, abra Base de Rollout → Cadastrar informações → escolha a filial. Preencha GR, regional e os dados dos PDVs. Ao abrir o Dashboard, os novos indicadores refletem os cadastros. Inicialmente GR/regional não preenchidos e versões em branco aparecem como Não informado; nenhum valor da imagem de referência é importado automaticamente.
+
 ## Correção v4.2.2 — salvamento e retomada por PDV
 
 Substitua no GitHub os arquivos deste pacote, incluindo `branch_progress.py` e os arquivos `static/branch-progress.*`. Mantenha Start Command **`bash start.sh`** e Build Command `pip install -r requirements.txt`. Não há novas chaves ou necessidade de reimportar filiais.
