@@ -41,7 +41,8 @@ async function openCutoverFromBase(id,pdv=null){
  try{
   if(!await switchBranch(id))return false;
   await refreshList();
-  $('modal').close();showCutoverWorkspace();showBranchPdvs();
+  $('modal').close();document.querySelector('[data-view="run"]').click();showBranchPdvs();
+  if(pdv&&typeof openCentralPdv==='function'){await openCentralPdv(String(Number(pdv)).padStart(2,'0'));return true}
   if(pdv){
    const machine=branchProgress?.machines.find(m=>Number(m.pdv)===Number(pdv));
    if(machine?.execution){if(await loadExecution(machine.execution.id))$('context').scrollIntoView?.({behavior:'smooth',block:'start'})}
@@ -52,6 +53,7 @@ async function openCutoverFromBase(id,pdv=null){
  }catch(e){toast(e.message);return false}
 }
 function renameRolloutPdv(data,m){
+ if(typeof centralIdentityGuard==='function'&&!centralIdentityGuard())return;
  if(baseHasUnsavedChanges()){toast('Salve o cadastro do rollout antes de alterar a numeração.');return}
  if(dirty||saving){toast('Salve o checklist em edição antes de alterar a numeração.');return}
  modal(`<h2>Alterar número do PDV</h2><p>${esc(data.branch.code)} · ${esc(data.branch.name)}</p><p class="notice">O cadastro, os cutovers, o cronograma e as pendências do PDV ${esc(m.pdv)} acompanharão o novo número. Os checklists salvos e seus históricos serão preservados.</p><form id="renumberPdvForm" class="form-stack"><label for="renumberPdvValue">Novo número do PDV</label><input id="renumberPdvValue" inputmode="numeric" pattern="[0-9]{1,4}" maxlength="4" required placeholder="Ex.: 05"><p class="muted">Use um número entre 1 e 9999, ainda não utilizado nesta filial.</p><p id="renumberPdvError" class="sync-error" role="alert"></p><div class="actions"><button type="button" id="renumberPdvCancel">Voltar ao cadastro</button><button id="renumberPdvSave" class="primary">Confirmar alteração</button></div></form>`);
@@ -60,6 +62,7 @@ function renameRolloutPdv(data,m){
   e.preventDefault();$('renumberPdvSave').disabled=true;
   try{
    await api('/api/rollout-base/branches/'+encodeURIComponent(data.branch.id)+'/pdv-number','PUT',{from_pdv:m.pdv,to_pdv:$('renumberPdvValue').value.trim(),plan_version:data.plan_version,inventory_version:m.version});
+   if(typeof centralData!=='undefined'&&centralData?.branch.id===data.branch.id)centralData=null;
    if(selectedBranchId===data.branch.id){clearCurrentCutover();showBranchPdvs();await refreshList()}
    await openRolloutBase(data.branch.id);toast('Numeração alterada. Os registros do PDV foram preservados.');
    if(!$('rolloutBasePage').classList.contains('hidden'))await refreshRolloutBase(rolloutBasePage);
@@ -86,19 +89,24 @@ function rolloutVersionBars(versions){
 function renderRolloutBaseDashboard(data){
  const el=$('rolloutBaseDashboard'),b=data.rollout_base;if(!b){el.innerHTML='';return}
  const number=n=>n.toLocaleString('pt-BR'),versions=[...b.versions,...(b.deployed_without_version?[{name:'Não informada',count:b.deployed_without_version,percent:b.pdvs_deployed?Math.round(b.deployed_without_version/b.pdvs_deployed*1000)/10:0}]:[])];
+ const executive=data.executive||{},totals=data.totals||{},gap=Math.max(0,b.pdvs_deployed-(totals.ok||0));
+ const priority=executive.critical_issues?'Prioridade: resolver '+executive.critical_issues+' ocorrência(s) crítica(s).':executive.overdue_pdvs?'Prioridade: atuar em '+executive.overdue_pdvs+' PDV(s) com prazo vencido.':gap?'Próximo foco: validar os '+gap+' PDV(s) implantados sem Orion OK.':b.pdvs_pending?'Próximo foco: avançar a implantação dos PDVs pendentes.':'Parque implantado. Acompanhe os aceites e o suporte às lojas.';
  const regions=[...b.by_regional].sort((a,z)=>z.percent-a.percent||z.stores_expected-a.stores_expected).slice(0,5);
  el.innerHTML=`<div class="rollout-view-tabs" role="tablist" aria-label="Visões do dashboard">${[['overview','Resumo do rollout'],['groups','GR e regionais'],['cutover','Validação do cutover']].map(([id,label])=>`<button type="button" id="rolloutTab-${id}" role="tab" data-rollout-tab="${id}" aria-controls="${id==='cutover'?'cutoverDashboardSection':'rolloutPanel-'+id}" aria-selected="false" tabindex="-1">${label}</button>`).join('')}</div>
  <section id="rolloutPanel-overview" role="tabpanel" aria-labelledby="rolloutTab-overview">
  <div class="rollout-summary-line"><div><span class="eyebrow">BASE DE ROLLOUT</span><h2>Do planejamento à implantação</h2><p>${number(b.stores_expected)} lojas no escopo · ${number(b.stores_updated)} com implantação iniciada</p></div><button id="openRolloutBaseDashboard" class="primary">Gerenciar base →</button></div>
+ <section class="executive-command"><div><span class="eyebrow">LEITURA EXECUTIVA</span><h2>${b.pdvs_percent}% implantado · ${totals.percent||0}% validado</h2><p>${esc(priority)}</p></div><div><strong>${number(gap)}</strong><small>implantados sem Orion OK</small></div></section>
  <div class="rollout-primary-stats">${[['PDVs previstos',b.pdvs_expected,'Equipamentos planejados','planned'],['PDVs implantados',b.pdvs_deployed,b.pdvs_percent+'% do parque previsto','deployed'],['PDVs pendentes',b.pdvs_pending,'Ainda sem implantação','pending'],['Lojas atualizadas',b.stores_updated,b.stores_percent+'% das '+number(b.stores_expected)+' lojas','stores']].map(([label,n,detail,key])=>`<article class="stat rollout-kpi rollout-kpi-${key}"><small>${label}</small><strong>${number(n)}</strong><small>${detail}</small></article>`).join('')}</div>
  <div class="rollout-overview-grid">
   <section class="panel rollout-coverage"><div class="rollout-panel-heading"><div><span class="eyebrow">EXECUÇÃO</span><h2>Avanço do parque</h2></div><span class="scope-tag">PDVs implantados</span></div><div class="rollout-coverage-body"><div class="rollout-donut" style="--rollout-progress:${b.pdvs_percent}%" role="img" aria-label="${b.pdvs_percent}% dos PDVs implantados"><div><strong>${b.pdvs_percent}%</strong><small>implantado</small></div></div><div class="rollout-coverage-legend"><p><i class="deployed"></i><span>Implantados</span><b>${number(b.pdvs_deployed)}</b></p><p><i class="pending"></i><span>Pendentes</span><b>${number(b.pdvs_pending)}</b></p><small>Implantação declarada na Base ou Orion OK. Cada filial + PDV conta uma vez.</small></div></div></section>
   <section class="panel"><div class="rollout-panel-heading"><div><span class="eyebrow">VERSÕES</span><h2>Parque instalado</h2></div><span class="scope-tag">${versions.length} versão(ões)</span></div>${versions.length?rolloutVersionBars(versions.slice(0,5))+(versions.length>5?`<details class="rollout-more"><summary>Ver outras ${versions.length-5} versões</summary>${rolloutVersionBars(versions.slice(5))}</details>`:''):'<p class="rollout-empty">As versões aparecerão após o registro da implantação.</p>'}<p class="rollout-note">${number(b.deployed_without_version)} PDV(s) implantado(s) sem versão informada.</p></section>
  </div>
  <section class="panel rollout-regional-overview"><div class="rollout-panel-heading"><div><span class="eyebrow">COBERTURA</span><h2>Avanço por regional</h2></div><button id="rolloutShowGroups">Ver GR e regionais →</button></div>${regions.length?`<div class="rollout-region-cards">${regions.map(r=>`<div><b>${esc(r.name)}</b><strong>${r.percent}%</strong><div class="bar"><span style="width:${r.percent}%"></span></div><small>${number(r.stores_updated)} de ${number(r.stores_expected)} lojas atualizadas</small></div>`).join('')}</div>`:'<p class="rollout-empty">Nenhuma loja no filtro selecionado.</p>'}<p class="rollout-note">Até 5 regionais, ordenadas pelo avanço. Loja atualizada = ao menos um PDV implantado.</p></section>
+ <section class="panel central-dashboard-priorities"><div class="rollout-panel-heading"><div><span class="eyebrow">PRÓXIMAS AÇÕES</span><h2>Onde atuar agora</h2></div><span class="scope-tag">${executive.attention_total||0} lojas com atenção</span></div>${executive.attention?.length?`<div class="central-priority-cards">${executive.attention.slice(0,3).map((r,i)=>`<article><span class="central-priority-rank">0${i+1}</span><h3>${esc(r.code)} · ${esc(r.name)}</h3><p>PDVs ${esc(r.pdvs.join(', '))}</p><small>${r.critical} crítica(s) · ${r.overdue} atraso(s)</small><button type="button" data-central-priority="${i}">Atender na central →</button></article>`).join('')}</div>`:'<p class="rollout-note">Nenhum alerta de cronograma, ocorrência ou bloqueio identificado. Consulte a Base para planejar as próximas implantações.</p>'}</section>
  <details class="rollout-definitions"><summary>Critérios e qualidade do cadastro <span>${number(b.stores_missing_organization)} loja(s) sem GR e/ou regional</span></summary><p>Apenas filiais ativas, abertas e sem cadastro a revisar entram no resumo. GR e regional ausentes ficam no grupo Não informado. A implantação registrada na Base não conclui o checklist nem concede aceite. Lojas completas e Orion OK estão na visão Validação do cutover.</p></details>
  </section>
  <section id="rolloutPanel-groups" role="tabpanel" aria-labelledby="rolloutTab-groups" hidden><div class="rollout-summary-line"><div><span class="eyebrow">BASE DE ROLLOUT</span><h2>Avanço por GR e regional</h2><p>Lojas atualizadas / lojas previstas, respeitando os filtros acima.</p></div></div><div class="executive-grid">${rolloutGroupingTable('Avanço por GR',b.by_gr)}${rolloutGroupingTable('Avanço por regional',b.by_regional)}</div></section>`;
+ el.querySelectorAll('[data-central-priority]').forEach(button=>button.onclick=()=>{const row=executive.attention[Number(button.dataset.centralPriority)];openCentralFromDashboard(row.branch_id,row.pdvs[0])});
  $('openRolloutBaseDashboard').onclick=showRolloutBase;$('rolloutShowGroups').onclick=()=>selectRolloutDashboardTab('groups',true);
  const tabs=[...el.querySelectorAll('[data-rollout-tab]')];
  tabs.forEach((button,index)=>{

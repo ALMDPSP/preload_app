@@ -99,8 +99,10 @@ def create_rollout_executive_pdf(data):
         d.add(String(WIDTH,6,'Pendentes: '+n(expected-done),textAnchor='end',fontName='RolloutSans',fontSize=8,fillColor=MUTED))
         return d
     b=data['base'];t=data['totals'];e=data['executive'];flow=[]
+    gap=max(0,b['pdvs_deployed']-t['ok'])
+    focus=('Resolver '+str(e['critical_issues'])+' ocorrência(s) crítica(s).' if e['critical_issues'] else 'Priorizar '+str(e['overdue_pdvs'])+' PDV(s) atrasado(s).' if e['overdue_pdvs'] else 'Validar os PDVs implantados sem Orion OK.' if gap else 'Avançar a implantação e acompanhar os aceites.')
     flow += [p('Relatório executivo','title'),p('ROLLOUT PDV ORION | Posição consolidada em '+stamp(data['generated_at'])+' (Brasília)','muted'),
-             p('Visão geral da implantação','h'),p('Todas as filiais ativas e abertas no escopo. Consolidação por filial + número de PDV, usando a última execução salva e o cadastro da Base de Rollout.','muted'),
+             p('Prioridade executiva: '+focus,'body'),p('Visão geral da implantação','h'),p('Todas as filiais ativas e abertas no escopo. Consolidação por filial + número de PDV, usando a última execução salva e o cadastro da Base de Rollout.','muted'),
              kpis([('PDVs previstos',b['pdvs_expected'],'Parque planejado'),('PDVs implantados',b['pdvs_deployed'],pct(b['pdvs_percent'])+' do parque'),('PDVs pendentes',b['pdvs_pending'],'Sem implantação'),('Lojas atualizadas',b['stores_updated'],pct(b['stores_percent'])+' das lojas')]),
              Spacer(1,10),progress(b['pdvs_expected'],b['pdvs_deployed']),
              p(n(b['stores_expected'])+' lojas previstas | '+n(b['stores_updated'])+' com ao menos um PDV implantado.','muted'),
@@ -114,7 +116,7 @@ def create_rollout_executive_pdf(data):
     rows=[['Versão instalada','PDVs','% implantados']]+[[short(v['name'],65),n(v['count']),pct(v['percent'])] for v in selected]
     if not selected:rows.append(['Nenhuma implantação registrada','0','0%'])
     flow += [table(rows,[110*mm,28*mm,36*mm]),p('Os totais incluem todas as versões; as de menor volume são agrupadas. '+n(b['deployed_without_version'])+' PDV(s) sem versão informada.','muted'),
-             p('Validação do cutover','h'),
+             p('Validação do cutover','h'),p(n(gap)+' PDV(s) implantado(s) ainda sem Orion OK. Implantação e validação são medidas separadas.','muted'),
              kpis([('Virados e Orion OK',t['ok'],pct(t['percent'])+' do parque'),('Pendentes de validação',t['pending'],'Inclui não iniciados'),('Lojas completas',t['stores_ok'],'Todos os PDVs Orion OK')]),
              Spacer(1,8),p('Implantado = declaração na Base ou Orion OK. Orion OK exige todos os processos e os dois aceites GO com responsável e data. Uma implantação declarada não conclui o cutover.','muted'),
              PageBreak(),p('Cobertura e evolução','title'),p('Acompanhamento por liderança e avanço da validação.','muted')]

@@ -1,4 +1,5 @@
 let currentId=null,version=0,dirty=false,saving=false,timer=null,conflict=false;
+let executionLoadSequence=0,branchProgressSequence=0,editRevision=0,executionLoading=false;
 let selectedBranchId="",currentRejection=null,cutoverEditing=false,branchProgress=null;
 const csrf=document.querySelector('meta[name="csrf-token"]').content;
 const ROLE=document.body.dataset.role,READONLY=ROLE==='viewer',DECIDE=['admin','manager'].includes(ROLE);
@@ -9,7 +10,7 @@ render();
 if(!DECIDE)$('newExecution').hidden=true;if(READONLY)$('import').hidden=true;
 function syncText(text,bad=false){$('syncState').textContent=text;$('syncState').style.color=bad?'#ad332d':'#007f70'}
 async function api(path,method='GET',body){let r=await fetch(path,{method,headers:{'Content-Type':'application/json','X-CSRF-Token':csrf},body:body===undefined?undefined:JSON.stringify(body)});let data=await r.json();if(!r.ok){let e=Error(data.error||'Falha na solicitação');e.status=r.status;if(r.status===401)syncText('Sessão expirada. Exporte os registros e faça login novamente.',true);throw e}return data}
-function scheduleSave(){if(READONLY||currentRejection)return;if(!currentId){syncText('Crie ou selecione um cutover antes de preencher.',true);return}dirty=true;syncText('Alterações não salvas. Clique em Salvar checklist.');clearTimeout(timer)}
+function scheduleSave(){editRevision++;if(READONLY||currentRejection)return;if(!currentId){syncText('Crie ou selecione um cutover antes de preencher.',true);return}dirty=true;syncText('Alterações não salvas. Clique em Salvar checklist.');clearTimeout(timer)}
 let pendingSave=null;
 function persist(force=false){
  clearTimeout(timer);
@@ -34,10 +35,10 @@ function persist(force=false){
  })();return pendingSave;
 }
 async function refreshList(selectId){
- const branch=selectedBranchId;
+ const branch=selectedBranchId,sequence=++branchProgressSequence;
  if(!branch){$('execution').innerHTML='<option value="">Selecione uma filial primeiro</option>';branchProgress=null;if(typeof renderBranchProgress==='function')renderBranchProgress();return []}
  const data=await api('/api/branches/'+encodeURIComponent(branch)+'/cutover-progress');
- if(selectedBranchId!==branch)return [];
+ if(selectedBranchId!==branch||sequence!==branchProgressSequence)return [];
  branchProgress=data;const rows=data.executions;
  $('execution').innerHTML='<option value="">Todas as execuções / histórico da filial</option>'+rows.map(r=>`<option value="${esc(r.id)}">PDV ${esc(r.pdv)} · ${esc(r.status)} · ${esc(new Date(r.updated_at).toLocaleString('pt-BR'))}</option>`).join('');
  $('execution').value=cutoverEditing?(selectId||currentId||''):'';
@@ -51,15 +52,17 @@ async function loadExecution(id){
  if(!id)return;
  if(saving){toast('Aguarde o salvamento antes de trocar de cutover.');$('execution').value=currentId||'';return}
  if(!allowDiscard()){$('execution').value=currentId||'';return}
- const branch=selectedBranchId;
+ const branch=selectedBranchId,sequence=++executionLoadSequence,revision=editRevision;executionLoading=true;
  try{
   clearTimeout(timer);let r=await api('/api/cutovers/'+id);
+  if(sequence!==executionLoadSequence)return false;
+  if(editRevision!==revision){toast('O checklist recebeu novas alterações durante a leitura. Seus dados foram mantidos; salve antes de trocar.');return false}
   if(r.branch_id!==branch||selectedBranchId!==branch){toast('Este cutover não pertence à filial selecionada.');return}
   currentId=id;cutoverEditing=true;currentRejection=r.rejection||null;version=r.version;state=validate(r.state);dirty=false;conflict=false;render();updateCutoverActions();
   syncText('Dados carregados · '+new Date(r.updated_at).toLocaleString('pt-BR'));
   $('saved').textContent='Última atualização: '+r.updated_by+' · '+new Date(r.updated_at).toLocaleString('pt-BR');
   $('execution').value=id;if(typeof renderBranchProgress==='function')renderBranchProgress();return true;
- }catch(e){syncText(e.message,true)}
+ }catch(e){if(sequence===executionLoadSequence)syncText(e.message,true)}finally{if(sequence===executionLoadSequence)executionLoading=false}
 }
 $('execution').onchange=()=>loadExecution($('execution').value);$('refreshExecution').onclick=()=>currentId?loadExecution(currentId):refreshList();$('newExecution').onclick=()=>{if(saving||dirty){toast('Salve ou exporte as alterações antes de criar outro cutover.');return}modal('<h2>Novo cutover</h2><p>Informe a loja e o equipamento que será migrado.</p><form id="newExecutionForm" class="form-stack"><label for="newBranch">Filial</label><input id="newBranch" required maxlength="80" placeholder="Ex.: VD266"><label for="newPdv">PDV</label><input id="newPdv" required maxlength="40" placeholder="Ex.: 01"><button class="primary" type="submit">Criar execução</button><p id="newExecutionError" role="alert"></p></form>');$('newExecutionForm').onsubmit=async e=>{e.preventDefault();const submit=e.currentTarget.querySelector('button');submit.disabled=true;try{let r=await api('/api/cutovers','POST',{title:$('newBranch').value.trim()+' / PDV '+$('newPdv').value.trim()});await refreshList(r.id);await loadExecution(r.id);$('modal').close()}catch(err){$('newExecutionError').textContent=err.message;submit.disabled=false}}};
 function modal(html){$('modalBody').innerHTML=html;$('modal').showModal()}$('closeModal').onclick=()=>$('modal').close();

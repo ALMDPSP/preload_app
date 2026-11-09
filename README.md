@@ -1,6 +1,25 @@
-# Cutover Linx Agiliza → Orion · v4.4.1
+# Cutover Linx Agiliza → Orion · v4.5
 
 Consulte `ATUALIZAR_RENDER.md` para atualizar o Start Command para `bash start.sh` e acompanhar os novos logs de inicialização.
+
+## Central de Cutover e leitura executiva — v4.5
+
+A navegação **Central de Cutover** reúne a operação em uma tela. Busque a filial, selecione o PDV na lateral e preencha o cadastro e o checklist. Em telas menores, os cartões de PDV ficam em uma faixa horizontal.
+
+- **Cadastro da filial e do PDV:** GR, regional, implantação declarada, versão, data e observações, em um bloco expansível. Salvar cadastro grava somente a filial e o PDV selecionado na Base; mantém os dados dos outros PDVs e não salva o checklist. Recarregar cadastro permite resolver conflitos sem descartar o checklist aberto.
+- **PDVs:** selecionar um equipamento abre sua execução salva. Um PDV sem checklist é selecionado sem criação automática; Administrador/Gestor pode clicar em Iniciar PDV. Nova filial, edição da filial e ajuste da quantidade continuam no contexto da central (formulários auxiliares sobre a mesma página).
+- **Numeração:** Editar número do PDV fica na central. Exige salvar os rascunhos antes; migra os registros e o histórico conforme a proteção transacional anterior. PDVs fora do plano continuam acessíveis para consulta/edição do checklist, com aviso para ajustar o plano antes de editar seu cadastro.
+- **Checklist e aceites:** fases recolhíveis, observações opcionais fechadas quando vazias e GO da retirada / aceite Orion na sequência dos processos. Atalhos rolam até os aceites do PDV atual. A aba separada de aceites fica oculta para evitar duplicação.
+- **Salvamento manual:** Salvar checklist mantém o fluxo de gravação e retomada com pendências. Se houver alterações no cadastro, salve primeiro o cadastro pelo botão próprio. Trocas de filial/PDV pedem confirmação antes de descartar rascunhos; sair/fechar a página também protege o preenchimento.
+- **Leituras concorrentes:** a última seleção de PDV prevalece, mesmo quando respostas chegam fora de ordem. Uma leitura iniciada antes de novas edições não substitui o rascunho digitado.
+
+No Dashboard, a faixa de leitura executiva separa o percentual implantado do validado e mostra os implantados ainda sem Orion OK. A prioridade destaca ocorrências críticas, prazos vencidos ou validações pendentes, conforme os dados salvos. Até três lojas com atenção têm atalho Atender na central; o PDF executivo também fica acessível no cabeçalho. Os totais e as regras de implantação/aceite não mudam.
+
+O PDF executivo mantém três páginas e acrescenta a prioridade de atuação e a diferença entre implantação e validação. O PDF individual do PDV abre com resumo da loja/equipamento, situação, cadastro de implantação/versão quando disponível, progresso por fase, aceites e próximo passo. Em seguida mantém o checklist detalhado, observações e referências. Datas são apresentadas no formato brasileiro; fontes incorporadas e blocos agrupados melhoram a leitura.
+
+**Permissões:** Administrador/Gestor inicia, ajusta PDVs e concede aceites; Operador preenche cadastro do PDV e checklist, sem alterar GR/regional ou dar GO; Consulta permanece somente leitura. Execuções rejeitadas continuam bloqueadas; exclusão continua exclusiva do Administrador.
+
+**Atualização:** substitua o pacote completo, incluindo `static/central.js`, `static/central.css`, `static/server.js`, `static/checklist.js`, `static/branches.js`, `static/rollout-base.js`, `templates`, `pdf_report.py`, `rollout_executive_report.py`, `app.py` e `release.py`. Mantenha `bash start.sh`. Não há nova chave, dependência ou tabela. Validação local: 72 testes Python, verificações DOM de administrador/consulta (cadastro, renumeração, início, aceite, rascunhos e respostas fora de ordem) e renderização dos PDFs. Render/Neon de produção não foi alterado nesta entrega.
 
 ## PDF executivo geral em Relatórios — v4.4.1
 

@@ -41,8 +41,8 @@ function exportReport(){
  const rows=[['Filial','Nome','Cidade','UF','PDV','Situação','Concluídos','Não concluídos','Bloqueados','Atualizado em'],...filteredReports().map(r=>[r.code,r.name,r.city,r.uf,r.pdv,r.status,r.completed,r.pending,r.blocked,r.updated_at?new Date(r.updated_at).toLocaleString('pt-BR'):''])];
  const blob=new Blob(['\ufeff'+rows.map(r=>r.map(cell).join(';')).join('\r\n')],{type:'text/csv;charset=utf-8'}),url=URL.createObjectURL(blob),a=document.createElement('a');a.href=url;a.download='Relatorio_Cutovers.csv';document.body.append(a);a.click();a.remove();setTimeout(()=>URL.revokeObjectURL(url),1000);
 }
-async function downloadRolloutExecutivePdf(){
- const button=$('executiveRolloutPdf');if(button.disabled)return;
+async function downloadRolloutExecutivePdf(sourceButton=null){
+ const button=sourceButton?.tagName==='BUTTON'?sourceButton:$('executiveRolloutPdf');if(button.disabled)return;
  const label=button.textContent;button.disabled=true;button.textContent='Gerando PDF executivo…';
  try{
   const response=await fetch('/api/reports/rollout-executive.pdf',{credentials:'same-origin',headers:{Accept:'application/pdf'}});

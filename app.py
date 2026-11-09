@@ -339,9 +339,14 @@ def history(id):
 def download_pdf(id):
     from flask import send_file
     from pdf_report import create_report, report_filename
+    from dashboard import pdv_number
     with db() as c:
         row=c.execute('SELECT * FROM ct_cutovers WHERE id=%s',(id,)).fetchone()
         branch=branch_for(c,id) if row else None
+        inventory=None
+        if row and branch:
+            number=pdv_number(json.loads(row['state']).get('meta',{}).get('pdv'))
+            inventory=c.execute('SELECT status,installed_version,deployed_at,updated_at FROM ct_rollout_inventory WHERE branch_id=%s AND pdv=%s',(branch['id'],number)).fetchone()
         review=c.execute('SELECT reason,actor,created_at FROM ct_cutover_reviews WHERE cutover_id=%s',(id,)).fetchone() if row else None
     if not row:return error('Cutover não encontrado.',404)
     expected=request.args.get('version')
@@ -349,7 +354,7 @@ def download_pdf(id):
         return error('O checklist foi atualizado por outra pessoa. Atualize os dados e gere o PDF novamente.',409)
     state=json.loads(row['state'])
     if branch:bound_meta(state,branch)
-    report_saved={**dict(row),'rejection':dict(review) if review else None}
+    report_saved={**dict(row),'rejection':dict(review) if review else None,'rollout_inventory':dict(inventory) if inventory else None}
     return send_file(create_report(SOURCE,state,report_saved),mimetype='application/pdf',as_attachment=True,download_name=report_filename(state,row['version']),max_age=0)
 
 @app.route('/api/users',methods=['GET','POST'])

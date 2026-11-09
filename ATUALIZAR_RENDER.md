@@ -1,3 +1,18 @@
+## Atualização v4.5 — Central de Cutover
+
+1. Extraia o ZIP e envie **todo o conteúdo para a raiz do GitHub**, preservando as pastas e substituindo os arquivos anteriores. Inclua especialmente static/central.js, static/central.css, app.py, release.py e templates.
+2. Mantenha Build Command `pip install -r requirements.txt` e Start Command **`bash start.sh`** no Render. Aguarde o novo commit ficar Live.
+3. Recarregue com Ctrl+Shift+R. O menu deve mostrar **v4.5**. /healthz informa version 4.5.
+4. Abra **Central de Cutover**, busque a filial e selecione o PDV. Expanda Cadastro da filial e do PDV para editar implantação/versão/GR/regional. Clique em Salvar cadastro para gravar essa parte.
+5. Abra o checklist existente ou clique em Iniciar PDV. Preencha as fases e aceites e clique em **Salvar checklist**, mesmo com pendências.
+6. Use Editar número do PDV ou Adicionar PDV na própria central, com os rascunhos previamente salvos. No Dashboard, Atender na central abre a filial e o equipamento da prioridade.
+
+Salvar cadastro e Salvar checklist são operações explícitas e independentes. Navegar não salva. Implantação declarada não concede GO. Perfis de acesso, usuários, lojas, checklists e históricos existentes são preservados.
+
+Relatórios mantém o PDF executivo geral; o Dashboard também oferece o download. O PDF individual do checklist passa a abrir com um resumo por filial/PDV.
+
+Nenhuma chave, dependência, migração ou reimportação é necessária.
+
 ## Atualização v4.4.1 — PDF executivo geral na aba Relatórios
 
 1. Extraia o ZIP e envie todo o conteúdo para a raiz do GitHub, preservando as pastas e substituindo os arquivos anteriores. Inclua `rollout_executive_report.py`, `reports.py`, `static/reports.js`, `templates` e `release.py`.
