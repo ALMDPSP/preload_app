@@ -1,3 +1,14 @@
+## Atualização v4.4.1 — PDF executivo geral na aba Relatórios
+
+1. Extraia o ZIP e envie todo o conteúdo para a raiz do GitHub, preservando as pastas e substituindo os arquivos anteriores. Inclua `rollout_executive_report.py`, `reports.py`, `static/reports.js`, `templates` e `release.py`.
+2. No Render, mantenha Build Command `pip install -r requirements.txt` e Start Command **`bash start.sh`**. Aguarde o novo deploy ficar Live.
+3. Recarregue o site com Ctrl+Shift+R e confira v4.4.1 no menu. A rota /healthz também informa version 4.4.1.
+4. Abra **Relatórios → PDF executivo geral**. Aguarde a geração e confira o PDF nos downloads do navegador.
+
+O PDF tem três páginas e considera todo o escopo ativo, independentemente dos filtros da consulta/CSV. Mostra o resumo da implantação, validação do cutover, versões, GR/regional, gráfico de aprovações vigentes e prioridades com filial/PDV. As listas recentes/prioridades são limitadas para manter a apresentação executiva; os totais abrangem o escopo completo.
+
+Não são necessárias novas chaves, tabelas, dependências ou reimportação. O download não salva um checklist em edição.
+
 ## Atualização v4.4 — dashboard organizado e confirmação da versão
 
 1. Extraia o ZIP. **Os arquivos já estão diretamente na raiz**: app.py, release.py, start.sh, templates/, static/ e os demais arquivos.

@@ -17,6 +17,11 @@ def summarize(state,rejected,ids):
 
 def register_reports(app,core):
     db,ids=core['db'],core['IDS']
+    @app.get('/api/reports/rollout-executive.pdf')
+    def report_executive_rollout():
+        from rollout_executive_report import download_rollout_executive
+        return download_rollout_executive(core)
+
     @app.get('/api/reports/cutovers')
     def report_cutovers():
         with db() as c:

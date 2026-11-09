@@ -1,6 +1,21 @@
-# Cutover Linx Agiliza → Orion · v4.4
+# Cutover Linx Agiliza → Orion · v4.4.1
 
 Consulte `ATUALIZAR_RENDER.md` para atualizar o Start Command para `bash start.sh` e acompanhar os novos logs de inicialização.
+
+## PDF executivo geral em Relatórios — v4.4.1
+
+Na aba **Relatórios**, o botão **PDF executivo geral** gera um consolidado dos dados salvos de todas as filiais ativas e abertas no escopo. Os filtros da lista/CSV não alteram esse PDF; isso aparece informado na tela. Perfis Administrador, Gestor, Operador e Consulta podem baixar, mantendo o acesso autenticado.
+
+O relatório contém três páginas:
+1. **Visão executiva:** PDVs previstos, implantados e pendentes; lojas atualizadas; avanço do parque; versões instaladas; PDVs Orion OK, pendentes de validação e lojas completas.
+2. **Cobertura e evolução:** avanço por GR/regional, até seis grupos priorizados por PDVs sem implantação e demais grupos consolidados; gráfico dos PDVs atualmente Orion OK por data de aprovação nos últimos 14 dias; aprovações vigentes dos últimos sete dias.
+3. **Atenção e atualizações:** totais de ocorrências abertas/críticas, PDVs atrasados e lojas com atenção; até quatro lojas prioritárias com seus números de PDV; até cinco registros atualizados recentemente de cutover, implantação e GR/regional; critérios e qualidade do cadastro.
+
+Todos os grupos e versões entram nos totais. As listas são limitadas e agrupadas para manter o documento executivo, com três páginas e sem carregar o checklist de cada loja. Registros recentes representam a última gravação por registro, não uma listagem de todos os eventos de auditoria. O gráfico de aprovações não é uma fotografia histórica do parque e exclui datas estimadas. A implantação declarada não substitui os aceites do cutover.
+
+A geração ocorre ao clicar no botão, consulta os dados atuais e inicia o download; não salva mudanças abertas no checklist, não altera usuários e não grava o PDF no banco. A resposta não é armazenada em cache. Falhas são exibidas sem deixar o botão bloqueado. O relatório usa a marca ALM e fontes incorporadas do ReportLab já instalado. O módulo de geração é carregado somente no download para não aumentar o trabalho de inicialização do serviço.
+
+**Atualização:** substitua todos os arquivos do pacote, especialmente `rollout_executive_report.py`, `reports.py`, `static/reports.js`, `templates` e `release.py`. Mantenha Start Command **`bash start.sh`**. Nenhuma dependência, chave ou tabela nova é necessária. Validação local: 70 testes Python, fluxos DOM de administrador/consulta e renderização das três páginas, inclusive com muitos grupos e versões.
 
 ## Dashboard organizado — v4.4
 
