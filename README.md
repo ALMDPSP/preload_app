@@ -1,6 +1,12 @@
-# Cutover Linx Agiliza → Orion · v4.2.3
+# Cutover Linx Agiliza → Orion · v4.2.4
 
 Consulte `ATUALIZAR_RENDER.md` para atualizar o Start Command para `bash start.sh` e acompanhar os novos logs de inicialização.
+
+## Exibição do logo — v4.2.4
+
+O logo ALM tem espaço fixo no menu compartilhado por todas as páginas, sem encolher em telas baixas. O menu compacto mantém a identificação ALM. Login, ativação de senha, Authenticator e recuperação também exibem a marca. Uma alternativa em texto (ALM / Expansão de TI / Cutover online) permanece visível enquanto a imagem não carrega ou em caso de falha.
+
+Atualize todos os arquivos do pacote, incluindo `static/brand-logo.js`, `static/alm-brand.css`, `static/alm-expansao-cutover.png` e `templates`. Mantenha `bash start.sh`. Nenhuma alteração de banco ou chave é necessária.
 
 ## Identidade ALM — v4.2.3
 
