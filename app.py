@@ -38,6 +38,10 @@ def now(): return datetime.now(timezone.utc).isoformat()
 
 @contextmanager
 def db(*, healthcheck=False):
+    shared=getattr(g,'atomic_db',None) if has_request_context() else None
+    if shared is not None:
+        yield shared
+        return
     if DATABASE:
         import psycopg
         from psycopg.rows import dict_row
@@ -62,6 +66,10 @@ def db(*, healthcheck=False):
         if DATABASE:
             # SET LOCAL is scoped to this transaction and compatible with pooled connections.
             conn.execute("SELECT set_config('statement_timeout',%s,true),set_config('lock_timeout',%s,true),set_config('idle_in_transaction_session_timeout','30000',true)",('1500ms' if healthcheck else '45000ms','1000ms' if healthcheck else '8000ms'))
+        if has_request_context() and not healthcheck:
+            if DATABASE:
+                conn.execute('SELECT pg_advisory_xact_lock'+('' if getattr(g,'operational_exclusive',False) else '_shared')+'(724935108)')
+            elif getattr(g,'operational_exclusive',False) or getattr(g,'atomic_write',False):conn.execute('BEGIN IMMEDIATE')
         yield Connection()
         conn.commit()
     except Exception:
@@ -92,6 +100,8 @@ def init_db(log=None):
         migrate_operations(c)
         from rollout_base import migrate_rollout_base
         migrate_rollout_base(c)
+        from rollout_management import migrate_management
+        migrate_management(c,postgres=bool(DATABASE))
         report(f'Filiais conferidas. Vínculos migrados: {migrated}. Conferindo usuários...')
         email = os.getenv('ADMIN_EMAIL', '').strip().lower()
         password = os.getenv('ADMIN_PASSWORD', '')
@@ -255,8 +265,8 @@ def get_cutover(id):
     return jsonify(rejection=dict(review) if review else None,id=id,branch_id=branch['id'] if branch else None,state=bound_meta(json.loads(row['state']),branch) if branch else json.loads(row['state']),version=row['version'],updated_at=row['updated_at'],updated_by=row['updated_by'])
 
 @app.put('/api/cutovers/<id>')
-def update_cutover(id):
-    body=request.get_json() or {}
+def update_cutover(id,body=None):
+    body=body if body is not None else request.get_json() or {}
     try:s=valid_state(body.get('state'))
     except (ValueError,TypeError,AttributeError) as e:return error(str(e))
     if not isinstance(body.get('version'),int):return error('Versão inválida.')
@@ -288,6 +298,9 @@ def update_cutover(id):
                 # Operators can invalidate an approval by reopening a task, but cannot approve or edit a decision.
                 invalidated=dict(before);invalidated['value']='Pendente'
                 if after!=before and after!=invalidated:return error('Decisões GO / NO-GO são exclusivas de Administrador ou Gestor.',403)
+        from rollout_management import validator_guard
+        denied=validator_guard(c,g.user,branch['id'],s['meta'].get('pdv'),previous,s)
+        if denied:return error(denied,403)
         changed=c.execute('UPDATE ct_cutovers SET state=%s,title=%s,version=version+1,updated_at=%s,updated_by=%s WHERE id=%s AND version=%s', (json.dumps(s,ensure_ascii=False),s['meta']['branch'][:160],now(),g.user['email'],id,body['version']))
         if changed.rowcount!=1:return error('Outra pessoa atualizou este cutover. Exporte sua cópia e recarregue antes de continuar.',409)
         previous=json.loads(old['state']);diff={k:{'antes':previous.get(k),'depois':s.get(k)} for k in ['meta','tasks','decisions'] if previous.get(k)!=s.get(k)}
@@ -424,6 +437,11 @@ register_rollout_base(app,globals())
 
 from pdv_renumber import register_pdv_renumber
 register_pdv_renumber(app,globals())
+
+from rollout_management import register_management
+register_management(app,globals())
+from operational_backup import register_backup
+register_backup(app,globals())
 
 if __name__=='__main__':
     init_db();app.run(host='127.0.0.1',port=5000)

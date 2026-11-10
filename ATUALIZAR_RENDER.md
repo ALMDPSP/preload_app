@@ -1,3 +1,21 @@
+# Atualização v5.0 — Rollout operacional e executivo
+
+1. Extraia o ZIP. Envie **todo o conteúdo para a raiz do GitHub ALMDPSP/preload_app**, substituindo os arquivos e preservando static/ e templates/. Não envie o próprio ZIP nem crie uma pasta intermediária.
+2. Render → serviço → Settings: Build Command `pip install -r requirements.txt`; Start Command **`bash start.sh`**. Preserve DATABASE_URL, SECRET_KEY, MFA_ENCRYPTION_KEY e as demais configurações existentes. Não repita a recuperação de senha.
+3. Aguarde o commit novo ficar Live. A inicialização executa as migrações aditivas de ondas, responsáveis e impacto. Não é preciso reimportar lojas nem criar chaves.
+4. Abra /healthz e confirme version 5.0. Recarregue o site com Ctrl+Shift+R e confira v5.0 no menu.
+5. Na Central, selecione filial/PDV. Administrador/Gestor pode atribuir executor, validador, onda e prazo. Preencha Base e checklist e clique em **Salvar tudo**. O salvamento é manual e conjunto; pode guardar pendências para continuar depois.
+6. Consulte Fila do dia e Ondas de rollout. No Dashboard/Relatórios selecione o período para comparação, PDF executivo e CSV operacional.
+7. Execute os passos de VALIDACAO_PRODUCAO.md. Gestão de dados é exclusiva do Administrador. Faça um backup operacional e confira sua prévia; teste restauração em ambiente separado antes de usar em produção.
+
+Os usuários e registros existentes são preservados pela atualização. Responsáveis/ondas começam em branco até serem atribuídos. O backup operacional não contém credenciais nem substitui backup nativo completo do Neon.
+
+**Situação desta entrega:** 83 testes locais aprovados e interface validada nos quatro perfis. Produção Neon/Render pendente de validação após o deploy. O desempenho real depende também da instância e da conexão com o banco.
+
+## Histórico das instruções de versões anteriores
+
+Use as instruções v5.0 acima; o conteúdo abaixo é histórico.
+
 ## Atualização v4.5 — Central de Cutover
 
 1. Extraia o ZIP e envie **todo o conteúdo para a raiz do GitHub**, preservando as pastas e substituindo os arquivos anteriores. Inclua especialmente static/central.js, static/central.css, app.py, release.py e templates.

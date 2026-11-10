@@ -83,9 +83,9 @@ def register_rollout_base(app,core):
         result=branch_base(core,id)
         return jsonify(result) if result else core['error']('Filial não encontrada.',404)
     @app.put('/api/rollout-base/branches/<id>')
-    def save_rollout_base(id):
+    def save_rollout_base(id,body=None):
         if g.user['role']=='viewer':return core['error']('Consulta permite somente leitura.',403)
-        body=request.get_json(silent=True)
+        body=body if body is not None else request.get_json(silent=True)
         try:
             if not isinstance(body,dict):raise ValueError('Preencha os dados do cadastro.')
             regional=clean(body,'regional',120,True);gr=clean(body,'gr',120,True)

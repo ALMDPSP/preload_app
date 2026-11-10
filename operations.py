@@ -149,10 +149,10 @@ def register_operations(app,core):
             audit(c,g.user['email'],'remoção de planejamento',detail={'branch_id':body.get('branch_id'),'pdv':body.get('pdv')})
         return jsonify(ok=True)
     def issue_fields(body):
-        branch=text(body,'branch_id',80,True);pdv=pdv_number(body.get('pdv'));title=text(body,'title',160,True);description=text(body,'description',2000);owner=text(body,'owner',120,True);due=valid_date(body.get('due_date'),True);priority=body.get('priority','Normal');status=body.get('status','Aberta');resolution=text(body,'resolution',2000)
+        branch=text(body,'branch_id',80,True);pdv=pdv_number(body.get('pdv'));title=text(body,'title',160,True);description=text(body,'description',2000);owner=text(body,'owner',120,True);due=valid_date(body.get('due_date'),True);priority=body.get('priority','Normal');status=body.get('status','Aberta');resolution=text(body,'resolution',2000);impact=text(body,'impact',1000)
         if not pdv or priority not in PRIORITIES or status not in ISSUE_STATUSES:raise ValueError('Confira o PDV, prioridade e situação.')
         if status=='Resolvida' and len(resolution)<3:raise ValueError('Descreva como a pendência foi resolvida.')
-        return branch,pdv,title,description,owner,due,priority,status,resolution
+        return branch,pdv,title,description,owner,due,priority,status,resolution,impact
     @app.post('/api/operations/issues')
     def ops_create_issue():
         if g.user['role']=='viewer':return error('Consulta permite somente leitura.',403)
@@ -161,7 +161,7 @@ def register_operations(app,core):
             values=issue_fields(body)
             with db() as c:
                 planned_branch(c,values[0],values[1])
-                c.execute('INSERT INTO ct_rollout_issues (id,branch_id,pdv,title,description,owner,due_date,priority,status,resolution,version,created_at,updated_at,updated_by) VALUES (%s,%s,%s,%s,%s,%s,%s,%s,%s,%s,1,%s,%s,%s)',(id,*values,stamp(),stamp(),g.user['email']))
+                c.execute('INSERT INTO ct_rollout_issues (id,branch_id,pdv,title,description,owner,due_date,priority,status,resolution,impact,version,created_at,updated_at,updated_by) VALUES (%s,%s,%s,%s,%s,%s,%s,%s,%s,%s,%s,1,%s,%s,%s)',(id,*values,stamp(),stamp(),g.user['email']))
                 audit(c,g.user['email'],'abertura de pendência',detail={'id':id,'branch_id':values[0],'pdv':values[1],'title':values[2]})
         except ValueError as exc:return error(str(exc))
         return jsonify(id=id),201
@@ -176,7 +176,7 @@ def register_operations(app,core):
                 before=c.execute('SELECT * FROM ct_rollout_issues WHERE id=%s',(id,)).fetchone()
                 if not before:return error('Pendência não encontrada.',404)
                 if (values[0],values[1])!=(before['branch_id'],before['pdv']):return error('Não altere a filial/PDV de uma pendência existente.')
-                result=c.execute('UPDATE ct_rollout_issues SET title=%s,description=%s,owner=%s,due_date=%s,priority=%s,status=%s,resolution=%s,version=version+1,updated_at=%s,updated_by=%s WHERE id=%s AND version=%s',(*values[2:],stamp(),g.user['email'],id,body['version']))
+                result=c.execute('UPDATE ct_rollout_issues SET title=%s,description=%s,owner=%s,due_date=%s,priority=%s,status=%s,resolution=%s,impact=%s,version=version+1,updated_at=%s,updated_by=%s WHERE id=%s AND version=%s',(*values[2:],stamp(),g.user['email'],id,body['version']))
                 if result.rowcount!=1:return error('A pendência mudou. Atualize a página.',409)
                 audit(c,g.user['email'],'atualização de pendência',detail={'id':id,'before_status':before['status'],'status':values[7],'owner':values[4],'resolution':values[8]})
         except ValueError as exc:return error(str(exc))
@@ -185,7 +185,7 @@ def register_operations(app,core):
     def snapshot_saved_rollout(response):
         if 200<=response.status_code<300:
             path=request.path
-            mutation=request.method in ['POST','PUT','DELETE'] and (path.startswith('/api/cutovers') or path.startswith('/api/branches') or path.startswith('/api/rollout-base/branches/') and path.endswith('/pdv-number')) and not path.endswith('/import/preview')
+            mutation=request.method in ['POST','PUT','DELETE'] and (path.startswith('/api/rollout/branches/') and path.endswith('/save-all') or path.startswith('/api/cutovers') or path.startswith('/api/branches') or path.startswith('/api/rollout-base/branches/') and path.endswith('/pdv-number')) and not path.endswith('/import/preview')
             dashboard=path=='/api/dashboard' and not request.args.get('q') and not request.args.get('uf')
             if mutation or dashboard:
                 try:capture_snapshot(core,getattr(g,'dashboard_snapshot',None) if dashboard else None,advance=mutation)

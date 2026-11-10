@@ -26,7 +26,7 @@ def register_pdv_renumber(app,core):
                 if new in numbers:return error('O novo número já existe nesta filial. Escolha outro número.',409)
                 inventory=c.execute('SELECT * FROM ct_rollout_inventory WHERE branch_id=%s AND pdv=%s',(id,old)).fetchone()
                 if (inventory['version'] if inventory else 0)!=body['inventory_version']:return error('O cadastro do PDV mudou. Reabra antes de alterar.',409)
-                for table in ['ct_rollout_inventory','ct_rollout_schedule','ct_rollout_issues']:
+                for table in ['ct_rollout_inventory','ct_rollout_schedule','ct_rollout_issues','ct_pdv_assignments']:
                     if c.execute('SELECT pdv FROM '+table+' WHERE branch_id=%s AND pdv=%s',(id,new)).fetchone():return error('O novo número já possui registros nesta filial. Escolha outro número.',409)
                 suffix=' FOR UPDATE OF x' if core['DATABASE'] else ''
                 records=c.execute('SELECT x.* FROM ct_cutovers x JOIN ct_cutover_branch l ON l.cutover_id=x.id WHERE l.branch_id=%s ORDER BY x.id'+suffix,(id,)).fetchall()
@@ -45,6 +45,7 @@ def register_pdv_renumber(app,core):
                     if changed.rowcount!=1:raise RenumberConflict()
                 c.execute('UPDATE ct_rollout_schedule SET pdv=%s,version=version+1,updated_at=%s,updated_by=%s WHERE branch_id=%s AND pdv=%s',(new,stamp,actor,id,old))
                 c.execute('UPDATE ct_rollout_issues SET pdv=%s,version=version+1,updated_at=%s,updated_by=%s WHERE branch_id=%s AND pdv=%s',(new,stamp,actor,id,old))
+                c.execute('UPDATE ct_pdv_assignments SET pdv=%s,version=version+1,updated_at=%s,updated_by=%s WHERE branch_id=%s AND pdv=%s',(new,stamp,actor,id,old))
                 for row,state in affected:
                     state['meta']['pdv']=new;state['meta']['branch']=branch['code']+' / PDV '+new
                     # Identity-only correction: preserve last checklist save time/actor and the ordering of historical runs.

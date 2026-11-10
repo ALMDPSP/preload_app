@@ -1,4 +1,38 @@
-# Cutover Linx Agiliza → Orion · v4.5
+# Cutover Linx Agiliza → Orion · v5.0
+
+## Operação e gestão do rollout
+
+Esta versão reúne cadastro, execução, responsáveis e ocorrências por filial e número de PDV. As instruções desta seção substituem os fluxos de salvamento descritos nas versões anteriores.
+
+- **Salvar tudo:** na Central, grava o cadastro do PDV selecionado, seus responsáveis e o checklist aberto na mesma transação. Se houver conflito ou falha, nenhuma parte dessa operação é gravada. Pendências não impedem salvar; navegar não salva. Uma alteração feita enquanto a gravação está em andamento permanece como rascunho.
+- **Executor e validador:** Administrador/Gestor define os usuários por PDV, a onda e a data prevista. O executor pode preencher conforme seu perfil. Havendo validador indicado, os aceites ficam restritos a ele; o Administrador mantém a possibilidade de intervenção. Operador não concede aceite. Consulta continua somente leitura. Cadastros existentes começam sem responsáveis/ondas até serem atribuídos.
+- **Fila do dia:** exibe filial, PDV, responsáveis, prazo e situação, com filtros para meus PDVs, atrasados, aguardando aceite e concluídos. Abertura direta na Central e paginação de 40 equipamentos.
+- **Ondas de rollout:** períodos, situação administrativa, justificativa de atraso e avanço. É possível vincular todos os PDVs previstos de uma filial à onda, preservando responsáveis e datas específicas. Marcar a onda como concluída não concede aceite aos equipamentos.
+- **Ocorrências:** registre responsável, prazo, criticidade, impacto e resolução, inclusive na própria Central. Pendências abertas ajudam a ordenar as prioridades.
+- **Dashboard:** mantém a Base de Rollout como leitura principal e separa implantação declarada de validação Orion. Acrescenta planejado, validado, pendente, atrasos, aceites e ausência de responsáveis. O período inicial é a semana atual, de segunda a domingo, comparada ao intervalo anterior de igual duração.
+- **Relatórios:** o PDF executivo com período tem quatro páginas, com comparação e ondas prioritárias, seguido do panorama atual. A geração sem período mantém três páginas. O CSV operacional detalha filial/PDV, responsáveis, onda, prazo, situação, ocorrências e impacto; inclui equipamentos com prazo ou última gravação no período. O PDF individual continua disponível.
+- **Gestão de dados:** exclusiva do Administrador, oferece backup operacional, prévia de restauração e conferência de integridade/totais.
+
+### Critérios dos indicadores
+
+Implantação declarada e Orion OK são medidas distintas. A comparação considera a posição atualmente salva e as datas identificadas dos registros que continuam válidos; não reconstrói fotografias históricas. Datas de implantação ausentes não são estimadas pela última edição. Atrasos e alertas gerais representam a posição atual. Os filtros/períodos e critérios aparecem no painel e nos relatórios.
+
+### Backup e restauração
+
+O arquivo operacional contém lojas, planos de PDV, execução, auditoria e gestão do rollout. **Não contém senhas, segredos MFA, sessões nem chaves e não recupera usuários ou acesso.** Referências de responsáveis são remapeadas para contas existentes compatíveis; vínculos indisponíveis são informados na prévia. A assinatura exige a mesma SECRET_KEY, que deve ser preservada separadamente.
+
+A restauração substitui os dados operacionais, preserva as contas existentes e exige prévia, o mesmo arquivo e digitação de RESTAURAR. A prévia vence em dez minutos e fica inválida se os dados ou os perfis mudarem. Falhas revertem a transação. Limites: 10 MiB compactados, 32 MiB descompactados, 200 mil registros e verificação conservadora de tamanho antes da exportação. Para bases maiores ou recuperação completa do PostgreSQL, mantenha também backup nativo do banco. Teste a restauração primeiro em ambiente separado, com versão compatível; use janela de manutenção e todas as instâncias na v5.0 para uma restauração de produção.
+
+### Atualização e validação
+
+Envie o pacote completo à raiz do GitHub. Mantenha `pip install -r requirements.txt` e **`bash start.sh`**. Não há novas dependências ou chaves. A inicialização adiciona as tabelas de ondas e responsáveis e a coluna de impacto; dados existentes não são reimportados. Confira v5.0 no menu e em `/healthz` após o deploy.
+
+Validação local: **83 testes Python aprovados**, incluindo conflitos concorrentes, permissões, reversão de salvamento/restauração e relatório; interface integrada ao Flask em banco temporário nos quatro perfis; quatro páginas do PDF renderizadas e conferidas. PostgreSQL local indisponível por restrição de sockets do ambiente. **Neon/Render de produção não acessados nem validados nesta entrega.** Siga `VALIDACAO_PRODUCAO.md` após publicar.
+
+## Histórico de versões anteriores
+
+As seções abaixo registram o comportamento das versões antigas; para instalar e operar a v5.0, siga as orientações acima.
+
 
 Consulte `ATUALIZAR_RENDER.md` para atualizar o Start Command para `bash start.sh` e acompanhar os novos logs de inicialização.
 

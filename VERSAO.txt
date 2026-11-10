@@ -1,5 +1,6 @@
 ALM - Expansão de TI | Cutover online
-Versão 4.5 - Central de Cutover, Dashboard e PDFs
+Versão 5.0 - Rollout operacional e executivo
 Arquivos diretamente na raiz do ZIP.
 Start Command: bash start.sh
-Confirmação após deploy: /healthz deve informar version 4.5.
+Confirmação após deploy: /healthz deve informar version 5.0.
+Validação Neon/Render pendente após publicação.

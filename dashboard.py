@@ -127,7 +127,8 @@ def register_dashboard(app,core):
     def dashboard():
         if request.args.get('compact')=='1':
             from executive_dashboard import dashboard_bundle
-            result=dashboard_bundle(core,request.args)
+            try:result=dashboard_bundle(core,request.args)
+            except ValueError as exc:return error(str(exc))
             g.dashboard_snapshot=result.pop('_snapshot',None)
             return jsonify(result)
         data=read_data();g.dashboard_snapshot=data

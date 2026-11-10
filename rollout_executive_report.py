@@ -8,7 +8,7 @@ from collections import Counter
 from datetime import datetime,timedelta
 from zoneinfo import ZoneInfo
 from xml.sax.saxutils import escape
-from flask import send_file
+from flask import send_file,request
 from reportlab.lib import colors
 from reportlab.lib.pagesizes import A4
 from reportlab.lib.styles import ParagraphStyle
@@ -99,6 +99,21 @@ def create_rollout_executive_pdf(data):
         d.add(String(WIDTH,6,'Pendentes: '+n(expected-done),textAnchor='end',fontName='RolloutSans',fontSize=8,fillColor=MUTED))
         return d
     b=data['base'];t=data['totals'];e=data['executive'];flow=[]
+    period=data.get('period_summary')
+    if period:
+        def fmt_day(day):return day.split('-')[2]+'/'+day.split('-')[1]+'/'+day.split('-')[0]
+        cur=period['current'];prior=period['previous']
+        flow.extend([p('Resultado do período','title'),p(fmt_day(period['from_date'])+' a '+fmt_day(period['to_date'])+' | Comparação com '+fmt_day(period['previous_from'])+' a '+fmt_day(period['previous_to']),'muted'),
+                     kpis([('PDVs previstos',cur['planned'],'Com prazo no período'),('Previstos validados',cur['validated_planned'],'Orion OK vigente'),('Previstos pendentes',cur['deviation'],'Ainda sem Orion OK')]),
+                     p('Comparação executiva','h'),
+                     table([['Indicador','Período anterior','Período selecionado'],['Previstos por prazo',n(prior['planned']),n(cur['planned'])],['Previstos já validados',n(prior['validated_planned']),n(cur['validated_planned'])],['Aprovações vigentes por data',n(prior['validated']),n(cur['validated'])],['Implantações declaradas por data',n(prior['declared_deployed']),n(cur['declared_deployed'])]],[90*mm,42*mm,42*mm]),
+                     Spacer(1,10),p('Variação das aprovações vigentes: '+('+' if period['validated_delta']>0 else '')+str(period['validated_delta'])+' PDV(s).','body'),
+                     p(str(period['overdue'])+' PDV(s) atrasado(s) hoje; '+str(period['awaiting_acceptance'])+' aguardando aceite; '+str(period['critical'])+' ocorrência(s) crítica(s).','muted'),
+                     p('Ondas e justificativas','h')])
+        waves=sorted([w for w in period['waves'] if w['start_date']<=period['to_date'] and w['due_date']>=period['from_date']],key=lambda w:(-w['overdue'],w['due_date'],w['name']))[:3]
+        flow.append(table([['Onda','Previstos','Validados','Atrasados','Justificativa']]+[[short(w['name'],32),n(w['planned']),n(w['validated']),n(w['overdue']),short(w['delay_reason'] or 'Não informada',90)] for w in waves or [{'name':'Sem ondas cadastradas','planned':0,'validated':0,'overdue':0,'delay_reason':''}]],[49*mm,23*mm,23*mm,23*mm,56*mm]))
+        flow.extend([p('Até 3 ondas que cruzam o período selecionado, priorizadas por atraso. Os números das ondas mostram sua posição atual; os indicadores do período incluem todos os planejamentos. '+period['note'],'muted'),p(str(period['declared_without_date'])+' PDV(s) implantado(s) sem data declarada de implantação. Esses registros permanecem no total atual, sem estimar uma data para o comparativo.','muted'),p('As páginas seguintes apresentam a posição atual do parque, emitida em '+stamp(data['generated_at'])+'.','muted'),PageBreak()])
+
     gap=max(0,b['pdvs_deployed']-t['ok'])
     focus=('Resolver '+str(e['critical_issues'])+' ocorrência(s) crítica(s).' if e['critical_issues'] else 'Priorizar '+str(e['overdue_pdvs'])+' PDV(s) atrasado(s).' if e['overdue_pdvs'] else 'Validar os PDVs implantados sem Orion OK.' if gap else 'Avançar a implantação e acompanhar os aceites.')
     flow += [p('Relatório executivo','title'),p('ROLLOUT PDV ORION | Posição consolidada em '+stamp(data['generated_at'])+' (Brasília)','muted'),
@@ -171,7 +186,13 @@ def create_rollout_executive_pdf(data):
     doc.build(flow,onFirstPage=footer,onLaterPages=footer);out.seek(0);return out
 
 def download_rollout_executive(core):
+    if request.args.get('from') or request.args.get('to'):
+        from rollout_management import period_summary
+        try:period=period_summary(core,request.args)
+        except ValueError as exc:return core['error'](str(exc))
+    else:period=None
     data=report_payload(core)
+    if period:data['period_summary']=period
     stamp=datetime.fromisoformat(data['generated_at']).astimezone(ZoneInfo('America/Sao_Paulo')).strftime('%Y-%m-%d_%H-%M')
     return send_file(create_rollout_executive_pdf(data),mimetype='application/pdf',as_attachment=True,
                      download_name='Executivo_Rollout_PDV_Orion_'+stamp+'.pdf',max_age=0)

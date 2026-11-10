@@ -60,6 +60,8 @@ def dashboard_bundle(core,args):
     result['exceptions']=result['exceptions'][:100]
     from rollout_base import rollout_base_summary
     result['rollout_base']=rollout_base_summary(core,scoped)
+    from rollout_management import period_summary,model
+    result['management']=period_summary(core,args,model(core,scoped,operations))
     result.update(compact=True,stores=scoped['stores'][(page-1)*size:page*size],pagination={'page':page,'pages':pages,'total':len(scoped['stores']),'size':size},executive=executive_metrics(scoped,operations,core),operations={'generated_at':operations['generated_at'],'goal':operations['goal'],'metrics':operations['metrics']},_snapshot=data)
     return result
 

@@ -45,7 +45,9 @@ async function downloadRolloutExecutivePdf(sourceButton=null){
  const button=sourceButton?.tagName==='BUTTON'?sourceButton:$('executiveRolloutPdf');if(button.disabled)return;
  const label=button.textContent;button.disabled=true;button.textContent='Gerando PDF executivo…';
  try{
-  const response=await fetch('/api/reports/rollout-executive.pdf',{credentials:'same-origin',headers:{Accept:'application/pdf'}});
+  const prefix=sourceButton?.id==='dashboardExecutivePdf'?'dashboard':'report';
+  const query=typeof periodQuery==='function'?'?'+periodQuery(prefix):'';
+  const response=await fetch('/api/reports/rollout-executive.pdf'+query,{credentials:'same-origin',headers:{Accept:'application/pdf'}});
   if(!response.ok){let message='Não foi possível gerar o PDF executivo. Tente novamente.';try{const data=await response.json();message=data.error||message}catch{}throw Error(message)}
   if(!(response.headers.get('Content-Type')||'').includes('application/pdf'))throw Error('Sessão expirada. Entre novamente para baixar o relatório.');
   const blob=await response.blob(),url=URL.createObjectURL(blob),link=document.createElement('a');
