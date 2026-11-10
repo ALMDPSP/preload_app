@@ -1,3 +1,9 @@
+# Atualização v5.0.2 — Marca Cutover online
+
+O logo da navegação, login e autenticação passa a mostrar apenas **Cutover online**, em azul claro e ciano. A marca é texto, sem dependência do carregamento da imagem anterior, e se adapta ao celular e ao menu recolhido. Os créditos de desenvolvimento no rodapé foram preservados.
+
+Envie o pacote completo para a raiz do GitHub, mantenha `bash start.sh` no Render e confirme version 5.0.2 em /healthz após o deploy. Atualize com Ctrl+Shift+R. Nenhuma chave, dependência ou migração nova é necessária.
+
 # Correção v5.0.1 — Excluir pendências
 
 Envie o conteúdo completo do ZIP para a raiz do GitHub, substituindo os arquivos. Mantenha `bash start.sh` no Render e aguarde o commit ficar Live. Atualize a página com Ctrl+Shift+R e confirme version 5.0.1 em /healthz.
