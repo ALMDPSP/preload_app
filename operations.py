@@ -181,6 +181,18 @@ def register_operations(app,core):
                 audit(c,g.user['email'],'atualização de pendência',detail={'id':id,'before_status':before['status'],'status':values[7],'owner':values[4],'resolution':values[8]})
         except ValueError as exc:return error(str(exc))
         return jsonify(ok=True)
+    @app.delete('/api/operations/issues/<id>')
+    def ops_delete_issue(id):
+        if g.user['role']!='admin':return error('Somente Administrador pode excluir pendências.',403)
+        body=request.get_json() or {}
+        if type(body.get('version')) is not int or body['version']<1:return error('Versão inválida.')
+        with db() as c:
+            before=c.execute('SELECT * FROM ct_rollout_issues WHERE id=%s',(id,)).fetchone()
+            if not before:return error('Pendência não encontrada.',404)
+            result=c.execute('DELETE FROM ct_rollout_issues WHERE id=%s AND version=%s',(id,body['version']))
+            if result.rowcount!=1:return error('A pendência mudou. Atualize a página antes de excluir.',409)
+            audit(c,g.user['email'],'exclusão de pendência',detail={'id':id,'branch_id':before['branch_id'],'pdv':before['pdv'],'title':before['title'],'status':before['status']})
+        return jsonify(ok=True)
     @app.after_request
     def snapshot_saved_rollout(response):
         if 200<=response.status_code<300:

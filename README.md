@@ -1,3 +1,9 @@
+# Cutover Linx Agiliza → Orion · v5.0.1
+
+Na aba **Pendências**, o Administrador encontra **Excluir** em cada registro. A confirmação identifica título, filial e PDV; Cancelar mantém o registro. A exclusão é permanente, exige a versão atual e fica registrada na auditoria. Checklist e aceites permanecem intactos. Gestor, Operador e Consulta não podem excluir pendências.
+
+Atualize o pacote completo e mantenha `bash start.sh`. Não há nova chave, dependência ou migração nesta correção. A v5.0 permanece incluída no pacote.
+
 # Cutover Linx Agiliza → Orion · v5.0
 
 ## Operação e gestão do rollout

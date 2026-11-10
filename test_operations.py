@@ -99,3 +99,26 @@ def test_daily_boundary_cli_and_decreasing_counts(isolated,monkeypatch,capsys):
     rows=c.get('/api/operations/history?from=2026-11-06&to=2026-11-06').json['rows'];assert rows[0]['ok']==0 and rows[0]['provisional']
     import pytest
     with pytest.raises(SystemExit):manage.main(['snapshot-rollout','wrong-extra-argument'])
+
+def test_delete_issue_admin_only_conflicts_audit_and_preserves_checklist(isolated):
+    c=admin(isolated);cutover,b=setup(c);body=issue(b)
+    r=c.post('/api/operations/issues',headers=headers(c),json=body);id=r.json['id'];path='/api/operations/issues/'+id
+    original=c.get('/api/cutovers/'+cutover).json
+    assert module.app.test_client().delete(path,json={'version':1}).status_code==403
+    assert c.delete(path,json={'version':1}).status_code==403
+    for role in ['manager','operator','viewer']:
+        user,_=add_user(c,'delete-'+role+'@qa.test',role,isolated)
+        assert user.delete(path,headers=headers(user),json={'version':1}).status_code==403
+    for version in [None,True,0,-1,'1']:
+        assert c.delete(path,headers=headers(c),json={'version':version}).status_code==400
+    assert c.put(path,headers=headers(c),json={**body,'version':1,'title':'Pendência atualizada'}).status_code==200
+    assert c.delete(path,headers=headers(c),json={'version':1}).status_code==409
+    assert c.get('/api/operations/overview').json['metrics']['open_issues']==1
+    assert c.delete(path,headers=headers(c),json={'version':2}).status_code==200
+    data=c.get('/api/operations/overview').json
+    assert data['issues']==[] and data['metrics']['open_issues']==0
+    assert c.get('/api/cutovers/'+cutover).json==original
+    with module.db() as db:
+        row=db.execute('SELECT * FROM ct_audit WHERE action=%s',('exclusão de pendência',)).fetchone()
+        assert row and json.loads(row['detail'])['id']==id
+    assert c.delete(path,headers=headers(c),json={'version':2}).status_code==404

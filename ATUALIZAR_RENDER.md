@@ -1,3 +1,11 @@
+# Correção v5.0.1 — Excluir pendências
+
+Envie o conteúdo completo do ZIP para a raiz do GitHub, substituindo os arquivos. Mantenha `bash start.sh` no Render e aguarde o commit ficar Live. Atualize a página com Ctrl+Shift+R e confirme version 5.0.1 em /healthz.
+
+Entre como Administrador → Pendências → Excluir → confira filial/PDV e confirme. A ação apaga somente a pendência, preservando checklist e aceites, com auditoria. Se o registro tiver mudado, atualize a lista antes de excluir. Cancelar não apaga nada. Os demais perfis não têm permissão para excluir.
+
+Nenhuma configuração nova é necessária. As funcionalidades da v5.0 estão mantidas. Publicação e validação no Neon/Render ainda devem ser realizadas após o envio.
+
 # Atualização v5.0 — Rollout operacional e executivo
 
 1. Extraia o ZIP. Envie **todo o conteúdo para a raiz do GitHub ALMDPSP/preload_app**, substituindo os arquivos e preservando static/ e templates/. Não envie o próprio ZIP nem crie uma pasta intermediária.
