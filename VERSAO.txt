@@ -1,6 +1,6 @@
 ALM - Expansão de TI | Cutover online
-Versão 5.1.1 - Rollout operacional e executivo
+Versão 5.1.2 - Rollout operacional e executivo
 Arquivos diretamente na raiz do ZIP.
 Start Command: bash start.sh
-Confirmação após deploy: /healthz deve informar version 5.1.1.
+Confirmação após deploy: /healthz deve informar version 5.1.2.
 Validação Neon/Render pendente após publicação.

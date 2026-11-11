@@ -77,18 +77,19 @@ function initDashboard(){
 initDashboard();
 async function dashboardMachines(focus,page=1){
  if(!dashboardData)return;
- if(dashboardData.compact||focus==='PDVs implantados'){
-  const status={'PDVs implantados':'deployed','Virados e Orion OK':'ok','PDVs pendentes':'pending','Lojas completas':'stores_ok','PDVs previstos':'all'}[focus]||focus;
+ const rolloutStatus={'PDVs implantados':'deployed','Pendentes de implantação':'undeployed'}[focus];
+ if(dashboardData.compact||rolloutStatus){
+  const status=rolloutStatus||{'Virados e Orion OK':'ok','PDVs pendentes':'pending','Lojas completas':'stores_ok','PDVs previstos':'all'}[focus]||focus;
   modal('<h2>'+esc(focus)+'</h2><p>Carregando PDVs…</p>');
-  try{const result=await api('/api/dashboard/machines?'+dashboardQuery()+'&status='+encodeURIComponent(status)+'&page='+page);if(!$('modal').open)return;renderMachinePage(focus,result);return}catch(e){$('modalBody').textContent=e.message;return}
+  const query=rolloutStatus?new URLSearchParams(dashboardData.filters).toString():dashboardQuery();
+  try{const result=await api('/api/dashboard/machines?'+query+'&status='+encodeURIComponent(status)+'&page='+page);if(!$('modal').open)return;renderMachinePage(focus,result,!!rolloutStatus);return}catch(e){$('modalBody').textContent=e.message;return}
  }
  const complete=new Set(dashboardData.stores.filter(s=>s.pending===0).map(s=>s.id));
  const machines=dashboardData.machines.filter(m=>focus==='Virados e Orion OK'?m.ok:focus==='PDVs pendentes'?!m.ok:focus==='Lojas completas'?complete.has(m.branch_id):true),pages=Math.max(1,Math.ceil(machines.length/40)),rows=machines.slice((page-1)*40,page*40);
  renderMachinePage(focus,{rows,page,pages,total:machines.length});
 }
-function renderMachinePage(focus,{rows,page,pages,total}){
- const implanted=focus==='PDVs implantados';
- modal(`<h2>${esc(focus)}</h2><p>${total} PDV(s) no recorte atual · Página ${page} de ${pages}</p><div class="report-table-wrap"><table class="branch-table"><thead><tr><th>Filial / PDV</th><th>Situação</th>${implanted?'<th>Versão</th><th>Data da implantação</th>':''}<th>Ação</th></tr></thead><tbody>${rows.map((m,i)=>`<tr><td><b>${esc(m.code)} · PDV ${esc(m.pdv)}</b><span>${esc(m.name)}</span></td><td>${esc(m.status)}</td>${implanted?`<td>${esc(m.installed_version||'—')}</td><td>${m.deployed_at?esc(m.deployed_at.split('-').reverse().join('/')):'—'}</td>`:''}<td><button data-machine-index="${i}">Ver loja / execução</button></td></tr>`).join('')||`<tr><td colspan="${implanted?5:3}">Nenhum PDV neste filtro.</td></tr>`}</tbody></table></div><div class="actions"><button id="machinePrevious" ${page<=1?'disabled':''}>Anterior</button><button id="machineNext" ${page>=pages?'disabled':''}>Próxima</button></div>`);
+function renderMachinePage(focus,{rows,page,pages,total},rollout=false){
+ modal(`<h2>${esc(focus)}</h2><p>${total} PDV(s) no recorte atual · Página ${page} de ${pages}</p><div class="report-table-wrap"><table class="branch-table"><thead><tr><th>Filial / PDV</th><th>Situação</th>${rollout?'<th>Versão</th><th>Data da implantação</th>':''}<th>Ação</th></tr></thead><tbody>${rows.map((m,i)=>`<tr><td><b>${esc(m.code)} · PDV ${esc(m.pdv)}</b><span>${esc(m.name)}</span></td><td>${esc(m.status)}</td>${rollout?`<td>${esc(m.installed_version||'—')}</td><td>${m.deployed_at?esc(m.deployed_at.split('-').reverse().join('/')):'—'}</td>`:''}<td><button data-machine-index="${i}">Ver loja / execução</button></td></tr>`).join('')||`<tr><td colspan="${rollout?5:3}">Nenhum PDV neste filtro.</td></tr>`}</tbody></table></div><div class="actions"><button id="machinePrevious" ${page<=1?'disabled':''}>Anterior</button><button id="machineNext" ${page>=pages?'disabled':''}>Próxima</button></div>`);
  $('machinePrevious').onclick=()=>dashboardMachines(focus,page-1);$('machineNext').onclick=()=>dashboardMachines(focus,page+1);
- document.querySelectorAll('[data-machine-index]').forEach(b=>b.onclick=async()=>{const m=rows[Number(b.dataset.machineIndex)];if(implanted){await openCentralFromDashboard(m.branch_id,m.pdv);return}if(!await switchBranch(m.branch_id))return;if(m.cutover_id)await loadExecution(m.cutover_id);$('modal').close();document.querySelector('[data-view="run"]').click();});
+ document.querySelectorAll('[data-machine-index]').forEach(b=>b.onclick=async()=>{const m=rows[Number(b.dataset.machineIndex)];if(rollout){await openCentralFromDashboard(m.branch_id,m.pdv);return}if(!await switchBranch(m.branch_id))return;if(m.cutover_id)await loadExecution(m.cutover_id);$('modal').close();document.querySelector('[data-view="run"]').click();});
 }

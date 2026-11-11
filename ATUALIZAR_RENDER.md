@@ -1,3 +1,9 @@
+# Atualização v5.1.2
+
+O card **PDVs pendentes** do Dashboard abre a lista paginada dos equipamentos sem implantação no recorte atual. A lista segue o formato de **PDVs implantados** e permite abrir cada equipamento na Central.
+
+Envie o conteúdo do ZIP para a raiz do GitHub. Mantenha o Start Command `bash start.sh` e confirme a versão 5.1.2 em /healthz após o deploy.
+
 # Atualização v5.1.1
 
 O Dashboard mostra o total de filiais ativas no escopo do rollout em toda a rede. A busca por filial e os filtros continuam aplicados aos indicadores do recorte.

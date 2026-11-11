@@ -91,4 +91,8 @@ def test_deployed_list_matches_card_and_version_chart_excludes_missing_versions(
     assert [(row['pdv'],row['status'],row['installed_version']) for row in page['rows']]==[
         ('01','Orion OK',''),('05','Implantação declarada','Orion 2.0')]
     assert card['versions']==[{'name':'Orion 2.0','count':1,'percent':100.0}]
+    pending=c.get('/api/dashboard/machines?status=undeployed&q=VD266').json
+    assert pending['total']==card['pdvs_pending']==3
+    assert [row['pdv'] for row in pending['rows']]==['02','03','04']
+    assert c.get('/api/dashboard/machines?status=pending&q=VD266').json['total']==4
     assert c.get('/api/dashboard/machines?status=deployed&q=ausente').json['total']==0

@@ -67,17 +67,22 @@ def dashboard_bundle(core,args):
 
 def machine_page(core,args):
     status=args.get('status','')
-    data=dashboard_data(core,args.get('q','')[:200],args.get('uf','').upper()[:2],include_evolution=status!='deployed')
-    if status=='deployed':
+    rollout_status=status in {'deployed','undeployed'}
+    data=dashboard_data(core,args.get('q','')[:200],args.get('uf','').upper()[:2],include_evolution=not rollout_status)
+    if rollout_status:
         from rollout_base import base_records,deployed,reported_version
         _,inventory=base_records(core)
         rows=[]
         for machine in data['machines']:
             record=inventory.get((machine['branch_id'],machine['pdv']))
-            if deployed(machine,record):
-                rows.append({**machine,'status':'Orion OK' if machine['ok'] else 'Implantação declarada',
-                             'installed_version':reported_version(record),
-                             'deployed_at':(record or {}).get('deployed_at','')})
+            if deployed(machine,record)!=(status=='deployed'):
+                continue
+            label=machine['status']
+            if status=='deployed' and not machine['ok']:
+                label='Implantação declarada'
+            rows.append({**machine,'status':label,
+                         'installed_version':reported_version(record),
+                         'deployed_at':(record or {}).get('deployed_at','')})
     else:
         complete={s['id'] for s in data['stores'] if not s['pending']}
         rows=[m for m in data['machines'] if (status not in ['ok','pending','stores_ok'] or (m['ok'] if status=='ok' else not m['ok'] if status=='pending' else m['branch_id'] in complete)) and (status in ['','all','ok','pending','stores_ok'] or m['status']==status)]
