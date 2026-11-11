@@ -17,8 +17,8 @@ def test_pdf_all_saved_rollout_and_cutover_current_data(isolated):
     body['machines'][0].update(status='Implantado',installed_version='Orion 2.0',notes='Não imprimir observações completas')
     assert put(c,b,body).status_code==200
     d=payload()
-    assert d['base']['pdvs_expected']==4 and d['base']['pdvs_deployed']==1 and d['base']['pdvs_pending']==3
-    assert d['totals']['ok']==0 and d['totals']['pending']==4
+    assert d['base']['pdvs_expected']==5 and d['base']['pdvs_deployed']==1 and d['base']['pdvs_pending']==4
+    assert d['totals']['ok']==0 and d['totals']['pending']==5
     assert any(r['source']=='Base de Rollout' and r['code']=='VD266' for r in d['updates'])
     finish(c,id)
     d=payload();assert d['totals']['ok']==1 and d['base']['pdvs_deployed']==1
@@ -42,7 +42,7 @@ def test_pdf_read_permissions_empty_and_no_business_writes(isolated):
         assert response.status_code==200
         pdf=PdfReader(io.BytesIO(response.data));assert len(pdf.pages)==3
         text=' '.join(' '.join(p.extract_text() for p in pdf.pages).split())
-        assert 'Nenhuma implantação registrada' in text and 'Sem registros salvos' in text
+        assert 'Nenhuma versão registrada' in text and 'Sem registros salvos' in text
     id=create(c);before=c.get('/api/cutovers/'+id).json
     assert c.get('/api/reports/rollout-executive.pdf').status_code==200
     assert c.get('/api/cutovers/'+id).json==before

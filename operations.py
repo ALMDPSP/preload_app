@@ -86,6 +86,8 @@ def history_comparisons(rows,current):
     return result
 
 def register_operations(app,core):
+    from schedule_import import register_schedule_import
+    register_schedule_import(app,core)
     db,error,audit=(core[k] for k in ['db','error','audit'])
     def stamp():return core['now']()
     @app.get('/api/operations/overview')

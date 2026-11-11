@@ -1,3 +1,12 @@
+# Atualização v5.1.0
+
+- No Dashboard, clique em **PDVs implantados** para ver filial, equipamento, situação, versão e data cadastrada. O botão de cada linha abre o PDV na Central.
+- Lojas que usam o plano padrão passam a ter os PDVs 01 a 05. Planos personalizados continuam com a numeração cadastrada.
+- A distribuição no Dashboard e no PDF executivo exibe apenas versões registradas e calcula os percentuais sobre esses equipamentos.
+- **Cronograma → Importar planilha** aceita Excel (.xlsx) ou CSV para Administrador e Gestor. Baixe o modelo, preencha Filial, PDV, Responsável e Prazo, confira a prévia e confirme. Início e Observações são opcionais. A importação pula combinações de filial e PDV já cadastradas e bloqueia a gravação se houver linhas inválidas.
+
+Envie o conteúdo do ZIP para a raiz do GitHub. Mantenha o Start Command `bash start.sh` e confirme a versão 5.1.0 em /healthz após o deploy.
+
 # Atualização v5.0.2 — Marca Cutover online
 
 O logo da navegação, login e autenticação passa a mostrar apenas **Cutover online**, em azul claro e ciano. A marca é texto, sem dependência do carregamento da imagem anterior, e se adapta ao celular e ao menu recolhido. Os créditos de desenvolvimento no rodapé foram preservados.

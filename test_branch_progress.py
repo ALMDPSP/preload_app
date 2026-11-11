@@ -8,7 +8,7 @@ def test_partial_save_list_and_resume_edit_with_pending_processes(isolated):
     saved=c.put('/api/cutovers/'+id,headers=headers(c),json={'state':record['state'],'version':record['version']})
     assert saved.status_code==200
     progress=c.get('/api/branches/'+b+'/cutover-progress').json
-    assert progress['totals']=={'expected':4,'saved':1,'ok':0,'pending':4}
+    assert progress['totals']=={'expected':5,'saved':1,'ok':0,'pending':5}
     assert progress['machines'][0]['execution']['completed']==1 and progress['machines'][0]['status']=='Em andamento'
     assert progress['machines'][1]['execution'] is None and progress['machines'][1]['status']=='Não iniciado'
     reopened=c.get('/api/cutovers/'+progress['machines'][0]['execution']['id']).json
@@ -30,13 +30,13 @@ def test_completed_checklist_remains_editable_and_can_reopen_process(isolated):
 def test_branch_progress_is_scoped_and_includes_nonstandard_and_history(isolated):
     c=admin(isolated);first=create(c);b=c.get('/api/cutovers/'+first).json['branch_id']
     second=c.post('/api/cutovers',headers=headers(c),json={'branch_id':b,'pdv':'PDV 0001'}).json['id']
-    extra=c.post('/api/cutovers',headers=headers(c),json={'branch_id':b,'pdv':'05'}).json['id']
+    extra=c.post('/api/cutovers',headers=headers(c),json={'branch_id':b,'pdv':'06'}).json['id']
     other=c.post('/api/branches',headers=headers(c),json={'code':'L9999','name':'Outra loja'}).json['id']
     c.post('/api/cutovers',headers=headers(c),json={'branch_id':other,'pdv':'02'})
     viewer,_=add_user(c,'progress-view@qa.test','viewer',isolated)
     data=viewer.get('/api/branches/'+b+'/cutover-progress').json
     assert len(data['executions'])==3 and {r['id'] for r in data['executions']}=={first,second,extra}
-    assert len(data['machines'])==5 and data['machines'][-1]['pdv']=='05' and not data['machines'][-1]['planned']
+    assert len(data['machines'])==6 and data['machines'][-1]['pdv']=='06' and not data['machines'][-1]['planned']
     assert data['totals']['saved']==1 and len([m for m in data['machines'] if m['pdv']=='01'])==1
     assert c.get('/api/branches/missing/cutover-progress').status_code==404
     assert module.app.test_client().get('/api/branches/'+b+'/cutover-progress').status_code==401

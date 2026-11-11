@@ -22,8 +22,8 @@ def test_compact_pagination_and_machine_drilldown_match_saved_totals(isolated):
     assert len(pending['rows'])==40 and pending['total']==full['totals']['pending'] and all(not m['ok'] for m in pending['rows'])
     ok=c.get('/api/dashboard/machines?status=ok').json;assert ok['total']==1 and ok['rows'][0]['pdv']=='01'
     rejected=c.get('/api/dashboard/machines?status=Rejeitado').json;assert rejected['total']==0
-    store=c.get('/api/dashboard/store/'+full['stores'][0]['id']).json;assert len(store['machines'])==4
-    scoped=c.get('/api/dashboard?compact=1&uf=SP&q=X00').json;assert scoped['totals']['stores']==10 and scoped['totals']['expected']==40
+    store=c.get('/api/dashboard/store/'+full['stores'][0]['id']).json;assert len(store['machines'])==5
+    scoped=c.get('/api/dashboard?compact=1&uf=SP&q=X00').json;assert scoped['totals']['stores']==10 and scoped['totals']['expected']==50
     assert c.get('/api/dashboard/store/absent').status_code==404
     assert module.app.test_client().get('/api/dashboard/machines').status_code==401
 

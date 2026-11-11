@@ -117,7 +117,7 @@ def test_wave_branch_bulk_preserves_named_responsibilities_and_checks_versions(i
     url='/api/rollout/waves/'+wave+'/assign-branch'
     assert c.post(url,headers=headers(c),json=payload).status_code==200
     rows=c.get('/api/rollout/branches/'+b+'/context').json['assignments']
-    assert len(rows)==4 and all(a['wave_id']==wave for a in rows)
+    assert len(rows)==5 and all(a['wave_id']==wave for a in rows)
     first=next(a for a in rows if a['pdv']=='01');assert first['executor_id']==uid and first['validator_id']==uid
     assert c.post(url,headers=headers(c),json=payload).status_code==409
 
@@ -145,7 +145,7 @@ def test_restore_constraint_failure_rolls_back_all_operational_tables(isolated):
 def test_administrator_integrity_check(isolated):
     c=admin(isolated);create(c)
     result=c.get('/api/admin/operational-integrity')
-    assert result.status_code==200 and result.json['ok'] is True and result.json['totals']['planned']==4
+    assert result.status_code==200 and result.json['ok'] is True and result.json['totals']['planned']==5
     with module.db() as db:
         branch=db.execute('SELECT id FROM ct_branches LIMIT 1').fetchone()['id']
         db.execute('INSERT INTO ct_branch_pdv_plan (branch_id,pdvs,version) VALUES (%s,%s,1)',(branch,'["01","01"]'))

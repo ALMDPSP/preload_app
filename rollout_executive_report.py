@@ -123,14 +123,14 @@ def create_rollout_executive_pdf(data):
              p(n(b['stores_expected'])+' lojas previstas | '+n(b['stores_updated'])+' com ao menos um PDV implantado.','muted'),
              p('Versões instaladas','h')]
     versions=[dict(v) for v in b['versions']]
-    if b['deployed_without_version']:versions.append({'name':'Não informada','count':b['deployed_without_version'],'percent':round(b['deployed_without_version']/b['pdvs_deployed']*100,1) if b['pdvs_deployed'] else 0})
     versions.sort(key=lambda v:(-v['count'],v['name']))
     selected=versions[:6]
+    known=sum(v['count'] for v in versions)
     if len(versions)>6:
-        count=sum(v['count'] for v in versions[6:]);selected.append({'name':'Demais versões ('+str(len(versions)-6)+')','count':count,'percent':round(count/b['pdvs_deployed']*100,1)})
-    rows=[['Versão instalada','PDVs','% implantados']]+[[short(v['name'],65),n(v['count']),pct(v['percent'])] for v in selected]
-    if not selected:rows.append(['Nenhuma implantação registrada','0','0%'])
-    flow += [table(rows,[110*mm,28*mm,36*mm]),p('Os totais incluem todas as versões; as de menor volume são agrupadas. '+n(b['deployed_without_version'])+' PDV(s) sem versão informada.','muted'),
+        count=sum(v['count'] for v in versions[6:]);selected.append({'name':'Demais versões ('+str(len(versions)-6)+')','count':count,'percent':round(count/known*100,1)})
+    rows=[['Versão instalada','PDVs','% com versão']]+[[short(v['name'],65),n(v['count']),pct(v['percent'])] for v in selected]
+    if not selected:rows.append(['Nenhuma versão registrada','0','0%'])
+    flow += [table(rows,[110*mm,28*mm,36*mm]),p('A distribuição considera os PDVs com versão registrada. As versões de menor volume são agrupadas.','muted'),
              p('Validação do cutover','h'),p(n(gap)+' PDV(s) implantado(s) ainda sem Orion OK. Implantação e validação são medidas separadas.','muted'),
              kpis([('Virados e Orion OK',t['ok'],pct(t['percent'])+' do parque'),('Pendentes de validação',t['pending'],'Inclui não iniciados'),('Lojas completas',t['stores_ok'],'Todos os PDVs Orion OK')]),
              Spacer(1,8),p('Implantado = declaração na Base ou Orion OK. Orion OK exige todos os processos e os dois aceites GO com responsável e data. Uma implantação declarada não conclui o cutover.','muted'),

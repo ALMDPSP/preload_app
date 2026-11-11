@@ -7,7 +7,7 @@ from zoneinfo import ZoneInfo
 from flask import request,g,jsonify,send_file,has_request_context
 from reports import summarize
 
-DEFAULT_PDVS=['01','02','03','04']
+DEFAULT_PDVS=['01','02','03','04','05']
 PLAN_SCHEMA='CREATE TABLE IF NOT EXISTS ct_branch_pdv_plan (branch_id TEXT PRIMARY KEY REFERENCES ct_branches(id), pdvs TEXT NOT NULL, version INTEGER NOT NULL DEFAULT 1)'
 
 PERFORMANCE_SCHEMA=[

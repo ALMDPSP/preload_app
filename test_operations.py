@@ -15,7 +15,7 @@ def issue(branch):return dict(branch_id=branch,pdv='01',title='Pinpad sem comuni
 
 def test_schedule_validation_conflicts_and_preserved_cutover(isolated):
     c=admin(isolated);id,b=setup(c);body=plan(b)
-    assert c.put('/api/operations/schedule',headers=headers(c),json={**body,'pdv':'05'}).status_code==400
+    assert c.put('/api/operations/schedule',headers=headers(c),json={**body,'pdv':'06'}).status_code==400
     assert c.put('/api/operations/schedule',headers=headers(c),json={**body,'start_date':'2027-01-01'}).status_code==400
     assert c.put('/api/operations/schedule',headers=headers(c),json=body).status_code==200
     assert c.put('/api/operations/schedule',headers=headers(c),json=body).status_code==409
@@ -122,3 +122,46 @@ def test_delete_issue_admin_only_conflicts_audit_and_preserves_checklist(isolate
         row=db.execute('SELECT * FROM ct_audit WHERE action=%s',('exclusão de pendência',)).fetchone()
         assert row and json.loads(row['detail'])['id']==id
     assert c.delete(path,headers=headers(c),json={'version':2}).status_code==404
+
+
+def test_schedule_import_validates_whole_file_and_skips_existing(isolated):
+    import io
+    c=admin(isolated);_,branch=setup(c)
+    header='Filial;PDV;Responsável;Início;Prazo;Observações\n'
+    valid='VD266;05;Infra;11/11/2026;2026-11-12;Janela aprovada\n'
+    def upload(action,content):
+        return c.post('/api/operations/schedule/import/'+action,headers=headers(c),
+                      data={'file':(io.BytesIO(content.encode()),'agenda.csv')})
+    invalid=header+valid+'VD266;06;Outra equipe;;2026-11-13;\n'
+    preview=upload('preview',invalid).json
+    assert preview['new']==1 and preview['error_count']==1 and preview['errors'][0]['line']==3
+    assert upload('confirm',invalid).status_code==400
+    assert c.get('/api/operations/overview').json['schedule']==[]
+    preview=upload('preview',header+valid)
+    assert preview.status_code==200 and preview.json['new']==1
+    assert c.get('/api/operations/overview').json['schedule']==[]
+    assert upload('confirm',header+valid).json=={'created':1,'skipped':0}
+    assert upload('confirm',header+valid.replace('Infra','Outra equipe')).json=={'created':0,'skipped':1}
+    row=c.get('/api/operations/overview').json['schedule'][0]
+    assert (row['branch_id'],row['pdv'],row['owner'],row['start_date'])==(branch,'05','Infra','2026-11-11')
+
+
+def test_schedule_import_excel_dates_and_role_permissions(isolated):
+    import io
+    from datetime import date
+    from openpyxl import Workbook
+    c=admin(isolated);setup(c)
+    manager,_=add_user(c,'schedule-manager@qa.test','manager',isolated)
+    operator,_=add_user(c,'schedule-operator@qa.test','operator',isolated)
+    book=Workbook();sheet=book.active
+    sheet.append(['Filial','PDV','Responsável','Prazo'])
+    sheet.append(['VD266',5,'Redes',date(2026,11,12)])
+    output=io.BytesIO();book.save(output);book.close()
+    def upload(user,action):
+        return user.post('/api/operations/schedule/import/'+action,headers=headers(user),
+                         data={'file':(io.BytesIO(output.getvalue()),'agenda.xlsx')})
+    assert upload(operator,'preview').status_code==403
+    assert upload(operator,'confirm').status_code==403
+    preview=upload(manager,'preview')
+    assert preview.status_code==200 and preview.json['rows'][0]['due_date']=='2026-11-12'
+    assert upload(manager,'confirm').json['created']==1

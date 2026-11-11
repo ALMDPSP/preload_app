@@ -6,6 +6,7 @@ async function showOperations(tab='schedule',quick=''){
  operationsTab=tab;operationsPageNumber=1;operationsRequest++;['cutoverWorkspace','branchesPage','reportsPage','dashboardPage','usersPage'].forEach(id=>$(id).classList.add('hidden'));$('operationsPage').classList.remove('hidden');
  document.querySelectorAll('.nav button').forEach(b=>b.classList.toggle('active',b.dataset.operation===tab));
  $('operationsTitle').textContent={schedule:'Cronograma do rollout',issues:'Central de pendências',history:'Histórico diário'}[tab];$('operationFilters').hidden=tab==='history';$('historyFilters').hidden=tab!=='history';$('operationAdd').hidden=tab==='history'||(tab==='schedule'?!DECIDE:READONLY);$('operationAdd').textContent=tab==='schedule'?'+ Planejar PDV':'+ Registrar pendência';$('operationQuick').value=quick;
+ $('scheduleImportButton').hidden=tab!=='schedule'||!DECIDE;
  if(tab==='history'){await refreshHistory();return}
  const sequence=++operationsRequest;$('operationsMessage').textContent='Carregando informações salvas…';$('operationsTable').innerHTML='<div class="skeleton-line"></div>';
  try{const data=await api('/api/operations/overview');if(sequence!==operationsRequest)return;operationsData=data;if(typeof updateGuidedChecklist==='function')updateGuidedChecklist();$('operationsMessage').textContent='Atualizado em '+new Date(data.generated_at).toLocaleString('pt-BR')+'. Planejamento e pendências não alteram os aceites do checklist.';renderOperations()}
@@ -84,8 +85,77 @@ function exportOperations(){
 function initOperations(){
  const nav=document.querySelector('.nav');for(const [key,label] of [['schedule','Cronograma'],['issues','Pendências'],['history','Histórico diário']]){const b=document.createElement('button');b.dataset.operation=key;b.textContent=label;b.onclick=()=>showOperations(key);nav.append(b)}
  const now=new Date(),start=new Date(now);start.setDate(start.getDate()-30);$('historyFrom').value=start.toISOString().slice(0,10);$('historyTo').value=now.toISOString().slice(0,10);
+ $('scheduleImportButton').onclick=openScheduleImport;
  $('operationsRefresh').onclick=()=>showOperations(operationsTab,$('operationQuick').value);$('operationAdd').onclick=()=>operationsTab==='schedule'?scheduleForm():issueForm();$('operationSearch').oninput=()=>{operationsPageNumber=1;renderOperations()};$('operationQuick').onchange=()=>{operationsPageNumber=1;renderOperations()};$('historyLoad').onclick=refreshHistory;$('operationsExport').onclick=exportOperations;
 }
 initOperations();
 
 if(typeof dashboardData!=='undefined'&&dashboardData?.operations)refreshDashboardOperations(dashboardData.operations);
+
+function openScheduleImport(){
+ if(!DECIDE)return;
+ modal(`<h2>Importar cronograma</h2>
+  <p>Envie um arquivo .xlsx ou .csv com Filial, PDV, Responsável e Prazo. Início e Observações são opcionais.</p>
+  <p class="muted">Use a primeira aba do Excel e informe datas como DD/MM/AAAA ou AAAA-MM-DD. Registros existentes serão pulados.</p>
+  <p><a href="/api/operations/schedule/import-template" download>↓ Baixar modelo CSV</a></p>
+  <form id="scheduleImportForm" class="form-stack">
+   <label for="scheduleImportFile">Planilha do cronograma</label>
+   <input type="file" id="scheduleImportFile" accept=".xlsx,.csv" required>
+   <p id="scheduleImportError" role="alert" class="sync-error"></p>
+   <button id="scheduleImportPreview" class="primary">Conferir planilha</button>
+  </form>
+  <div id="scheduleImportResult" aria-live="polite"></div>`);
+ const form=$('scheduleImportForm'),input=$('scheduleImportFile'),result=$('scheduleImportResult');
+ input.onchange=()=>{result.innerHTML='';$('scheduleImportError').textContent=''};
+ form.onsubmit=async event=>{
+  event.preventDefault();
+  const file=input.files[0],button=$('scheduleImportPreview');
+  if(!file)return;
+  button.disabled=true;
+  result.innerHTML='';
+  const message=$('scheduleImportError');
+  message.textContent='';
+  try{
+   const preview=await sendScheduleImport('preview',file);
+   if(!result.isConnected||input.files[0]!==file)return;
+   renderScheduleImport(preview,file,result,message);
+  }catch(error){message.textContent=error.message}
+  finally{button.disabled=false}
+ };
+}
+async function sendScheduleImport(action,file){
+ const form=new FormData();
+ form.append('file',file);
+ const response=await fetch('/api/operations/schedule/import/'+action,{method:'POST',headers:{'X-CSRF-Token':csrf},body:form});
+ if(response.status===413)throw Error('A planilha excede o limite de 10 MB.');
+ const data=await response.json().catch(()=>null);
+ if(!response.ok||!data)throw Error(data?.error||'Não foi possível processar a planilha.');
+ return data;
+}
+function renderScheduleImport(preview,file,container,message){
+ const errors=preview.errors.map(error=>`<li>Linha ${error.line} · ${esc(error.message)}</li>`).join('');
+ const labels={new:'Novo',existing:'Já cadastrado',invalid:'Corrigir'};
+ container.innerHTML=`<p><b>${preview.new} novos</b> · ${preview.existing} já cadastrados · ${preview.error_count} erros</p>
+  ${errors?`<div class="import-errors"><p>Corrija o arquivo e analise novamente.</p><ul>${errors}</ul></div>`:''}
+  <div class="import-preview-table"><table class="branch-table"><thead><tr><th>Linha</th><th>Filial / PDV</th><th>Responsável</th><th>Prazo</th><th>Ação</th></tr></thead><tbody>
+  ${preview.rows.map(row=>`<tr><td>${row.line}</td><td>${esc(row.code)} · ${esc(row.pdv)}</td><td>${esc(row.owner)}</td><td>${opDate(row.due_date)}</td><td>${labels[row.action]}</td></tr>`).join('')}
+  </tbody></table></div><p class="muted">${preview.total} linha(s) no arquivo. Prévia de até 50 linhas.</p>
+  <button class="primary" id="scheduleImportConfirm" ${preview.error_count||!preview.new?'disabled':''}>Confirmar importação</button>`;
+ const button=$('scheduleImportConfirm');
+ button.onclick=async()=>{
+  button.disabled=true;
+  $('scheduleImportFile').disabled=true;
+  $('scheduleImportPreview').disabled=true;
+  message.textContent='';
+  try{
+   const saved=await sendScheduleImport('confirm',file);
+   if(container.isConnected)$('modal').close();
+   if(operationsTab==='schedule'&&!$('operationsPage').classList.contains('hidden'))await showOperations('schedule');
+   toast(`${saved.created} planejamento(s) importado(s) · ${saved.skipped} já cadastrado(s).`);
+  }catch(error){
+   message.textContent=error.message;
+   button.disabled=false;
+   if(container.isConnected){$('scheduleImportFile').disabled=false;$('scheduleImportPreview').disabled=false}
+  }
+ };
+}

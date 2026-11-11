@@ -16,10 +16,14 @@ def migrate_rollout_base(c):
 def base_records(core):
     with core['db']() as c:
         org={r['branch_id']:dict(r) for r in c.execute('SELECT branch_id,regional,gr FROM ct_rollout_organization').fetchall()}
-        inventory={(r['branch_id'],r['pdv']):dict(r) for r in c.execute('SELECT branch_id,pdv,status,installed_version FROM ct_rollout_inventory').fetchall()}
+        inventory={(r['branch_id'],r['pdv']):dict(r) for r in c.execute('SELECT branch_id,pdv,status,installed_version,deployed_at FROM ct_rollout_inventory').fetchall()}
     return org,inventory
 
 def deployed(machine,record):return bool(machine.get('ok') or record and record['status']=='Implantado')
+
+def reported_version(record):
+    value=(record or {}).get('installed_version','').strip()
+    return '' if normalize(value) in {'nao informada','nao informado'} else value
 
 def rollout_base_summary(core,data,records=None):
     org,inventory=records if records is not None else base_records(core)
@@ -30,7 +34,7 @@ def rollout_base_summary(core,data,records=None):
             row=inventory.get((store['id'],machine['pdv']))
             if deployed(machine,row):
                 count+=1;updated_pdvs+=1
-                version=row['installed_version'] if row else ''
+                version=reported_version(row)
                 if version:versions[version]+=1
                 else:no_version+=1
         updated_stores+=int(count>0)
@@ -43,7 +47,7 @@ def rollout_base_summary(core,data,records=None):
         for row in group.values():row['percent']=round(row['stores_updated']/row['stores_expected']*100,1) if row['stores_expected'] else 0
     expected=data['totals']['expected'];stores=data['totals']['stores']
     return {'pdvs_expected':expected,'pdvs_deployed':updated_pdvs,'pdvs_pending':expected-updated_pdvs,'pdvs_percent':round(updated_pdvs/expected*100,1) if expected else 0,'stores_expected':stores,'stores_updated':updated_stores,'stores_percent':round(updated_stores/stores*100,1) if stores else 0,'stores_missing_organization':missing_org,'deployed_without_version':no_version,
-      'versions':[{'name':name,'count':count,'percent':round(count/updated_pdvs*100,1) if updated_pdvs else 0} for name,count in sorted(versions.items(),key=lambda r:(-r[1],r[0]))],
+      'versions':[{'name':name,'count':count,'percent':round(count/(updated_pdvs-no_version)*100,1)} for name,count in sorted(versions.items(),key=lambda r:(-r[1],r[0]))],
       'by_gr':sorted(groups['gr'].values(),key=lambda r:(-r['stores_expected'],r['name'])),'by_regional':sorted(groups['regional'].values(),key=lambda r:(-r['stores_expected'],r['name']))}
 
 def branch_base(core,id):

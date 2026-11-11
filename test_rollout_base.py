@@ -13,7 +13,7 @@ def test_declared_implantation_is_separate_from_acceptance_and_deduplicated(isol
     assert put(c,b,body).status_code==200
     d=c.get('/api/dashboard?compact=1').json
     assert d['totals']['ok']==0 and d['rollout_base']['pdvs_deployed']==1
-    assert d['rollout_base']['pdvs_expected']==4 and d['rollout_base']['pdvs_percent']==25
+    assert d['rollout_base']['pdvs_expected']==5 and d['rollout_base']['pdvs_percent']==20
     assert d['rollout_base']['stores_updated']==1 and d['rollout_base']['stores_percent']==100
     assert c.get('/api/cutovers/'+id).json['state']['tasks']=={}
     finish(c,id);d=c.get('/api/dashboard?compact=1').json
@@ -30,7 +30,7 @@ def test_gr_regional_denominators_and_uninformed_versions_are_consistent(isolate
         assert put(c,branch,body).status_code==200
     r=c.post('/api/cutovers',headers=headers(c),json={'branch_id':others[1],'pdv':'01'});finish(c,r.json['id'])
     d=c.get('/api/dashboard?compact=1').json['rollout_base']
-    assert d['pdvs_expected']==12 and d['pdvs_deployed']==3 and d['stores_updated']==2 and d['stores_percent']==66.7
+    assert d['pdvs_expected']==15 and d['pdvs_deployed']==3 and d['stores_updated']==2 and d['stores_percent']==66.7
     assert d['deployed_without_version']==1 and sum(v['count'] for v in d['versions'])+d['deployed_without_version']==d['pdvs_deployed']
     gr=next(g for g in d['by_gr'] if g['name']=='MESMO GR');assert gr['stores_expected']==2 and gr['stores_updated']==1 and gr['percent']==50
     assert sum(g['stores_expected'] for g in d['by_regional'])==3
@@ -53,7 +53,7 @@ def test_role_permissions_and_conflicts_never_partially_save(isolated):
 
 def test_validation_plan_change_and_missing_registration(isolated):
     c=admin(isolated);id=create(c);b=c.get('/api/cutovers/'+id).json['branch_id'];body=form(c,b)
-    bad={**body,'machines':[{**body['machines'][0],'pdv':'05'}]};assert put(c,b,bad).status_code==400
+    bad={**body,'machines':[{**body['machines'][0],'pdv':'06'}]};assert put(c,b,bad).status_code==400
     assert put(c,b,{**body,'machines':[body['machines'][0],body['machines'][0]]}).status_code==400
     assert put(c,b,{**body,'machines':[{**body['machines'][0],'deployed_at':'2026-99-99'}]}).status_code==400
     assert put(c,b,{**body,'machines':[{**body['machines'][0],'status':'Qualquer'}]}).status_code==400
@@ -76,3 +76,19 @@ def test_base_filters_pagination_inactive_scope_and_edits(isolated):
     assert c.put('/api/branches/'+b,headers=headers(c),json={'name':'Loja','city':'','uf':'SP','status':'Inativa'}).status_code==200
     assert c.get('/api/dashboard?compact=1&q=VD266').json['rollout_base']['stores_expected']==0
     assert c.get('/api/rollout-base?q=VD266').json['rows'][0]['in_scope'] is False
+
+
+def test_deployed_list_matches_card_and_version_chart_excludes_missing_versions(isolated):
+    c=admin(isolated);id=create(c);branch=c.get('/api/cutovers/'+id).json['branch_id']
+    finish(c,id)
+    body=form(c,branch)
+    body['machines'][0].update(status='Implantado',installed_version='Não informada')
+    body['machines'][4].update(status='Implantado',installed_version='Orion 2.0',deployed_at='2026-11-11')
+    assert put(c,branch,body).status_code==200
+    card=c.get('/api/dashboard?compact=1&q=VD266').json['rollout_base']
+    page=c.get('/api/dashboard/machines?status=deployed&q=VD266').json
+    assert card['pdvs_deployed']==page['total']==2
+    assert [(row['pdv'],row['status'],row['installed_version']) for row in page['rows']]==[
+        ('01','Orion OK',''),('05','Implantação declarada','Orion 2.0')]
+    assert card['versions']==[{'name':'Orion 2.0','count':1,'percent':100.0}]
+    assert c.get('/api/dashboard/machines?status=deployed&q=ausente').json['total']==0

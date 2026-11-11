@@ -24,7 +24,7 @@ def create_executive_pdf(data):
     filters=data.get('filters',{});flow.append(p('Escopo: filiais ativas e abertas'+(' | UF: '+filters['uf'] if filters.get('uf') else '')+(' | Busca: '+filters['q'] if filters.get('q') else ''),'ExecutiveMuted'))
     flow.append(table([['PDVs previstos','Virados e Orion OK','PDVs pendentes'],[str(totals['expected']),str(totals['ok']),str(totals['pending'])]],[58*mm]*3))
     flow.append(Spacer(1,5*mm));flow.append(p(f"Avanço: {totals['percent']}% | {totals['stores_ok']} de {totals['stores']} lojas completas | {totals['stores_pending']} lojas com pendências."))
-    flow.append(p('Uma máquina por filial + número de PDV. Padrão de 4 por loja ou plano ajustado. Vale a execução mais recente.','ExecutiveMuted'))
+    flow.append(p('Uma máquina por filial + número de PDV. Padrão de 5 por loja ou plano ajustado. Vale a execução mais recente.','ExecutiveMuted'))
     flow.append(p('Execução do parque previsto','ExecutiveHeading'))
     bar=Drawing(174*mm,25*mm);width=170*mm;ratio=totals['ok']/totals['expected'] if totals['expected'] else 0
     bar.add(Rect(0,34,width,16,fillColor=colors.HexColor('#fae5bb'),strokeColor=None))
