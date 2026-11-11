@@ -23,3 +23,6 @@
 @media(max-width:600px){.executive-command{flex-direction:column;align-items:flex-start;padding:22px}.executive-command>div:last-child{border:0;padding:0;text-align:left;flex:auto;display:flex;align-items:center;gap:15px}.executive-command strong{font-size:25px}.executive-command small{max-width:160px}}
 .central-record>summary:after{content:'Abrir cadastro ⌄';font-size:10px;white-space:nowrap;color:#6b809e}.central-record[open]>summary:after{content:'Recolher ⌃'}.central-record>summary>div:first-child{flex:1}
 @media(max-width:600px){.central-record>summary:after{align-self:flex-end}.central-record-footer button{width:100%}}
+
+.central-pdv-rail .store-pdv-card .pdv-remove{color:#9b2832;margin-top:6px}
+.central-pdv-rail .store-pdv-card .pdv-remove:hover{border-color:#9b2832}

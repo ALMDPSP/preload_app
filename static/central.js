@@ -74,6 +74,49 @@ function highlightCentralPdv(){
   button.closest('article').classList.toggle('pdv-selected',m.pdv===centralPdv);
   button.onclick=()=>openCentralPdv(m.pdv);
  });
+ document.querySelectorAll('#branchProgress [data-remove-pdv]').forEach(button=>{
+  const machine=branchProgress?.machines[Number(button.dataset.removePdv)];
+  button.onclick=()=>{if(machine)removeCentralPdv(machine.pdv)};
+ });
+}
+function removeCentralPdv(pdv){
+ const data=centralData,branch=currentBranch();
+ if(!DECIDE||!branch||data?.branch.id!==branch.id||!centralIdentityGuard())return;
+ const remaining=data.machines.map(machine=>machine.pdv).filter(number=>number!==pdv);
+ if(remaining.length===data.machines.length)return;
+ if(!remaining.length){toast('Mantenha pelo menos um PDV previsto para esta filial.');return}
+ modal(`<h2>Remover PDV ${esc(pdv)} do plano</h2>
+  <p>O PDV ${esc(pdv)} da filial ${esc(branch.code)} sairá da meta e dos totais do Dashboard.</p>
+  <p>Os registros serão preservados. Checklists salvos poderão ser consultados no histórico da filial.</p>
+  <p id="centralRemoveError" class="sync-error" role="alert"></p>
+  <div class="actions"><button type="button" id="centralRemoveCancel">Cancelar</button>
+  <button type="button" id="centralRemoveConfirm" class="danger">Remover do plano</button></div>`);
+ const dialog=$('modal'),confirmButton=$('centralRemoveConfirm'),cancelButton=$('centralRemoveCancel'),error=$('centralRemoveError');
+ cancelButton.onclick=()=>dialog.close();
+ confirmButton.onclick=async()=>{
+  if(selectedBranchId!==branch.id||!centralIdentityGuard())return;
+  confirmButton.disabled=true;
+  cancelButton.disabled=true;
+  try{
+   await api('/api/branches/'+encodeURIComponent(branch.id)+'/pdv-plan','PUT',{pdvs:remaining,version:data.plan_version});
+  }catch(e){
+   error.textContent=e.status===409?'O plano mudou. Feche esta janela e recarregue os dados da filial.':e.message;
+   confirmButton.disabled=false;
+   cancelButton.disabled=false;
+   return;
+  }
+  if(confirmButton.isConnected)dialog.close();
+  toast('PDV '+pdv+' removido do plano da filial.');
+  if(selectedBranchId!==branch.id)return;
+  if(centralPdv===pdv||cutoverEditing&&Number(state.meta.pdv)===Number(pdv)){
+   centralPdv='';
+   clearCurrentCutover();
+   showBranchPdvs();
+  }
+  centralData=null;
+  try{await refreshList()}
+  catch(e){toast('PDV removido. Atualize a filial para ver o plano salvo.')}
+ };
 }
 async function saveCentralBase(event){event?.preventDefault();return saveCentralAll()}
 async function saveCentralAll(){

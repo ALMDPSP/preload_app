@@ -1,3 +1,11 @@
+# Atualização v5.1.1
+
+O Dashboard mostra o total de filiais ativas no escopo do rollout em toda a rede. A busca por filial e os filtros continuam aplicados aos indicadores do recorte.
+
+Na Central, Administrador e Gestor podem remover um PDV previsto pelo botão no cartão. A confirmação retira o número do plano e das contagens do rollout. Checklists salvos continuam no histórico da filial. Cada plano deve ter pelo menos um PDV previsto.
+
+Envie o conteúdo do ZIP para a raiz do GitHub. Mantenha o Start Command `bash start.sh` e confirme a versão 5.1.1 em /healthz após o deploy.
+
 # Atualização v5.1.0
 
 - No Dashboard, clique em **PDVs implantados** para ver filial, equipamento, situação, versão e data cadastrada. O botão de cada linha abre o PDV na Central.
