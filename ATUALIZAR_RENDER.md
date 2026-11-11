@@ -1,3 +1,9 @@
+# Atualização v5.1.3
+
+O Dashboard mostra **Pendências abertas** e quantas estão com prazo vencido. O total considera os registros abertos e em tratamento da Central de Pendências. Clique em **Ver pendências** para abrir a lista já filtrada.
+
+Envie o conteúdo do ZIP para a raiz do GitHub. Mantenha o Start Command `bash start.sh` e confirme a versão 5.1.3 em /healthz após o deploy.
+
 # Atualização v5.1.2
 
 O card **PDVs pendentes** do Dashboard abre a lista paginada dos equipamentos sem implantação no recorte atual. A lista segue o formato de **PDVs implantados** e permite abrir cada equipamento na Central.

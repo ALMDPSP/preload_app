@@ -90,6 +90,9 @@ function renderRolloutBaseDashboard(data){
  const el=$('rolloutBaseDashboard'),b=data.rollout_base;if(!b){el.innerHTML='';return}
  const number=n=>n.toLocaleString('pt-BR'),versions=b.versions;
  const pdvLists={deployed:'PDVs implantados',pending:'Pendentes de implantação'};
+ const issueMetrics=data.operations?.metrics;
+ const openIssues=issueMetrics?.open_issues??0;
+ const overdueIssues=issueMetrics?.overdue_issues??0;
  const executive=data.executive||{},totals=data.totals||{},gap=Math.max(0,b.pdvs_deployed-(totals.ok||0));
  const priority=executive.critical_issues?'Prioridade: resolver '+executive.critical_issues+' ocorrência(s) crítica(s).':executive.overdue_pdvs?'Prioridade: atuar em '+executive.overdue_pdvs+' PDV(s) com prazo vencido.':gap?'Próximo foco: validar os '+gap+' PDV(s) implantados sem Orion OK.':b.pdvs_pending?'Próximo foco: avançar a implantação dos PDVs pendentes.':'Parque implantado. Acompanhe os aceites e o suporte às lojas.';
  const regions=[...b.by_regional].sort((a,z)=>z.percent-a.percent||z.stores_expected-a.stores_expected).slice(0,5);
@@ -97,7 +100,7 @@ function renderRolloutBaseDashboard(data){
  <section id="rolloutPanel-overview" role="tabpanel" aria-labelledby="rolloutTab-overview">
  <div class="rollout-summary-line"><div><span class="eyebrow">BASE DE ROLLOUT</span><h2>Do planejamento à implantação</h2><p>${number(b.stores_expected)} lojas no escopo · ${number(b.stores_updated)} com implantação iniciada</p></div><button id="openRolloutBaseDashboard" class="primary">Gerenciar base →</button></div>
  <section class="executive-command"><div><span class="eyebrow">LEITURA EXECUTIVA</span><h2>${b.pdvs_percent}% implantado · ${totals.percent||0}% validado</h2><p>${esc(priority)}</p></div><div><strong>${number(gap)}</strong><small>implantados sem Orion OK</small></div></section>
- <div id="managementDashboard"></div><div class="rollout-primary-stats">${[['Filiais ativas',data.active_branches_total,'Total da rede no escopo do rollout','branches'],['PDVs previstos',b.pdvs_expected,'Equipamentos planejados','planned'],['PDVs implantados',b.pdvs_deployed,b.pdvs_percent+'% do parque previsto','deployed'],['PDVs pendentes',b.pdvs_pending,'Ainda sem implantação','pending'],['Lojas atualizadas',b.stores_updated,b.stores_percent+'% das '+number(b.stores_expected)+' lojas','stores']].map(([label,n,detail,key])=>`<${pdvLists[key]?`button type="button" data-rollout-pdvs="${key}"`:'article'} class="stat rollout-kpi rollout-kpi-${key}"><small>${label}</small><strong>${number(n)}</strong><small>${detail}${pdvLists[key]?' · Ver PDVs →':''}</small></${pdvLists[key]?'button':'article'}>`).join('')}</div>
+ <div id="managementDashboard"></div><div class="rollout-primary-stats">${[['Filiais ativas',data.active_branches_total,'Total da rede no escopo do rollout','branches'],['PDVs previstos',b.pdvs_expected,'Equipamentos planejados','planned'],['PDVs implantados',b.pdvs_deployed,b.pdvs_percent+'% do parque previsto','deployed'],['PDVs pendentes',b.pdvs_pending,'Ainda sem implantação','pending'],['Lojas atualizadas',b.stores_updated,b.stores_percent+'% das '+number(b.stores_expected)+' lojas','stores'],['Pendências abertas',openIssues,number(overdueIssues)+' com prazo vencido','issues']].map(([label,n,detail,key])=>`<${(pdvLists[key]||key==='issues')?`button type="button" data-rollout-list="${key}"`:'article'} class="stat rollout-kpi rollout-kpi-${key}"><small>${label}</small><strong>${number(n)}</strong><small>${detail}${key==='issues'?' · Ver pendências →':pdvLists[key]?' · Ver PDVs →':''}</small></${pdvLists[key]||key==='issues'?'button':'article'}>`).join('')}</div>
  <div class="rollout-overview-grid">
   <section class="panel rollout-coverage"><div class="rollout-panel-heading"><div><span class="eyebrow">EXECUÇÃO</span><h2>Avanço do parque</h2></div><span class="scope-tag">PDVs implantados</span></div><div class="rollout-coverage-body"><div class="rollout-donut" style="--rollout-progress:${b.pdvs_percent}%" role="img" aria-label="${b.pdvs_percent}% dos PDVs implantados"><div><strong>${b.pdvs_percent}%</strong><small>implantado</small></div></div><div class="rollout-coverage-legend"><p><i class="deployed"></i><span>Implantados</span><b>${number(b.pdvs_deployed)}</b></p><p><i class="pending"></i><span>Pendentes</span><b>${number(b.pdvs_pending)}</b></p><small>Implantação declarada na Base ou Orion OK. Cada filial + PDV conta uma vez.</small></div></div></section>
   <section class="panel"><div class="rollout-panel-heading"><div><span class="eyebrow">VERSÕES</span><h2>Parque instalado</h2></div><span class="scope-tag">${versions.length} versão(ões)</span></div>${versions.length?rolloutVersionBars(versions.slice(0,5))+(versions.length>5?`<details class="rollout-more"><summary>Ver outras ${versions.length-5} versões</summary>${rolloutVersionBars(versions.slice(5))}</details>`:''):'<p class="rollout-empty">Nenhuma versão instalada foi registrada.</p>'}</section>
@@ -108,8 +111,15 @@ function renderRolloutBaseDashboard(data){
  </section>
  <section id="rolloutPanel-groups" role="tabpanel" aria-labelledby="rolloutTab-groups" hidden><div class="rollout-summary-line"><div><span class="eyebrow">BASE DE ROLLOUT</span><h2>Avanço por GR e regional</h2><p>Lojas atualizadas / lojas previstas, respeitando os filtros acima.</p></div></div><div class="executive-grid">${rolloutGroupingTable('Avanço por GR',b.by_gr)}${rolloutGroupingTable('Avanço por regional',b.by_regional)}</div></section>`;
  el.querySelectorAll('[data-central-priority]').forEach(button=>button.onclick=()=>{const row=executive.attention[Number(button.dataset.centralPriority)];openCentralFromDashboard(row.branch_id,row.pdvs[0])});
- el.querySelectorAll('[data-rollout-pdvs]').forEach(button=>{
-  button.onclick=()=>dashboardMachines(pdvLists[button.dataset.rolloutPdvs]);
+ el.querySelectorAll('[data-rollout-list]').forEach(button=>{
+  const key=button.dataset.rolloutList;
+  button.onclick=()=>{
+   if(key==='issues'){
+    $('operationSearch').value='';
+    return showOperations('issues','pending');
+   }
+   return dashboardMachines(pdvLists[key]);
+  };
  });
  $('openRolloutBaseDashboard').onclick=showRolloutBase;$('rolloutShowGroups').onclick=()=>selectRolloutDashboardTab('groups',true);
  const tabs=[...el.querySelectorAll('[data-rollout-tab]')];
