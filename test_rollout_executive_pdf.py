@@ -27,6 +27,10 @@ def test_pdf_all_saved_rollout_and_cutover_current_data(isolated):
     assert 'attachment;' in response.headers['Content-Disposition']
     assert 'no-store' in response.headers['Cache-Control']
     reader=PdfReader(io.BytesIO(response.data));assert len(reader.pages)==3
+    first_page=reader.pages[0].extract_text()
+    for label in ('Filiais ativas','PDVs previstos','PDVs implantados','PDVs pendentes',
+                  'Lojas atualizadas','Pendências abertas','Avanço do rollout','Prioridade executiva'):
+        assert label in first_page
     text='\n'.join(p.extract_text() for p in reader.pages)
     for value in ['Relatório executivo','GR EXECUTIVO','SP CENTRO','Orion 2.0','VD266 / 01','Registros atualizados','PDVs atualmente Orion OK']:
         assert value in text

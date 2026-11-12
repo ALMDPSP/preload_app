@@ -1,3 +1,9 @@
+# Atualização v5.1.5
+
+O PDF executivo abre com os seis indicadores do Dashboard e gráficos de implantação, Orion OK e aprovações dos últimos 14 dias. A primeira página também destaca atrasos, pendências críticas e a prioridade de atuação. O comparativo de período, quando selecionado, aparece após o painel. Cobertura por GR e regional, versões e prioridades por filial e PDV ficam no detalhamento.
+
+Envie o conteúdo do ZIP para a raiz do GitHub. Mantenha o Start Command `bash start.sh` e confirme a versão 5.1.5 em /healthz após o deploy.
+
 # Atualização v5.1.4
 
 A visão executiva mostra os seis indicadores logo abaixo do título. A faixa de avanço compara a implantação com o Orion OK e destaca os PDVs atrasados, os implantados que ainda precisam de aceite e as pendências críticas do recorte. As lojas prioritárias aparecem antes da análise do período, das versões e do avanço por regional.

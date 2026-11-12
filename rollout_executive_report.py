@@ -1,4 +1,4 @@
-"""Bounded, three-page executive report; all totals come from saved planned PDVs."""
+"""Executive report with the rollout dashboard first and bounded detail pages."""
 import io
 from pathlib import Path
 import reportlab
@@ -49,7 +49,8 @@ def report_payload(core):
                 updates.append({'code':branches[row['branch_id']]['code'],'pdv':'','source':'GR / Regional','status':'Cadastro atualizado','at':row['updated_at']})
     updates.sort(key=lambda r:(r['at'],r['code'],r['pdv'],r['source']),reverse=True)
     return {'generated_at':data['generated_at'],'base':base,'totals':data['totals'],'excluded':data['excluded'],
-            'executive':executive,'trend':trend,'updates':updates[:5],'updates_total':len(updates),'date_references':data['date_references']}
+            'executive':executive,'network':{'active_branches':data['active_branches_total'],
+            'open_issues':operations['metrics']['open_issues'],'overdue_issues':operations['metrics']['overdue_issues']},'trend':trend,'updates':updates[:5],'updates_total':len(updates),'date_references':data['date_references']}
 
 def create_rollout_executive_pdf(data):
     fonts=Path(reportlab.__file__).parent/'fonts'
@@ -76,12 +77,12 @@ def create_rollout_executive_pdf(data):
     def stamp(value):return datetime.fromisoformat(value).astimezone(ZoneInfo('America/Sao_Paulo')).strftime('%d/%m/%Y %H:%M')
     def short(value,maximum=85):
         text=str(value);return text if len(text)<=maximum else text[:maximum-3]+'...'
-    def table(rows,widths):
+    def table(rows,widths,padding=7):
         t=Table([[p(v,'th' if i==0 else 'cell') for v in row] for i,row in enumerate(rows)],colWidths=widths,repeatRows=1,hAlign='LEFT')
         t.setStyle(TableStyle([('VALIGN',(0,0),(-1,-1),'TOP'),('BACKGROUND',(0,0),(-1,0),BG),
           ('ROWBACKGROUNDS',(0,1),(-1,-1),[colors.white,colors.HexColor('#fafbfd')]),
           ('LINEBELOW',(0,0),(-1,-1),.35,LINE),('LEFTPADDING',(0,0),(-1,-1),7),('RIGHTPADDING',(0,0),(-1,-1),7),
-          ('TOPPADDING',(0,0),(-1,-1),7),('BOTTOMPADDING',(0,0),(-1,-1),7)]))
+          ('TOPPADDING',(0,0),(-1,-1),padding),('BOTTOMPADDING',(0,0),(-1,-1),padding)]))
         return t
     def kpis(items):
         cells=[[p(label,'klabel'),p(n(value),'kvalue'),p(note,'muted')] for label,value,note in items]
@@ -90,15 +91,120 @@ def create_rollout_executive_pdf(data):
           ('BOX',(0,0),(-1,-1),.5,LINE),('LINEAFTER',(0,0),(-2,-1),.5,colors.white),
           ('LEFTPADDING',(0,0),(-1,-1),10),('RIGHTPADDING',(0,0),(-1,-1),8),('TOPPADDING',(0,0),(-1,-1),12),('BOTTOMPADDING',(0,0),(-1,-1),9)]))
         return t
-    def progress(expected,done):
-        d=Drawing(WIDTH,47)
-        ratio=done/expected if expected else 0
-        d.add(Rect(0,23,WIDTH,13,fillColor=LINE,strokeColor=None))
-        if ratio:d.add(Rect(0,23,WIDTH*ratio,13,fillColor=BLUE,strokeColor=None))
-        d.add(String(0,6,'Implantados: '+n(done),fontName='RolloutSans-Bold',fontSize=8,fillColor=BLUE))
-        d.add(String(WIDTH,6,'Pendentes: '+n(expected-done),textAnchor='end',fontName='RolloutSans',fontSize=8,fillColor=MUTED))
-        return d
-    b=data['base'];t=data['totals'];e=data['executive'];flow=[]
+    def rate(count, total):
+        value = f'{count / total * 100:.2f}'.rstrip('0').rstrip('.') if total else '0'
+        return pct(value)
+
+    def headline_cards(items):
+        cells = [[p(label, 'klabel'), p(n(value), 'kvalue'), p(note, 'muted')]
+                 for label, value, note, _ in items]
+        grid = Table([cells[:3], cells[3:]], colWidths=[WIDTH/3]*3, hAlign='LEFT')
+        rules = [
+            ('VALIGN', (0,0), (-1,-1), 'TOP'),
+            ('GRID', (0,0), (-1,-1), 3, colors.white),
+            ('LEFTPADDING', (0,0), (-1,-1), 13),
+            ('TOPPADDING', (0,0), (-1,-1), 11),
+            ('BOTTOMPADDING', (0,0), (-1,-1), 8),
+        ]
+        for i, (_, _, _, background) in enumerate(items):
+            cell = (i % 3, i // 3)
+            rules.append(('BACKGROUND', cell, cell, background))
+        grid.setStyle(TableStyle(rules))
+        return grid
+
+    def rollout_progress(expected, installed, ok, delayed, critical):
+        graphic = Drawing(WIDTH, 112)
+        dark = colors.HexColor('#24354e')
+        light = colors.HexColor('#dce7f6')
+        track = colors.HexColor('#52647f')
+        graphic.add(Rect(0,0,WIDTH,112,fillColor=dark,strokeColor=None))
+
+        def label(x, y, value, size=8, bold=False, color=light, align='start'):
+            graphic.add(String(x,y,str(value),fontName='RolloutSans-Bold' if bold else 'RolloutSans',
+                               fontSize=size,fillColor=color,textAnchor=align))
+
+        label(14,91,'Avanço do rollout',11,True,colors.white)
+        label(257,91,'Atenção no rollout',11,True,colors.white)
+        graphic.add(Line(242,15,242,95,strokeColor=track))
+        for y, name, value, color in [(66,'Implantação',installed,PALE),(34,'Orion OK',ok,colors.HexColor('#a3c6fa'))]:
+            label(14,y,name)
+            unit = ' PDV' if value == 1 else ' PDVs'
+            label(228,y,n(value)+unit+' | '+rate(value,expected),8,True,colors.white,'end')
+            graphic.add(Rect(14,y-12,214,5,fillColor=track,strokeColor=None))
+            ratio = min(1,value/expected) if expected else 0
+            if ratio:
+                graphic.add(Rect(14,y-12,214*ratio,5,fillColor=color,strokeColor=None))
+        risks = [(max(0,installed-ok),'Implantados','sem Orion OK'),
+                 (delayed,'PDVs','atrasados'),(critical,'Pendências','críticas')]
+        for i,(value, first, second) in enumerate(risks):
+            x = 257+i*78
+            label(x,56,n(value),17,True,colors.white)
+            label(x,37,first)
+            label(x,25,second)
+        return graphic
+
+    def approval_chart(trend):
+        chart = Drawing(WIDTH,106)
+        left, right, bottom, top = 32, WIDTH-7, 22, 85
+        maximum = max([row['count'] for row in trend]+[1])
+        ticks = sorted({0, maximum//2, maximum})
+        for value in ticks:
+            y = bottom+(top-bottom)*value/maximum
+            chart.add(Line(left,y,right,y,strokeColor=LINE))
+            chart.add(String(left-5,y-2,n(value),fontName='RolloutSans',fontSize=7,
+                             textAnchor='end',fillColor=MUTED))
+        for i,row in enumerate(trend):
+            width = (right-left)/len(trend)
+            x = left+width*i
+            height = (top-bottom)*row['count']/maximum
+            if height:
+                chart.add(Rect(x+5,bottom,width-10,height,fillColor=BLUE,strokeColor=None))
+                chart.add(String(x+width/2,bottom+height+4,n(row['count']),fontName='RolloutSans',
+                                 fontSize=7,textAnchor='middle',fillColor=BLUE))
+            if i%2==0 or i==len(trend)-1:
+                day = row['day'][8:10]+'/'+row['day'][5:7]
+                chart.add(String(x+width/2,8,day,fontName='RolloutSans',fontSize=7,textAnchor='middle',fillColor=MUTED))
+        if not any(row['count'] for row in trend):
+            chart.add(String(WIDTH/2,54,'Sem aprovações identificadas no período.',fontName='RolloutSans',
+                             fontSize=9,textAnchor='middle',fillColor=MUTED))
+        return chart
+
+    b, t, e = data['base'], data['totals'], data['executive']
+    network = data['network']
+    gap = max(0,b['pdvs_deployed']-t['ok'])
+    if e['critical_issues']:
+        focus = 'Tratar '+n(e['critical_issues'])+' pendência(s) crítica(s).'
+    elif e['overdue_pdvs']:
+        focus = 'Priorizar '+n(e['overdue_pdvs'])+' PDV(s) com prazo vencido.'
+    elif gap:
+        focus = 'Validar '+n(gap)+' PDV(s) implantado(s) que aguardam Orion OK.'
+    elif b['pdvs_pending']:
+        focus = 'Avançar a implantação dos PDVs pendentes.'
+    elif b['pdvs_expected']:
+        focus = 'Parque implantado. Acompanhar a operação das lojas.'
+    else:
+        focus = 'Nenhum PDV previsto no escopo.'
+    cards = [
+        ('Filiais ativas',network['active_branches'],'Total da rede no escopo',BG),
+        ('PDVs previstos',b['pdvs_expected'],'Parque previsto',BG),
+        ('PDVs implantados',b['pdvs_deployed'],rate(b['pdvs_deployed'],b['pdvs_expected'])+' do parque',colors.HexColor('#e9f6f0')),
+        ('PDVs pendentes',b['pdvs_pending'],'Aguardam implantação',colors.HexColor('#fff6e4')),
+        ('Lojas atualizadas',b['stores_updated'],n(b['stores_updated'])+' de '+n(b['stores_expected'])+' lojas',BG),
+        ('Pendências abertas',network['open_issues'],n(network['overdue_issues'])+' com prazo vencido na rede',colors.HexColor('#fcf0f2')),
+    ]
+    flow = [
+        p('Relatório executivo','title'),
+        p('Posição em '+stamp(data['generated_at'])+' (Brasília)','muted'),
+        headline_cards(cards), Spacer(1,12),
+        rollout_progress(b['pdvs_expected'],b['pdvs_deployed'],t['ok'],e['overdue_pdvs'],e['critical_issues']),
+        Spacer(1,9),p('Prioridade executiva','h'),p(focus),
+        p('PDVs atualmente Orion OK por data de aprovação','h'),
+        approval_chart(data['trend']),
+        p('Últimos 14 dias. Aprovações vigentes com data identificada no histórico.','muted'),
+        p('Lojas com todos os PDVs Orion OK  '+n(t['stores_ok'])+' | Aprovações nos últimos 7 dias  '+n(e['recent_ok']),'body'),
+        p('Escopo geral: filiais ativas e abertas com cadastro sem revisão pendente. Implantação inclui declaração na Base ou Orion OK. Pendências abertas incluem ocorrências em tratamento na rede.','muted'),
+        PageBreak(),
+    ]
     period=data.get('period_summary')
     if period:
         def fmt_day(day):return day.split('-')[2]+'/'+day.split('-')[1]+'/'+day.split('-')[0]
@@ -112,15 +218,9 @@ def create_rollout_executive_pdf(data):
                      p('Ondas e justificativas','h')])
         waves=sorted([w for w in period['waves'] if w['start_date']<=period['to_date'] and w['due_date']>=period['from_date']],key=lambda w:(-w['overdue'],w['due_date'],w['name']))[:3]
         flow.append(table([['Onda','Previstos','Validados','Atrasados','Justificativa']]+[[short(w['name'],32),n(w['planned']),n(w['validated']),n(w['overdue']),short(w['delay_reason'] or 'Não informada',90)] for w in waves or [{'name':'Sem ondas cadastradas','planned':0,'validated':0,'overdue':0,'delay_reason':''}]],[49*mm,23*mm,23*mm,23*mm,56*mm]))
-        flow.extend([p('Até 3 ondas que cruzam o período selecionado, priorizadas por atraso. Os números das ondas mostram sua posição atual; os indicadores do período incluem todos os planejamentos. '+period['note'],'muted'),p(str(period['declared_without_date'])+' PDV(s) implantado(s) sem data declarada de implantação. Esses registros permanecem no total atual, sem estimar uma data para o comparativo.','muted'),p('As páginas seguintes apresentam a posição atual do parque, emitida em '+stamp(data['generated_at'])+'.','muted'),PageBreak()])
+        flow.extend([p('Até 3 ondas que cruzam o período selecionado, priorizadas por atraso. Os números das ondas mostram sua posição atual; os indicadores do período incluem todos os planejamentos. '+period['note'],'muted'),p(str(period['declared_without_date'])+' PDV(s) implantado(s) sem data declarada de implantação. Esses registros permanecem no total atual, sem estimar uma data para o comparativo.','muted'),p('O painel da primeira página e os detalhamentos seguintes mostram a posição atual do parque.','muted'),PageBreak()])
 
-    gap=max(0,b['pdvs_deployed']-t['ok'])
-    focus=('Resolver '+str(e['critical_issues'])+' ocorrência(s) crítica(s).' if e['critical_issues'] else 'Priorizar '+str(e['overdue_pdvs'])+' PDV(s) atrasado(s).' if e['overdue_pdvs'] else 'Validar os PDVs implantados sem Orion OK.' if gap else 'Avançar a implantação e acompanhar os aceites.')
-    flow += [p('Relatório executivo','title'),p('ROLLOUT PDV ORION | Posição consolidada em '+stamp(data['generated_at'])+' (Brasília)','muted'),
-             p('Prioridade executiva: '+focus,'body'),p('Visão geral da implantação','h'),p('Todas as filiais ativas e abertas no escopo. Consolidação por filial + número de PDV, usando a última execução salva e o cadastro da Base de Rollout.','muted'),
-             kpis([('PDVs previstos',b['pdvs_expected'],'Parque planejado'),('PDVs implantados',b['pdvs_deployed'],pct(b['pdvs_percent'])+' do parque'),('PDVs pendentes',b['pdvs_pending'],'Sem implantação'),('Lojas atualizadas',b['stores_updated'],pct(b['stores_percent'])+' das lojas')]),
-             Spacer(1,10),progress(b['pdvs_expected'],b['pdvs_deployed']),
-             p(n(b['stores_expected'])+' lojas previstas | '+n(b['stores_updated'])+' com ao menos um PDV implantado.','muted'),
+    flow += [p('Cobertura e versões','title'),p('Implantação por liderança e distribuição do parque instalado.','muted'),
              p('Versões instaladas','h')]
     versions=[dict(v) for v in b['versions']]
     versions.sort(key=lambda v:(-v['count'],v['name']))
@@ -130,35 +230,22 @@ def create_rollout_executive_pdf(data):
         count=sum(v['count'] for v in versions[6:]);selected.append({'name':'Demais versões ('+str(len(versions)-6)+')','count':count,'percent':round(count/known*100,1)})
     rows=[['Versão instalada','PDVs','% com versão']]+[[short(v['name'],65),n(v['count']),pct(v['percent'])] for v in selected]
     if not selected:rows.append(['Nenhuma versão registrada','0','0%'])
-    flow += [table(rows,[110*mm,28*mm,36*mm]),p('A distribuição considera os PDVs com versão registrada. As versões de menor volume são agrupadas.','muted'),
-             p('Validação do cutover','h'),p(n(gap)+' PDV(s) implantado(s) ainda sem Orion OK. Implantação e validação são medidas separadas.','muted'),
-             kpis([('Virados e Orion OK',t['ok'],pct(t['percent'])+' do parque'),('Pendentes de validação',t['pending'],'Inclui não iniciados'),('Lojas completas',t['stores_ok'],'Todos os PDVs Orion OK')]),
-             Spacer(1,8),p('Implantado = declaração na Base ou Orion OK. Orion OK exige todos os processos e os dois aceites GO com responsável e data. Uma implantação declarada não conclui o cutover.','muted'),
-             PageBreak(),p('Cobertura e evolução','title'),p('Acompanhamento por liderança e avanço da validação.','muted')]
+    flow += [table(rows,[110*mm,28*mm,36*mm]),
+             p('A distribuição considera os PDVs com versão registrada. As versões de menor volume são agrupadas.','muted')]
     def grouping(title,groups):
         ranked=sorted(groups,key=lambda r:(-(r['pdvs_expected']-r['pdvs_deployed']),r['name']))
         chosen=ranked[:6]
         if len(ranked)>6:
             rest=ranked[6:];expected=sum(r['stores_expected'] for r in rest);updated=sum(r['stores_updated'] for r in rest)
             chosen.append({'name':'Demais grupos ('+str(len(rest))+')','stores_expected':expected,'stores_updated':updated,'percent':round(updated/expected*100,1) if expected else 0})
-        return [p(title,'h'),table([['Grupo','Lojas','Atual.','Avanço']]+[[short(r['name'],38),n(r['stores_expected']),n(r['stores_updated']),pct(r['percent'])] for r in chosen or [{'name':'Sem lojas no escopo','stores_expected':0,'stores_updated':0,'percent':0}]],[36*mm,16*mm,16*mm,16*mm])]
+        return [p(title,'h'),table([['Grupo','Lojas','Atual.','Avanço']]+[[short(r['name'],38),n(r['stores_expected']),n(r['stores_updated']),pct(r['percent'])] for r in chosen or [{'name':'Sem lojas no escopo','stores_expected':0,'stores_updated':0,'percent':0}]],[36*mm,16*mm,16*mm,16*mm],padding=5)]
     groups=Table([[grouping('Avanço por GR',b['by_gr']),Spacer(6*mm,1),grouping('Avanço por regional',b['by_regional'])]],colWidths=[84*mm,6*mm,84*mm])
     groups.setStyle(TableStyle([('VALIGN',(0,0),(-1,-1),'TOP'),('LEFTPADDING',(0,0),(-1,-1),0),('RIGHTPADDING',(0,0),(-1,-1),0),('TOPPADDING',(0,0),(-1,-1),0),('BOTTOMPADDING',(0,0),(-1,-1),0)]))
     flow.append(groups)
-    flow += [p('Até 6 grupos por visão, priorizados por PDVs ainda sem implantação; os demais são consolidados. Avanço = lojas com ao menos um PDV implantado / lojas previstas do grupo.','muted'),
-             p('PDVs atualmente Orion OK por data de aprovação','h')]
-    d=Drawing(WIDTH,112);left=22;right=WIDTH-4;bottom=27;top=95;maximum=max([r['count'] for r in data['trend']]+[1])
-    d.add(Line(left,bottom,right,bottom,strokeColor=LINE))
-    for i,r in enumerate(data['trend']):
-        x=left+(right-left)*i/14;width=(right-left)/14-8;height=(top-bottom)*r['count']/maximum
-        if height:d.add(Rect(x+4,bottom,width,height,fillColor=BLUE,strokeColor=None))
-        if r['count']:d.add(String(x+4+width/2,bottom+height+4,str(r['count']),fontName='RolloutSans',fontSize=7,textAnchor='middle',fillColor=BLUE))
-        if i%2==0 or i==13:d.add(String(x+4+width/2,12,r['day'][8:10]+'/'+r['day'][5:7],fontName='RolloutSans',fontSize=6.5,textAnchor='middle',fillColor=MUTED))
-    if not any(r['count'] for r in data['trend']):d.add(String((left+right)/2,62,'Sem aprovações identificadas nos últimos 14 dias.',fontName='RolloutSans',fontSize=9,textAnchor='middle',fillColor=MUTED))
-    flow += [d,p('Últimos 14 dias. A curva considera apenas PDVs que continuam Orion OK e possuem aprovação identificada no histórico. Não representa fotografias diárias; datas estimadas não entram.','muted'),
-             p('Orion OK nos últimos 7 dias: '+n(e['recent_ok'])+' | Média diária: '+str(e['recent_daily_average']).replace('.',',')+' PDV(s).','body'),
+    flow += [p('Até 6 grupos por visão, priorizados por PDVs ainda sem implantação. Avanço = lojas com ao menos um PDV implantado / lojas previstas do grupo.','muted'),
+             p('Orion OK exige todos os processos e os dois aceites GO com responsável e data.','muted'),
              PageBreak(),p('Atenção e atualizações','title'),p('Pendências operacionais e registros salvos recentemente.','muted'),
-             kpis([('Ocorrências abertas',e['open_issues'],str(e['critical_issues'])+' críticas'),('PDVs atrasados',e['overdue_pdvs'],'Conforme cronograma'),('Lojas com atenção',e['attention_total'],'Riscos e pendências')]),
+             kpis([('Ocorrências abertas no escopo',e['open_issues'],str(e['critical_issues'])+' críticas'),('PDVs atrasados',e['overdue_pdvs'],'Conforme cronograma'),('Lojas com atenção',e['attention_total'],'Riscos e pendências')]),
              p('Prioridades por filial e PDV','h')]
     attention=e['attention'][:4]
     rows=[['Filial / loja','PDVs','Pontos de atenção']]
