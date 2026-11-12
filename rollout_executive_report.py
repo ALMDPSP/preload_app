@@ -21,7 +21,7 @@ from operations import operation_overview,today
 from executive_dashboard import executive_metrics
 from release import APP_VERSION
 
-INK=colors.HexColor('#28354d');MUTED=colors.HexColor('#718198');RED=colors.HexColor('#d51f35')
+INK=colors.HexColor('#28354d');MUTED=colors.HexColor('#718198')
 BLUE=colors.HexColor('#31527b');PALE=colors.HexColor('#a7dce9');GREEN=colors.HexColor('#137961')
 LINE=colors.HexColor('#dfe6f0');BG=colors.HexColor('#f4f7fb')
 WIDTH=174*mm
@@ -264,8 +264,15 @@ def create_rollout_executive_pdf(data):
              p(n(b['stores_missing_organization'])+' loja(s) sem GR e/ou regional; '+n(b['deployed_without_version'])+' PDV(s) implantado(s) sem versão. '+n(t['exceptions'])+' registro(s) com numeração fora do plano.','muted'),
              p('Fora do escopo geral: '+n(data['excluded']['inactive'])+' filial(is) inativa(s), '+n(data['excluded']['opening_soon'])+' a inaugurar e '+n(data['excluded']['needs_review'])+' a revisar. Alterações ainda não salvas não entram neste relatório.','muted')]
     def footer(canvas,doc):
-        canvas.saveState();canvas.setFillColor(RED);canvas.rect(18*mm,278*mm,9*mm,2*mm,fill=1,stroke=0)
-        canvas.setFillColor(INK);canvas.setFont('RolloutSans-Bold',8.5);canvas.drawString(30*mm,278*mm,'ALM / EXPANSÃO DE TI')
+        canvas.saveState()
+        canvas.setFillColor(colors.HexColor('#242735'))
+        canvas.roundRect(18*mm,274*mm,27*mm,16*mm,3*mm,fill=1,stroke=0)
+        canvas.setFillColor(colors.HexColor('#d6e8ff'))
+        canvas.setFont('RolloutSans-Bold',13)
+        canvas.drawString(21*mm,283*mm,'Cutover')
+        canvas.setFillColor(colors.HexColor('#a8ddeb'))
+        canvas.setFont('RolloutSans-Bold',9)
+        canvas.drawString(21*mm,278*mm,'online')
         canvas.setFont('RolloutSans',7.5);canvas.setFillColor(MUTED);canvas.drawRightString(192*mm,278*mm,'ROLLOUT PDV ORION')
         canvas.setStrokeColor(LINE);canvas.line(18*mm,14*mm,192*mm,14*mm);canvas.setFont('RolloutSans',7)
         canvas.drawString(18*mm,10*mm,'Developed by ALM - Expansão de TI | v'+APP_VERSION)
