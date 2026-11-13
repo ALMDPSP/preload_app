@@ -1,0 +1,137 @@
+/* Phone layout for the app and sign-in screens. */
+@media screen and (max-width: 700px) {
+  :root { --mobile-header: 60px; }
+  html { scroll-padding-top: calc(var(--mobile-header) + 12px); }
+
+  body > aside, .sidebar-collapsed > aside {
+    position: sticky !important;
+    top: 0;
+    inset-inline: 0;
+    z-index: 45;
+    min-height: var(--mobile-header);
+    padding: 8px 14px;
+    padding-top: max(8px, env(safe-area-inset-top));
+  }
+  aside .logo.alm-brandmark {
+    width: auto;
+    height: 44px;
+    min-height: 44px;
+    flex-basis: auto;
+    align-self: flex-start;
+  }
+  aside .cutover-wordmark strong { font-size: 20px; }
+  aside .cutover-wordmark > span { font-size: 12px; margin-top: 2px; }
+  aside #sidebarToggle {
+    top: auto;
+    bottom: 8px;
+    right: 12px;
+    height: 44px;
+    width: 78px;
+  }
+  aside #appNavigation {
+    top: 100%;
+    max-height: calc(100dvh - var(--mobile-header));
+    overscroll-behavior: contain;
+    padding-bottom: max(16px, env(safe-area-inset-bottom));
+  }
+  aside #appNavigation button { min-height: 44px; }
+  main {
+    min-width: 0;
+    max-width: 100%;
+    padding: 12px 12px 28px;
+    padding-inline: max(12px, env(safe-area-inset-left)) max(12px, env(safe-area-inset-right));
+  }
+  main:has(#cutoverEditor:not(.hidden)) { padding-bottom: calc(130px + env(safe-area-inset-bottom)); }
+  main > section, main .panel, main .stat, main .context > div,
+  main .report-filters > div, main .central-fields > div { min-width: 0; }
+  main .section-top { gap: 8px 12px; flex-wrap: wrap; }
+  main .section-top .actions { flex-wrap: wrap; }
+  main h1, #dashboardPage h1 { font-size: clamp(21px, 5.7vw, 26px); line-height: 1.15; }
+  main h2 { overflow-wrap: anywhere; }
+  main .account-bar {
+    flex-direction: row;
+    align-items: center;
+    min-height: 0;
+    padding: 9px 12px !important;
+    margin-bottom: 12px !important;
+    gap: 8px;
+  }
+  .account-bar strong { font-size: 13px; overflow-wrap: anywhere; }
+  .account-bar .account-menu > summary { min-height: 44px; display: flex; align-items: center; }
+  main .account-menu > .actions { width: min(230px, calc(100vw - 48px)); }
+
+  #rolloutHeadline .rollout-primary-stats { grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 8px; }
+  #rolloutHeadline .rollout-kpi { min-height: 0; padding: 11px 10px; }
+  #rolloutHeadline .rollout-kpi strong { font-size: 27px; }
+  #rolloutHeadline .rollout-kpi > small { font-size: 11px; }
+  .rollout-executive-strip { gap: 9px; padding: 13px; }
+  .rollout-executive-risks { padding-top: 9px; }
+  .rollout-risk-grid { gap: 6px; }
+  .rollout-risk-grid small { overflow-wrap: anywhere; }
+  #rolloutHeadlineTrend { padding: 13px; }
+  .approval-trend-chart text { font-size: 20px; }
+  .approval-trend-header button { min-height: 44px; }
+  .approval-trend-detail input { min-height: 44px; }
+  .rollout-view-tabs { max-width: 100%; overscroll-behavior-inline: contain; }
+  .rollout-view-tabs button { min-height: 44px; }
+  #dashboardPage .dashboard-controls .report-filters,
+  #dashboardPage .dashboard-controls .management-period { flex-basis: 100%; min-width: 0; }
+  #dashboardPage .dashboard-controls .report-filters {
+    grid-template-columns: minmax(0, 1.7fr) minmax(0, 1fr) !important;
+  }
+
+  .report-table-wrap, .branch-table-wrap, .import-preview-table, .access-table-wrap {
+    min-width: 0;
+    max-width: 100%;
+    overflow-x: auto;
+    overscroll-behavior-inline: contain;
+  }
+  .branch-table-wrap table, .report-table-wrap table,
+  .import-preview-table table, .access-table-wrap table { min-width: 560px; }
+  main .branch-pagination { flex-wrap: wrap; gap: 8px; }
+  main .branch-pagination button { min-height: 44px; }
+  .central-layout { grid-template-columns: minmax(0, 1fr); }
+  .central-layout > .central-pdv-rail { min-width: 0; padding: 12px; }
+  .central-pdv-rail .store-pdv-grid { max-width: 100%; scroll-snap-type: x proximity; }
+  .central-pdv-rail .store-pdv-card { scroll-snap-align: start; }
+  .central-rail-heading, .central-branch-summary { flex-wrap: wrap; gap: 8px; }
+  .central-rail-heading button, .store-pdv-card button { min-height: 44px; }
+  .central-main .filters { flex-wrap: wrap; }
+  .central-main .filters > * { flex: 1 1 125px; max-width: 100%; }
+  .central-main .stage-track { grid-template-columns: repeat(2, minmax(0, 1fr)); }
+  main .net { grid-template-columns: minmax(0, 1fr); gap: 6px; }
+  main .net pre { white-space: pre-wrap; overflow-wrap: anywhere; }
+  main .process-title { overflow-wrap: anywhere; }
+  .central-main .save-dock {
+    right: 0;
+    bottom: 0;
+    padding: 8px 12px calc(8px + env(safe-area-inset-bottom));
+  }
+  .save-dock .primary { min-height: 44px; }
+  .save-dock strong { font-size: 11px; }
+
+  #modal {
+    width: calc(100% - 20px) !important;
+    max-width: 480px;
+    max-height: 88dvh !important;
+    padding: 14px !important;
+    overflow: auto;
+    overscroll-behavior: contain;
+  }
+  #modal #closeModal { min-height: 44px; margin: 0 0 8px 8px; }
+  #modalBody h2 { overflow-wrap: anywhere; }
+  #modalBody .actions { flex-wrap: wrap; }
+  #modalBody .actions button { min-height: 44px; }
+  body input:not([type="checkbox"]):not([type="range"]),
+  body select, body textarea { max-width: 100%; min-width: 0; font-size: 16px !important; }
+
+  .login-shell, .verification-page .card { width: 100%; max-width: 430px; min-width: 0; }
+  .login-shell { grid-template-columns: minmax(0, 1fr); }
+  .login-story { padding: 12px 18px; }
+  .login-story .alm-auth-frame { height: 57px; }
+  .login-story .cutover-wordmark strong { font-size: 25px; }
+  .login-story .cutover-wordmark > span { font-size: 16px; }
+  .login-form-panel, .verification-page .card { padding: 20px 16px; }
+  .verification-page .card { overflow-wrap: anywhere; }
+  .verification-page img { max-width: 100%; height: auto; }
+}

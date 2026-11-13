@@ -1,3 +1,9 @@
+# Atualização v5.1.8
+
+No celular, o Cutover Online usa um cabeçalho compacto, indicadores em duas colunas, rolagem dentro das tabelas e campos maiores para toque. O menu se fecha ao escolher uma seção. A Central mantém a lista de PDVs na horizontal e o botão de salvar ao alcance no checklist.
+
+Envie o conteúdo do ZIP para a raiz do GitHub. Mantenha o Start Command `bash start.sh` e confirme a versão 5.1.8 em /healthz após o deploy.
+
 # Atualização v5.1.7
 
 A curva de evolução acumulada do Orion OK aparece abaixo da faixa de avanço e atenção do Dashboard. Alterne entre 7, 14 e 30 dias e consulte o total acumulado e as aprovações do dia. O PDF executivo inclui a curva dos últimos 14 dias na primeira página. A curva usa as datas identificadas de aprovação dos PDVs atualmente Orion OK, com saldo anterior ao período.
