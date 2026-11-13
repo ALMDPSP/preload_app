@@ -32,7 +32,7 @@ def test_pdf_all_saved_rollout_and_cutover_current_data(isolated):
                   'Lojas atualizadas','Pendências abertas','Avanço do rollout','Prioridade executiva'):
         assert label in first_page
     text='\n'.join(p.extract_text() for p in reader.pages)
-    for value in ['Relatório executivo','GR EXECUTIVO','SP CENTRO','Orion 2.0','VD266 / 01','Registros atualizados','PDVs atualmente Orion OK']:
+    for value in ['Relatório executivo','GR EXECUTIVO','SP CENTRO','Orion 2.0','VD266 / 01','Registros atualizados','Evolução acumulada do Orion OK']:
         assert value in text
     assert 'Não imprimir observações completas' not in text
     assert len(response.data)<100000

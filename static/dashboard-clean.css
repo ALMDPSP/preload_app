@@ -93,3 +93,17 @@ button.rollout-meter .bar > span { background: #a3c6fa; }
   .dashboard-controls { display: none; }
   .rollout-executive-strip { print-color-adjust: exact; }
 }
+
+#rolloutHeadlineTrend { margin: 0 0 14px; padding: 18px 20px; }
+.approval-trend-header, .approval-trend-detail {
+  display: flex; flex-wrap: wrap; align-items: center; justify-content: space-between; gap: 10px;
+}
+.approval-trend-header h2 { font-size: 17px; margin: 0; }
+.approval-trend-header p { font-size: 12px; color: #506582; margin: 5px 0 0; }
+.approval-trend-header button { font-size: 11px; padding: 7px 10px; }
+.approval-trend-header button[aria-pressed="true"] { background: #24354e; color: white; }
+.approval-trend-chart { display: block; width: 100%; height: auto; max-height: 210px; cursor: crosshair; margin: 10px 0; }
+.approval-trend-chart text { fill: #506582; font-size: 14px; }
+.approval-trend-detail { border-top: 1px solid #dfe6f0; padding-top: 8px; color: #24354e; font-size: 12px; }
+.approval-trend-detail input { width: min(100%, 240px); accent-color: #137961; }
+.approval-trend .dashboard-small { margin: 8px 0 0; }

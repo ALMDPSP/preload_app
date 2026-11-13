@@ -1,3 +1,9 @@
+# Atualização v5.1.7
+
+A curva de evolução acumulada do Orion OK aparece abaixo da faixa de avanço e atenção do Dashboard. Alterne entre 7, 14 e 30 dias e consulte o total acumulado e as aprovações do dia. O PDF executivo inclui a curva dos últimos 14 dias na primeira página. A curva usa as datas identificadas de aprovação dos PDVs atualmente Orion OK, com saldo anterior ao período.
+
+Envie o conteúdo do ZIP para a raiz do GitHub. Mantenha o Start Command `bash start.sh` e confirme a versão 5.1.7 em /healthz após o deploy.
+
 # Atualização v5.1.5
 
 O PDF executivo abre com os seis indicadores do Dashboard e gráficos de implantação, Orion OK e aprovações dos últimos 14 dias. A primeira página também destaca atrasos, pendências críticas e a prioridade de atuação. O comparativo de período, quando selecionado, aparece após o painel. Cobertura por GR e regional, versões e prioridades por filial e PDV ficam no detalhamento.

@@ -20,6 +20,30 @@ def selected_data(data,q='',uf=''):
     expected=len(machines);ok=sum(m['ok'] for m in machines)
     return {**data,'stores':stores,'machines':machines,'exceptions':exceptions,'filters':{'q':q,'uf':uf},'date_references':references,'evolution':series,'totals':{'expected':expected,'ok':ok,'pending':expected-ok,'percent':round(ok/expected*100,1) if expected else 0,'stores':len(stores),'stores_ok':sum(s['pending']==0 for s in stores),'stores_pending':sum(s['pending']>0 for s in stores),'exceptions':len(exceptions)}}
 
+def approval_trend(machines, current, length=30):
+    """Date the current Orion OK fleet using only recorded approvals."""
+    start = current - timedelta(days=length-1)
+    daily = Counter()
+    baseline = 0
+    for machine in machines:
+        if not machine['ok'] or not machine['approved_at'] or machine['date_reference']:
+            continue
+        try:
+            day = datetime.fromisoformat(machine['approved_at']).astimezone(ZoneInfo('America/Sao_Paulo')).date()
+        except ValueError:
+            continue
+        if day < start:
+            baseline += 1
+        elif day <= current:
+            daily[day] += 1
+    rows = []
+    cumulative = baseline
+    for offset in range(length):
+        day = start + timedelta(days=offset)
+        cumulative += daily[day]
+        rows.append({'day':day.isoformat(), 'count':daily[day], 'cumulative_ok':cumulative})
+    return rows
+
 def executive_metrics(data,operations,core):
     machines=data['machines'];stores=data['stores'];ids={s['id'] for s in stores};counts=Counter(m['status'] for m in machines)
     current=today(core);week=current-timedelta(days=current.weekday());recent=0
@@ -58,6 +82,7 @@ def dashboard_bundle(core,args):
     pages=max(1,(len(scoped['stores'])+size-1)//size);page=min(page,pages)
     result={k:v for k,v in scoped.items() if k not in ['machines','stores','_revision']}
     result['exceptions']=result['exceptions'][:100]
+    result['approval_trend']=approval_trend(scoped['machines'],today(core))
     from rollout_base import rollout_base_summary
     result['rollout_base']=rollout_base_summary(core,scoped)
     from rollout_management import period_summary,model

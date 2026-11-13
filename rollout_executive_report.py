@@ -4,8 +4,7 @@ from pathlib import Path
 import reportlab
 from reportlab.pdfbase import pdfmetrics
 from reportlab.pdfbase.ttfonts import TTFont
-from collections import Counter
-from datetime import datetime,timedelta
+from datetime import datetime
 from zoneinfo import ZoneInfo
 from xml.sax.saxutils import escape
 from flask import send_file,request
@@ -14,11 +13,11 @@ from reportlab.lib.pagesizes import A4
 from reportlab.lib.styles import ParagraphStyle
 from reportlab.lib.units import mm
 from reportlab.platypus import SimpleDocTemplate,Paragraph,Spacer,Table,TableStyle,PageBreak
-from reportlab.graphics.shapes import Drawing,Rect,String,Line
+from reportlab.graphics.shapes import Drawing,Rect,String,Line,PolyLine,Circle
 from dashboard import dashboard_data
 from rollout_base import rollout_base_summary
 from operations import operation_overview,today
-from executive_dashboard import executive_metrics
+from executive_dashboard import approval_trend,executive_metrics
 from release import APP_VERSION
 
 INK=colors.HexColor('#28354d');MUTED=colors.HexColor('#718198')
@@ -31,13 +30,7 @@ def report_payload(core):
     operations=operation_overview(core,data)
     base=rollout_base_summary(core,data)
     executive=executive_metrics(data,operations,core)
-    current=today(core)
-    days=Counter()
-    for m in data['machines']:
-        if m['ok'] and m['approved_at'] and not m['date_reference']:
-            day=datetime.fromisoformat(m['approved_at']).astimezone(ZoneInfo('America/Sao_Paulo')).date()
-            if current-timedelta(days=13)<=day<=current:days[day.isoformat()]+=1
-    trend=[{'day':(current-timedelta(days=13-i)).isoformat(),'count':days[(current-timedelta(days=13-i)).isoformat()]} for i in range(14)]
+    trend=approval_trend(data['machines'],today(core),length=14)
     branches={s['id']:s for s in data['stores']}
     updates=[{'code':m['code'],'pdv':m['pdv'],'source':'Cutover','status':m['status'],'at':m['updated_at']} for m in data['machines'] if m['updated_at']]
     with core['db']() as c:
@@ -146,26 +139,31 @@ def create_rollout_executive_pdf(data):
     def approval_chart(trend):
         chart = Drawing(WIDTH,106)
         left, right, bottom, top = 32, WIDTH-7, 22, 85
-        maximum = max([row['count'] for row in trend]+[1])
-        ticks = sorted({0, maximum//2, maximum})
-        for value in ticks:
+        maximum = max([row['cumulative_ok'] for row in trend]+[1])
+        for value in sorted({0, maximum//2, maximum}):
             y = bottom+(top-bottom)*value/maximum
             chart.add(Line(left,y,right,y,strokeColor=LINE))
             chart.add(String(left-5,y-2,n(value),fontName='RolloutSans',fontSize=7,
                              textAnchor='end',fillColor=MUTED))
+        points = []
         for i,row in enumerate(trend):
-            width = (right-left)/len(trend)
-            x = left+width*i
-            height = (top-bottom)*row['count']/maximum
-            if height:
-                chart.add(Rect(x+5,bottom,width-10,height,fillColor=BLUE,strokeColor=None))
-                chart.add(String(x+width/2,bottom+height+4,n(row['count']),fontName='RolloutSans',
-                                 fontSize=7,textAnchor='middle',fillColor=BLUE))
-            if i%2==0 or i==len(trend)-1:
+            x = left+(right-left)*i/max(1,len(trend)-1)
+            y = bottom+(top-bottom)*row['cumulative_ok']/maximum
+            points.extend([x,y])
+            if i%3==0 or i==len(trend)-1:
                 day = row['day'][8:10]+'/'+row['day'][5:7]
-                chart.add(String(x+width/2,8,day,fontName='RolloutSans',fontSize=7,textAnchor='middle',fillColor=MUTED))
-        if not any(row['count'] for row in trend):
-            chart.add(String(WIDTH/2,54,'Sem aprovações identificadas no período.',fontName='RolloutSans',
+                chart.add(String(x,8,day,fontName='RolloutSans',fontSize=7,textAnchor='middle',fillColor=MUTED))
+        if trend and trend[-1]['cumulative_ok']:
+            chart.add(PolyLine(points,strokeColor=GREEN,strokeWidth=2))
+            for i,row in enumerate(trend):
+                if row['count'] or i==len(trend)-1:
+                    chart.add(Circle(points[2*i],points[2*i+1],2.8,fillColor=GREEN,strokeColor=colors.white,strokeWidth=.7))
+            total = trend[-1]['cumulative_ok']
+            unit = ' PDV' if total == 1 else ' PDVs'
+            chart.add(String(right,top+9,n(total)+unit,fontName='RolloutSans-Bold',
+                             fontSize=8,textAnchor='end',fillColor=GREEN))
+        else:
+            chart.add(String(WIDTH/2,54,'Sem aprovações com data identificada.',fontName='RolloutSans',
                              fontSize=9,textAnchor='middle',fillColor=MUTED))
         return chart
 
@@ -198,9 +196,9 @@ def create_rollout_executive_pdf(data):
         headline_cards(cards), Spacer(1,12),
         rollout_progress(b['pdvs_expected'],b['pdvs_deployed'],t['ok'],e['overdue_pdvs'],e['critical_issues']),
         Spacer(1,9),p('Prioridade executiva','h'),p(focus),
-        p('PDVs atualmente Orion OK por data de aprovação','h'),
+        p('Evolução acumulada do Orion OK','h'),
         approval_chart(data['trend']),
-        p('Últimos 14 dias. Aprovações vigentes com data identificada no histórico.','muted'),
+        p('Últimos 14 dias. PDVs atualmente Orion OK, por data de aprovação identificada. Inclui o saldo anterior ao período.','muted'),
         p('Lojas com todos os PDVs Orion OK  '+n(t['stores_ok'])+' | Aprovações nos últimos 7 dias  '+n(e['recent_ok']),'body'),
         p('Escopo geral: filiais ativas e abertas com cadastro sem revisão pendente. Implantação inclui declaração na Base ou Orion OK. Pendências abertas incluem ocorrências em tratamento na rede.','muted'),
         PageBreak(),

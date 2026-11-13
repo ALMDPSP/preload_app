@@ -128,7 +128,9 @@ function renderRolloutBaseDashboard(data){
    </div>
    <p>${esc(priority)}</p>
   </div>
- </section>`;
+ </section>
+ <section id="rolloutHeadlineTrend" class="panel" aria-label="Evolução do rollout"></section>`;
+ renderApprovalTrend($('rolloutHeadlineTrend'),data.approval_trend||[]);
  const regions=[...b.by_regional].sort((a,z)=>z.percent-a.percent||z.stores_expected-a.stores_expected).slice(0,5);
  el.innerHTML=`<div class="rollout-view-tabs" role="tablist" aria-label="Visões do dashboard">${[['overview','Resumo do rollout'],['groups','GR e regionais'],['cutover','Validação do cutover']].map(([id,label])=>`<button type="button" id="rolloutTab-${id}" role="tab" data-rollout-tab="${id}" aria-controls="${id==='cutover'?'cutoverDashboardSection':'rolloutPanel-'+id}" aria-selected="false" tabindex="-1">${label}</button>`).join('')}</div>
  <section id="rolloutPanel-overview" role="tabpanel" aria-labelledby="rolloutTab-overview">

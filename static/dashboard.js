@@ -22,7 +22,7 @@ function renderDashboard(){
  $('dashboardCards').innerHTML=[['PDVs previstos',t.expected,'Meta das lojas ativas'],['Virados e Orion OK',t.ok,t.percent+'% do parque previsto'],['PDVs pendentes',t.pending,'Inclui os ainda não iniciados'],['Lojas completas',t.stores_ok,t.stores+' lojas no escopo']].map(([label,n,detail])=>`<button class="stat action-stat" data-dashboard-focus="${label}"><small>${label}</small><strong>${n}</strong><small>${detail} · Ver lista →</small></button>`).join('');
  document.querySelectorAll('[data-dashboard-focus]').forEach(b=>b.onclick=()=>dashboardMachines(b.dataset.dashboardFocus));
  $('dashboardProgress').innerHTML=`<div class="dashboard-progress-label"><b>${t.percent}% concluído</b><span>${t.ok} de ${t.expected} PDVs</span></div><div class="bar"><span style="width:${t.percent}%"></span></div><p class="muted">${t.stores_pending} loja(s) com pendências. Fora do escopo: ${d.excluded.inactive} inativa(s), ${d.excluded.opening_soon} a inaugurar e ${d.excluded.needs_review} vínculo(s) a revisar.</p>`;
- $('dashboardEvolution').innerHTML=dashboardChart(d.evolution,t.ok)+`<p class="muted dashboard-small">A curva considera as datas de aprovação dos PDVs que estão OK hoje; não representa fotografias históricas do parque.${d.date_references?' '+d.date_references+' PDV(s) sem histórico de aprovação usam a última gravação como referência.':''}</p>`;
+ renderApprovalTrend($('dashboardEvolution'),d.approval_trend||[]);
  const pages=d.pagination?.pages||Math.max(1,Math.ceil(d.stores.length/25));dashboardPage=Math.max(1,Math.min(pages,dashboardPage));const stores=d.compact?d.stores:d.stores.slice((dashboardPage-1)*25,dashboardPage*25);
  $('dashboardStores').innerHTML=stores.length?`<div class="report-table-wrap"><table class="branch-table"><thead><tr><th>Loja</th><th>Evolução</th><th>Números dos PDVs</th><th>Ações</th></tr></thead><tbody>${stores.map(s=>`<tr><td><b>${esc(s.code)}</b><span>${esc(s.name)}</span><span>${esc([s.city,s.uf].filter(Boolean).join(' / '))}</span></td><td><strong>${s.ok} / ${s.expected} OK</strong><span>${s.pending} pendente(s)</span><div class="bar"><span style="width:${s.percent}%"></span></div></td><td><div class="pdv-chips">${s.machines.map(m=>`<span class="pdv-chip ${m.ok?'ok':'pending'}" title="${esc(m.status)}">PDV ${esc(m.pdv)} · ${m.ok?'OK':'Pendente'}</span>`).join('')}</div></td><td><div class="actions"><button data-dashboard-store="${esc(s.id)}">Ver PDVs</button>${DECIDE?`<button data-dashboard-plan="${esc(s.id)}">Ajustar PDVs</button>`:''}</div></td></tr>`).join('')}</tbody></table></div><div class="branch-pagination"><span>${d.totals.stores} loja(s) · Página ${dashboardPage} de ${pages}</span><div class="actions"><button id="dashboardPrevious" ${dashboardPage===1?'disabled':''}>Anterior</button><button id="dashboardNext" ${dashboardPage===pages?'disabled':''}>Próxima</button></div></div>`:'<div class="empty">Nenhuma filial ativa neste recorte. Cadastre ou ative as lojas para iniciar o acompanhamento.</div>';
  if(stores.length){$('dashboardPrevious').onclick=()=>d.compact?refreshDashboard(dashboardPage-1):(dashboardPage--,renderDashboard());$('dashboardNext').onclick=()=>d.compact?refreshDashboard(dashboardPage+1):(dashboardPage++,renderDashboard())}
@@ -30,10 +30,61 @@ function renderDashboard(){
  if(typeof renderExecutiveDashboard==='function')renderExecutiveDashboard(d);
  $('dashboardExceptions').innerHTML=d.exceptions.length?`<h3>Numeração para revisar · ${d.totals.exceptions}</h3><p>Estes registros não entram na meta nem nos PDVs OK até a numeração corresponder ao plano da loja.</p><ul>${d.exceptions.slice(0,100).map(e=>`<li>${esc(e.code)} · PDV ${esc(e.pdv||'não informado')}: ${esc(e.reason)}</li>`).join('')}</ul>${d.totals.exceptions>100?'<p>Use a busca de loja para refinar essa lista.</p>':''}`:'';$('dashboardExceptions').hidden=!d.exceptions.length;
 }
-function dashboardChart(series,total){
- if(!series.length)return '<div class="empty">Ainda não há PDVs Orion OK no recorte.</div>';
- const x=i=>45+(660*i/Math.max(1,series.length-1)),y=n=>170-140*n/Math.max(1,total),points=series.map((p,i)=>x(i)+','+y(p.cumulative_ok)).join(' ');
- return `<svg class="dashboard-chart" viewBox="0 0 750 210" role="img" aria-label="Evolução dos PDVs atualmente Orion OK"><title>PDVs Orion OK acumulados por data de aprovação</title><line x1="45" y1="170" x2="705" y2="170" stroke="#c9d9cf"/><line x1="45" y1="25" x2="45" y2="170" stroke="#c9d9cf"/><text x="12" y="175">0</text><text x="12" y="35">${total}</text><polyline points="${points}" fill="none" stroke="#31527b" stroke-width="3"/>${series.map((p,i)=>`<circle cx="${x(i)}" cy="${y(p.cumulative_ok)}" r="${series.length<35?4:2}" fill="#31527b"><title>${esc(p.day)}: ${p.daily_ok} no dia · ${p.cumulative_ok} acumulados</title></circle>`).join('')}<text x="45" y="198">${esc(series[0].day)}</text><text x="705" y="198" text-anchor="end">${esc(series[series.length-1].day)}</text></svg>`;
+function renderApprovalTrend(container, trend, days=14){
+ if(!container)return;
+ const rows=trend.slice(-days);
+ const number=value=>value.toLocaleString('pt-BR');
+ const date=value=>value.split('-').reverse().slice(0,2).join('/');
+ const last=rows.at(-1);
+ const maximum=Math.max(1,last?.cumulative_ok||0);
+ const left=52,right=728,top=20,bottom=150;
+ const x=i=>left+(right-left)*i/Math.max(1,rows.length-1);
+ const y=value=>bottom-(bottom-top)*value/maximum;
+ const points=rows.map((row,i)=>x(i)+','+y(row.cumulative_ok));
+ const ticks=[...new Set([0,Math.floor(maximum/2),maximum])];
+ const dates=[...new Set([0,Math.round((rows.length-1)/3),Math.round((rows.length-1)*2/3),rows.length-1])];
+ container.innerHTML=`<div class="approval-trend">
+   <div class="approval-trend-header"><div><h2>Evolução acumulada do Orion OK</h2>
+   <p>${last?`${date(rows[0].day)} a ${date(last.day)} · PDVs com data de aprovação identificada`:''}</p></div>
+   <div class="actions" aria-label="Período da curva">${[7,14,30].map(period=>`<button type="button" data-trend-days="${period}" aria-pressed="${period===days}">${period} dias</button>`).join('')}</div></div>
+   ${last?.cumulative_ok?`<svg class="approval-trend-chart" viewBox="0 0 750 180" role="img" aria-label="Curva acumulada de PDVs Orion OK">
+   ${ticks.map(value=>`<line x1="${left}" y1="${y(value)}" x2="${right}" y2="${y(value)}" stroke="#dfe6f0"/><text x="${left-8}" y="${y(value)+4}" text-anchor="end">${number(value)}</text>`).join('')}
+   <polygon points="${left},${bottom} ${points.join(' ')} ${right},${bottom}" fill="#e9f6f0"/>
+   <polyline points="${points.join(' ')}" fill="none" stroke="#137961" stroke-width="3" stroke-linejoin="round"/>
+   ${dates.map(i=>`<text x="${x(i)}" y="174" text-anchor="middle">${date(rows[i].day)}</text>`).join('')}
+   <line data-trend-guide stroke="#6b8197" stroke-dasharray="4 4" y1="${top}" y2="${bottom}"/>
+   <circle data-trend-point r="5" fill="#137961" stroke="#fff" stroke-width="2"/>
+   </svg>
+   <div class="approval-trend-detail"><output data-trend-detail aria-live="polite"></output>
+   <input type="range" min="0" max="${rows.length-1}" value="${rows.length-1}" aria-label="Selecionar dia da evolução"></div>`:
+   '<p class="empty">Sem aprovações com data identificada no recorte.</p>'}
+   <p class="muted dashboard-small">Conta os PDVs atualmente Orion OK por data de aprovação, incluindo o saldo anterior ao período.</p>
+  </div>`;
+ container.querySelectorAll('[data-trend-days]').forEach(button=>{
+  button.onclick=()=>{renderApprovalTrend(container,trend,Number(button.dataset.trendDays));container.querySelector('[aria-pressed="true"]').focus()};
+ });
+ const slider=container.querySelector('input[type="range"]');
+ if(!slider)return;
+ const svg=container.querySelector('svg');
+ const guide=svg.querySelector('[data-trend-guide]'),point=svg.querySelector('[data-trend-point]');
+ function select(index){
+  const row=rows[index],position=x(index);
+  guide.setAttribute('x1',position);guide.setAttribute('x2',position);
+  point.setAttribute('cx',position);point.setAttribute('cy',y(row.cumulative_ok));
+  slider.value=index;
+  const description=`${date(row.day)} · ${number(row.cumulative_ok)} acumulados · +${number(row.count)} no dia`;
+  container.querySelector('[data-trend-detail]').textContent=description;
+  slider.setAttribute('aria-valuetext',description);
+ }
+ slider.oninput=()=>select(Number(slider.value));
+ svg.onclick=event=>{
+  const cursor=svg.createSVGPoint();
+  cursor.x=event.clientX;cursor.y=event.clientY;
+  const local=cursor.matrixTransform(svg.getScreenCTM().inverse());
+  const index=Math.round((local.x-left)/(right-left)*(rows.length-1));
+  select(Math.max(0,Math.min(rows.length-1,index)));
+ };
+ select(rows.length-1);
 }
 async function dashboardStore(id){
  let s=dashboardData.stores.find(s=>s.id===id);if(!s&&dashboardData.compact){try{s=await api('/api/dashboard/store/'+encodeURIComponent(id))}catch(e){toast(e.message);return}}if(!s)return;
