@@ -10,8 +10,11 @@ SCHEMA=[
  'CREATE TABLE IF NOT EXISTS ct_rollout_inventory (branch_id TEXT NOT NULL REFERENCES ct_branches(id) ON DELETE CASCADE,pdv TEXT NOT NULL,status TEXT NOT NULL,installed_version TEXT NOT NULL,deployed_at TEXT NOT NULL,notes TEXT NOT NULL,version INTEGER NOT NULL,updated_at TEXT NOT NULL,updated_by TEXT NOT NULL,PRIMARY KEY(branch_id,pdv))'
 ]
 
-def migrate_rollout_base(c):
+def migrate_rollout_base(c,postgres=False):
     for sql in SCHEMA:c.execute(sql)
+    columns=c.execute("SELECT column_name AS name FROM information_schema.columns WHERE table_schema=current_schema() AND table_name='ct_rollout_inventory'" if postgres else 'PRAGMA table_info(ct_rollout_inventory)').fetchall()
+    if not any(row['name']=='legacy_pdv' for row in columns):
+        c.execute("ALTER TABLE ct_rollout_inventory ADD COLUMN legacy_pdv TEXT NOT NULL DEFAULT ''")
 
 def base_records(core):
     with core['db']() as c:
@@ -58,7 +61,7 @@ def branch_base(core,id):
         plan=c.execute('SELECT * FROM ct_branch_pdv_plan WHERE branch_id=%s',(id,)).fetchone()
         records={r['pdv']:dict(r) for r in c.execute('SELECT * FROM ct_rollout_inventory WHERE branch_id=%s',(id,)).fetchall()}
     pdvs=json.loads(plan['pdvs']) if plan else list(DEFAULT_PDVS)
-    return {'branch':dict(branch),'regional':org['regional'] if org else '','gr':org['gr'] if org else '','version':org['version'] if org else 0,'plan_version':plan['version'] if plan else 0,'machines':[records.get(pdv,{'pdv':pdv,'status':'Pendente','installed_version':'','deployed_at':'','notes':'','version':0}) for pdv in pdvs]}
+    return {'branch':dict(branch),'regional':org['regional'] if org else '','gr':org['gr'] if org else '','version':org['version'] if org else 0,'plan_version':plan['version'] if plan else 0,'machines':[records.get(pdv,{'pdv':pdv,'status':'Pendente','installed_version':'','deployed_at':'','notes':'','legacy_pdv':'','version':0}) for pdv in pdvs]}
 
 def clean(body,key,maximum,uppercase=False):
     value=body.get(key,'')
@@ -106,7 +109,10 @@ def register_rollout_base(app,core):
                     try:date.fromisoformat(at)
                     except ValueError:raise ValueError('Data de implantação inválida.')
                     if len(at)!=10:raise ValueError('Data de implantação inválida.')
-                prepared.append((pdv,status,installed,at,notes,version))
+                legacy=clean(row,'legacy_pdv',4) if 'legacy_pdv' in row else None
+                if legacy and (not legacy.isascii() or not legacy.isdigit() or not pdv_number(legacy)):
+                    raise ValueError('Informe um número de PDV antigo entre 1 e 9999 ou deixe em branco.')
+                prepared.append((pdv,status,installed,at,notes,version,legacy))
         except ValueError as exc:return core['error'](str(exc))
         with core['db']() as c:
             lock=' FOR UPDATE' if core['DATABASE'] else ''
@@ -119,10 +125,13 @@ def register_rollout_base(app,core):
             if g.user['role'] not in ['admin','manager'] and (regional,gr)!=(org['regional'] if org else '',org['gr'] if org else ''):return core['error']('Somente Administrador ou Gestor altera GR e regional.',403)
             old={r['pdv']:dict(r) for r in c.execute('SELECT * FROM ct_rollout_inventory WHERE branch_id=%s',(id,)).fetchall()}
             # Validate all versions before any write, so a conflict never saves a partial form.
-            if any((old.get(pdv,{}).get('version',0))!=version for pdv,status,installed,at,notes,version in prepared):return core['error']('Um PDV foi atualizado por outra pessoa. Reabra o cadastro.',409)
+            if any((old.get(pdv,{}).get('version',0))!=version for pdv,status,installed,at,notes,version,legacy in prepared):return core['error']('Um PDV foi atualizado por outra pessoa. Reabra o cadastro.',409)
             stamp=core['now']();actor=g.user['email']
             c.execute('INSERT INTO ct_rollout_organization (branch_id,regional,gr,version,updated_at,updated_by) VALUES (%s,%s,%s,1,%s,%s) ON CONFLICT(branch_id) DO UPDATE SET regional=excluded.regional,gr=excluded.gr,version=ct_rollout_organization.version+1,updated_at=excluded.updated_at,updated_by=excluded.updated_by',(id,regional,gr,stamp,actor))
-            for pdv,status,installed,at,notes,version in prepared:
-                c.execute('INSERT INTO ct_rollout_inventory (branch_id,pdv,status,installed_version,deployed_at,notes,version,updated_at,updated_by) VALUES (%s,%s,%s,%s,%s,%s,1,%s,%s) ON CONFLICT(branch_id,pdv) DO UPDATE SET status=excluded.status,installed_version=excluded.installed_version,deployed_at=excluded.deployed_at,notes=excluded.notes,version=ct_rollout_inventory.version+1,updated_at=excluded.updated_at,updated_by=excluded.updated_by',(id,pdv,status,installed,at,notes,stamp,actor))
-            core['audit'](c,actor,'cadastro da base de rollout',detail={'branch_id':id,'before_organization':{'regional':org['regional'],'gr':org['gr']} if org else None,'regional':regional,'gr':gr,'before_pdvs':{pdv:old.get(pdv) for pdv,*rest in prepared},'after_pdvs':[{'pdv':pdv,'status':status,'installed_version':installed,'deployed_at':at,'notes':notes} for pdv,status,installed,at,notes,version in prepared]})
+            after=[]
+            for pdv,status,installed,at,notes,version,legacy in prepared:
+                if legacy is None:legacy=old.get(pdv,{}).get('legacy_pdv','')
+                c.execute('INSERT INTO ct_rollout_inventory (branch_id,pdv,status,installed_version,deployed_at,notes,version,updated_at,updated_by,legacy_pdv) VALUES (%s,%s,%s,%s,%s,%s,1,%s,%s,%s) ON CONFLICT(branch_id,pdv) DO UPDATE SET status=excluded.status,installed_version=excluded.installed_version,deployed_at=excluded.deployed_at,notes=excluded.notes,legacy_pdv=excluded.legacy_pdv,version=ct_rollout_inventory.version+1,updated_at=excluded.updated_at,updated_by=excluded.updated_by',(id,pdv,status,installed,at,notes,stamp,actor,legacy))
+                after.append({'pdv':pdv,'status':status,'installed_version':installed,'deployed_at':at,'notes':notes,'legacy_pdv':legacy})
+            core['audit'](c,actor,'cadastro da base de rollout',detail={'branch_id':id,'before_organization':{'regional':org['regional'],'gr':org['gr']} if org else None,'regional':regional,'gr':gr,'before_pdvs':{pdv:old.get(pdv) for pdv,*rest in prepared},'after_pdvs':after})
         return jsonify(ok=True)

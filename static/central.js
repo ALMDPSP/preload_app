@@ -8,7 +8,7 @@ function centralSyncBadge(){
 }
 function centralIdentityGuard(){
  if(saving||centralSaving||executionLoading){toast('Aguarde a operação em andamento terminar.');return false}
- if(dirty||centralDirty){toast('Salve o cadastro e o checklist em edição antes de alterar a identificação do PDV.');return false}
+ if(dirty||centralDirty){toast('Use Salvar tudo para gravar as alterações antes de continuar.');return false}
  return true;
 }
 async function loadCentralBase(force=false){
@@ -45,8 +45,15 @@ function renderCentral(){
  if(!data.assignments)data.assignments=[];if(!data.assignments.includes(assignment))data.assignments.push(assignment);
  const recordOpen=$('centralRecord')?.open;
  host.innerHTML=`<details class="central-record" id="centralRecord" ${centralDirty||recordOpen?'open':''}><summary><div><b>Cadastro da filial e do PDV ${esc(centralPdv)}</b><span>${esc(data.regional||'Regional não informada')} · ${esc(data.gr||'GR não informado')}</span></div><span id="centralSaveState"></span></summary><form id="centralBaseForm"><div class="central-fields"><div><label for="centralGr">GR</label><input id="centralGr" data-central-org="gr" maxlength="120" value="${esc(data.gr)}" ${!DECIDE?'readonly':''} ${disabled}></div><div><label for="centralRegional">Regional</label><input id="centralRegional" data-central-org="regional" maxlength="120" value="${esc(data.regional)}" ${!DECIDE?'readonly':''} ${disabled}></div><div><label for="centralStatus">Implantação declarada</label><select id="centralStatus" data-central-machine="status" ${disabled}><option ${m?.status==='Pendente'?'selected':''}>Pendente</option><option ${m?.status==='Implantado'?'selected':''}>Implantado</option></select></div><div><label for="centralVersion">Versão instalada</label><input id="centralVersion" data-central-machine="installed_version" maxlength="80" value="${esc(m?.installed_version)}" ${disabled}></div><div><label for="centralDate">Data da implantação</label><input id="centralDate" data-central-machine="deployed_at" type="date" value="${esc(m?.deployed_at)}" ${disabled}></div><div><label for="centralNotes">Observações do cadastro (opcional)</label><input id="centralNotes" data-central-machine="notes" maxlength="2000" value="${esc(m?.notes)}" ${disabled}></div></div><div id="centralAccountability"></div><div class="central-record-footer"><small>Salvar tudo grava cadastro, atribuições e checklist aberto em uma única operação. Implantação declarada não concede GO.</small>${!READONLY?'<button type="submit" class="primary" id="centralSaveBase">Salvar tudo</button>':''}<button type="button" id="centralReloadBase">Recarregar dados</button></div><p id="centralBaseError" class="sync-error" role="alert"></p></form></details>
- <div class="central-pdv-heading"><div><span class="eyebrow">PDV SELECIONADO</span><h2>PDV ${esc(centralPdv)} <span class="badge">${esc(execution?.status||'Não iniciado')}</span></h2></div><div class="actions">${DECIDE?'<button id="centralRenameToggle" type="button">Editar número do PDV</button>':''}${execution?'<button id="centralGoLinx" type="button">GO da retirada</button><button id="centralGoOrion" type="button">Aceite Orion</button>':''}</div></div>
- <div id="centralRenameBox" class="central-rename" hidden><label for="centralNewNumber">Novo número do PDV ${esc(centralPdv)}</label><div class="actions"><input id="centralNewNumber" inputmode="numeric" maxlength="4" placeholder="Ex.: 05"><button id="centralRenameConfirm" class="primary" type="button">Confirmar número</button><button id="centralRenameCancel" type="button">Cancelar</button></div><p class="muted">Usar um número livre de 1 a 9999. Os registros e o histórico acompanham a alteração.</p><p id="centralRenameError" class="sync-error" role="alert"></p></div>
+ <div class="central-pdv-heading"><div><span class="eyebrow">PDV SELECIONADO</span><h2>PDV ${esc(centralPdv)} <span class="badge">${esc(execution?.status||'Não iniciado')}</span></h2></div><div class="actions">${execution?'<button id="centralGoLinx" type="button">GO da retirada</button><button id="centralGoOrion" type="button">Aceite Orion</button>':''}</div></div>
+ <section class="central-pdv-identity" aria-label="Numeração do PDV">
+  <div class="central-pdv-numbers">
+   <div><label for="centralNewNumber">PDV novo (Orion)</label><input id="centralNewNumber" inputmode="numeric" maxlength="4" value="${esc(m.new_pdv??m.pdv)}" ${!DECIDE?'readonly':''} ${disabled} aria-describedby="centralNumberHint"></div>
+   <div><label for="centralLegacyNumber">PDV antigo (Linx) <small>opcional</small></label><input id="centralLegacyNumber" inputmode="numeric" maxlength="4" placeholder="Ex.: 03" value="${esc(m.legacy_pdv)}" ${disabled}></div>
+  </div>
+  <div class="central-identity-footer"><small id="centralNumberHint">${DECIDE?'Se alterar o PDV novo, os registros e o histórico acompanham a mudança.':'Administrador e Gestor podem alterar o número do PDV novo.'}</small>${!READONLY&&(!cutoverEditing||currentRejection)?'<button type="button" id="centralSaveIdentity" class="primary">Salvar tudo</button>':''}</div>
+  <p id="centralIdentityError" class="sync-error" role="alert"></p>
+ </section>
  ${!execution?`<div class="central-start"><div><b>Este PDV ainda não tem checklist.</b><p>${DECIDE?'Inicie a execução para marcar os processos e registrar os aceites nesta tela.':'Solicite a abertura da execução ao Administrador ou Gestor.'}</p></div>${DECIDE?`<button id="centralStartPdv" type="button" class="primary" ${!branch.active||branch.needs_review?'disabled':''}>Iniciar PDV ${esc(centralPdv)}</button>`:''}</div>`:!cutoverEditing?'<button id="centralResumePdv" class="primary" type="button">Abrir checklist deste PDV</button>':''}`;
  const personOptions=(roles,value)=>'<option value="">Não atribuído</option>'+(value&&!(data.people||[]).some(u=>u.id===value)?'<option value="'+esc(value)+'" selected disabled>Responsável inativo ou indisponível</option>':'')+(data.people||[]).filter(u=>roles.includes(u.role)).map(u=>`<option value="${esc(u.id)}" ${u.id===value?'selected':''}>${esc(u.name)} (${esc(ROLES[u.role])})</option>`).join('');
  $('centralAccountability').innerHTML=`<fieldset class="management-assignment"><legend>Responsáveis e planejamento</legend><div class="central-fields"><div><label for="centralExecutor">Executor do PDV</label><select id="centralExecutor" data-central-assignment="executor_id" ${!DECIDE||centralSaving?'disabled':''}>${personOptions(['admin','manager','operator'],assignment.executor_id)}</select></div><div><label for="centralValidator">Analista validador</label><select id="centralValidator" data-central-assignment="validator_id" ${!DECIDE||centralSaving?'disabled':''}>${personOptions(['admin','manager'],assignment.validator_id)}</select></div><div><label for="centralWave">Onda do rollout</label><select id="centralWave" data-central-assignment="wave_id" ${!DECIDE||centralSaving?'disabled':''}><option value="">Sem onda</option>${(data.waves||[]).filter(w=>w.status!=='Cancelada'||w.id===assignment.wave_id).map(w=>`<option value="${esc(w.id)}" ${assignment.wave_id===w.id?'selected':''}>${esc(w.name)} · ${esc(w.due_date)}</option>`).join('')}</select></div><div><label for="centralPlanned">Planejado para (opcional)</label><input id="centralPlanned" data-central-assignment="planned_date" type="date" value="${esc(assignment.planned_date)}" ${!DECIDE||centralSaving?'disabled':''}></div></div><small>Sem data específica, prevalece o cronograma ou o prazo da onda. O validador atribuído concede o aceite; o Administrador pode intervir.</small></fieldset>`;
@@ -62,9 +69,14 @@ function renderCentral(){
  if($('centralResumePdv'))$('centralResumePdv').onclick=()=>openCentralPdv(centralPdv);
  if($('centralGoLinx'))$('centralGoLinx').onclick=()=>centralGoDecision('linx');
  if($('centralGoOrion'))$('centralGoOrion').onclick=()=>centralGoDecision('orion');
- if($('centralRenameToggle'))$('centralRenameToggle').onclick=()=>{$('centralRenameBox').hidden=false;$('centralNewNumber').focus()};
- $('centralRenameCancel').onclick=()=>{$('centralRenameBox').hidden=true};
- $('centralRenameConfirm').onclick=renameCentralPdv;
+ for(const [field,key] of [['centralNewNumber','new_pdv'],['centralLegacyNumber','legacy_pdv']]){
+  $(field).addEventListener('input',event=>{
+   const input=event.currentTarget;
+   if(input.readOnly||input.disabled)return;
+   m[key]=input.value;centralDirty=true;centralRevision++;$('centralIdentityError').textContent='';centralSyncBadge();
+  });
+ }
+ if($('centralSaveIdentity'))$('centralSaveIdentity').onclick=saveCentralAll;
  centralSyncBadge();highlightCentralPdv();
 }
 function highlightCentralPdv(){
@@ -123,38 +135,51 @@ async function saveCentralAll(){
  if(READONLY||centralSaving||saving||!centralData)return false;
  if(executionLoading){toast('Aguarde a abertura do PDV antes de salvar.');return false}
  const data=centralData,m=centralMachine(),id=selectedBranchId,pdv=centralPdv;if(!m)return false;
+ const newNumber=(m.new_pdv??m.pdv).trim(),legacy=(m.legacy_pdv||'').trim();
+ const validNumber=value=>/^[0-9]{1,4}$/.test(value)&&Number(value)>0;
+ if(!validNumber(newNumber)||legacy&&!validNumber(legacy)){
+  const invalidNew=!validNumber(newNumber);
+  $('centralIdentityError').textContent='Informe um número de 1 a 9999 no campo '+(invalidNew?'PDV novo.':'PDV antigo ou deixe em branco.');
+  $(invalidNew?'centralNewNumber':'centralLegacyNumber').focus();
+  return false;
+ }
  const check=currentId&&cutoverEditing&&!currentRejection&&Number(state.meta.pdv)===Number(pdv)?{id:currentId,state:centralClone(state),version}:null;
  const assignment=(data.assignments||[]).find(a=>a.pdv===pdv)||{version:0,planned_date:''};
- const revision=editRevision,baseRevision=centralRevision,local=centralClone(data);
- const body={pdv,base:{regional:data.regional,gr:data.gr,version:data.version,plan_version:data.plan_version,machines:[centralClone(m)]},...(check?{checklist:check}:{}),...(DECIDE?{assignment:centralClone(assignment)}:{})};
- centralSaving=true;saving=true;centralSyncBadge();$('saveChecklist').disabled=true;if($('centralSaveBase'))$('centralSaveBase').disabled=true;
+ const revision=editRevision,baseRevision=centralRevision;
+ const {new_pdv, ...machine}=m;
+ const body={pdv,new_pdv:newNumber,base:{regional:data.regional,gr:data.gr,version:data.version,plan_version:data.plan_version,machines:[{...machine,legacy_pdv:legacy}]},...(check?{checklist:check}:{}),...(DECIDE?{assignment:centralClone(assignment)}:{})};
+ centralSaving=true;saving=true;$('centralNewNumber').disabled=true;$('centralLegacyNumber').disabled=true;if($('centralSaveIdentity'))$('centralSaveIdentity').disabled=true;centralSyncBadge();$('saveChecklist').disabled=true;if($('centralSaveBase'))$('centralSaveBase').disabled=true;
  try{
   const result=await api('/api/rollout/branches/'+encodeURIComponent(id)+'/save-all','POST',body);
-  if(result.checklist){version=result.checklist.version;$('saved').textContent='Salvo por '+result.checklist.updated_by+' · '+new Date(result.checklist.updated_at).toLocaleString('pt-BR')}
+  const savedPdv=result.pdv;centralPdv=savedPdv;
+  if(result.checklist){version=result.checklist.version;if(result.checklist.meta)Object.assign(state.meta,result.checklist.meta);$('saved').textContent='Salvo por '+result.checklist.updated_by+' · '+new Date(result.checklist.updated_at).toLocaleString('pt-BR')}
   dirty=editRevision!==revision;centralDirty=centralRevision!==baseRevision;
   centralSaved=centralClone(result.base);centralData=centralClone(result.base);
   if(centralDirty){
    const editedData=centralClone(data);
    centralData.gr=editedData.gr;centralData.regional=editedData.regional;
-   const edited=editedData.machines.find(x=>x.pdv===pdv),fresh=centralData.machines.find(x=>x.pdv===pdv);
-   if(edited&&fresh)Object.assign(fresh,edited,{version:fresh.version});
-   centralData.assignments=(editedData.assignments||[]).map(a=>({...a,version:(result.base.assignments||[]).find(x=>x.pdv===a.pdv)?.version||a.version}));
+   const edited=editedData.machines.find(x=>x.pdv===pdv),fresh=centralData.machines.find(x=>x.pdv===savedPdv);
+   if(edited&&fresh)for(const key of ['status','installed_version','deployed_at','notes'])fresh[key]=edited[key];
+   const editedAssignment=editedData.assignments.find(a=>a.pdv===pdv);
+   const freshAssignment=centralData.assignments.find(a=>a.pdv===savedPdv);
+   if(editedAssignment&&freshAssignment)for(const key of ['executor_id','validator_id','wave_id','planned_date'])freshAssignment[key]=editedAssignment[key];
   }
   centralSaving=false;saving=false;conflict=false;
+  if(savedPdv!==pdv&&check){const input=document.querySelector('[data-meta="branch"]');if(input)input.value=state.meta.branch}
   renderCentral();syncText(dirty||centralDirty?'Gravação confirmada. Há novas alterações na tela; use Salvar tudo novamente.':'Tudo salvo: cadastro, responsáveis e checklist.');
   if(!dirty&&!centralDirty){
-   $('saveFeedback').textContent='PDV '+pdv+' salvo. Você pode selecionar outro equipamento ou continuar editando.';$('saveFeedback').hidden=false;
+   $('saveFeedback').textContent='PDV '+savedPdv+' salvo. Você pode selecionar outro equipamento ou continuar editando.';$('saveFeedback').hidden=false;
    if(check){
     const savedId=check.id,savedVersion=version;
-    showBranchPdvs();modal('<div class="saved-icon">✓</div><h2>Tudo salvo!</h2><p>Cadastro, responsáveis e checklist do PDV '+esc(pdv)+' foram gravados juntos.</p><p class="notice">Pendências foram preservadas. Selecione o PDV na central para continuar.</p><div class="actions"><button id="backToSavedPdvs">Ver PDVs</button><button id="continueChecklist">Continuar editando</button><button id="downloadChecklist" class="primary">↓ PDF deste PDV</button></div><p id="pdfError" role="alert"></p>');
+    showBranchPdvs();modal('<div class="saved-icon">✓</div><h2>Tudo salvo!</h2><p>Cadastro, responsáveis e checklist do PDV '+esc(savedPdv)+' foram gravados juntos.</p><p class="notice">Pendências foram preservadas. Selecione o PDV na central para continuar.</p><div class="actions"><button id="backToSavedPdvs">Ver PDVs</button><button id="continueChecklist">Continuar editando</button><button id="downloadChecklist" class="primary">↓ PDF deste PDV</button></div><p id="pdfError" role="alert"></p>');
     $('backToSavedPdvs').onclick=()=>{$('modal').close();showBranchPdvs()};$('continueChecklist').onclick=()=>{$('modal').close();continueEditingChecklist()};
     $('downloadChecklist').onclick=()=>downloadChecklistPdf({id:savedId,version:savedVersion});
    }else toast('Cadastro e atribuições salvos.');
   }
   try{await refreshList()}catch(e){toast('Gravação confirmada. Não foi possível atualizar os PDVs: '+e.message)}
   return true;
- }catch(e){dirty=!!check||dirty;centralDirty=true;if(e.status===409)conflict=true;syncText('Não foi possível salvar tudo. Nenhuma parte desta operação foi gravada. '+e.message,true);if($('centralBaseError'))$('centralBaseError').textContent=e.message;toast('Seus rascunhos continuam na tela. '+e.message);return false}
- finally{centralSaving=false;saving=false;centralSyncBadge();if($('centralSaveBase'))$('centralSaveBase').disabled=READONLY;$('saveChecklist').disabled=READONLY||!currentId||!!currentRejection;$('saveChecklist').textContent='Salvar tudo'}
+ }catch(e){dirty=!!check||dirty;centralDirty=true;if(e.status===409)conflict=true;syncText('Não foi possível salvar tudo. Nenhuma parte desta operação foi gravada. '+e.message,true);if($('centralBaseError'))$('centralBaseError').textContent=e.message;if($('centralIdentityError'))$('centralIdentityError').textContent=e.message;toast('Seus rascunhos continuam na tela. '+e.message);return false}
+ finally{centralSaving=false;saving=false;for(const field of ['centralNewNumber','centralLegacyNumber','centralSaveIdentity'])if($(field))$(field).disabled=READONLY;centralSyncBadge();if($('centralSaveBase'))$('centralSaveBase').disabled=READONLY;$('saveChecklist').disabled=READONLY||!currentId||!!currentRejection;$('saveChecklist').textContent='Salvar tudo'}
 }
 async function openCentralPdv(pdv){
  const machine=branchProgress?.machines.find(m=>m.pdv===pdv);if(!machine){toast('Este PDV não está no plano atual. Confira a lista de equipamentos da filial.');return false}
@@ -171,18 +196,6 @@ async function startCentralPdv(){
  if(existing){await openCentralPdv(centralPdv);return}
  const pdv=centralPdv;const button=$('centralStartPdv');button.disabled=true;
  try{const r=await api('/api/cutovers','POST',{branch_id:b.id,pdv});await refreshList(r.id);await loadExecution(r.id);renderCentral();toast('PDV '+pdv+' iniciado. Marque os processos e use Salvar tudo.')}catch(e){toast(e.message);if($('centralStartPdv'))$('centralStartPdv').disabled=false}
-}
-async function renameCentralPdv(){
- if(!centralIdentityGuard())return;
- const m=centralMachine(),id=selectedBranchId,number=$('centralNewNumber').value.trim();
- if(!/^[0-9]{1,4}$/.test(number)||Number(number)<1||Number(number)>9999){$('centralRenameError').textContent='Informe um número de 1 a 9999.';return}
- const savedId=cutoverEditing&&Number(state.meta.pdv)===Number(m.pdv)?currentId:null;
- $('centralRenameConfirm').disabled=true;
- try{
-  const r=await api('/api/rollout-base/branches/'+encodeURIComponent(id)+'/pdv-number','PUT',{from_pdv:m.pdv,to_pdv:number,plan_version:centralData.plan_version,inventory_version:m.version});
-  centralPdv=r.pdv;centralData=null;clearCurrentCutover();showBranchPdvs();await loadCentralBase(true);await refreshList();
-  if(savedId)await loadExecution(savedId);renderCentral();toast('Número atualizado com os registros e o histórico preservados.');
- }catch(e){if($('centralRenameError'))$('centralRenameError').textContent=e.message;if($('centralRenameConfirm'))$('centralRenameConfirm').disabled=false}
 }
 async function centralGoDecision(key){
  if(!cutoverEditing){if(!await openCentralPdv(centralPdv))return}

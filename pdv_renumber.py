@@ -7,10 +7,10 @@ class RenumberConflict(Exception):pass
 
 def register_pdv_renumber(app,core):
     @app.put('/api/rollout-base/branches/<id>/pdv-number')
-    def renumber_rollout_pdv(id):
+    def renumber_rollout_pdv(id,body=None):
         error=core['error']
         if g.user['role'] not in ['admin','manager']:return error('Somente Administrador ou Gestor pode alterar a numeração do PDV.',403)
-        body=request.get_json(silent=True)
+        body=body if body is not None else request.get_json(silent=True)
         if not isinstance(body,dict):return error('Informe o número atual e o novo número do PDV.')
         old=pdv_number(body.get('from_pdv'));new=pdv_number(body.get('to_pdv'))
         if not old or not new or old==new:return error('Informe um novo número de PDV entre 1 e 9999, diferente do atual.')

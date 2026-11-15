@@ -99,7 +99,7 @@ def init_db(log=None):
         from operations import migrate_operations
         migrate_operations(c)
         from rollout_base import migrate_rollout_base
-        migrate_rollout_base(c)
+        migrate_rollout_base(c,bool(DATABASE))
         from rollout_management import migrate_management
         migrate_management(c,postgres=bool(DATABASE))
         report(f'Filiais conferidas. Vínculos migrados: {migrated}. Conferindo usuários...')
@@ -359,7 +359,7 @@ def download_pdf(id):
         inventory=None
         if row and branch:
             number=pdv_number(json.loads(row['state']).get('meta',{}).get('pdv'))
-            inventory=c.execute('SELECT status,installed_version,deployed_at,updated_at FROM ct_rollout_inventory WHERE branch_id=%s AND pdv=%s',(branch['id'],number)).fetchone()
+            inventory=c.execute('SELECT status,installed_version,deployed_at,updated_at,legacy_pdv FROM ct_rollout_inventory WHERE branch_id=%s AND pdv=%s',(branch['id'],number)).fetchone()
         review=c.execute('SELECT reason,actor,created_at FROM ct_cutover_reviews WHERE cutover_id=%s',(id,)).fetchone() if row else None
     if not row:return error('Cutover não encontrado.',404)
     expected=request.args.get('version')

@@ -152,6 +152,10 @@ def register_management(app,core):
         if not isinstance(body,dict) or not isinstance(body.get('base'),dict):return core['error']('Confira o cadastro antes de salvar.')
         pdv=pdv_number(body.get('pdv'));check=body.get('checklist');assignment=body.get('assignment')
         if not pdv:return core['error']('Selecione o PDV.')
+        new_number=pdv_number(body.get('new_pdv',pdv))
+        if not new_number:return core['error']('Informe um número de PDV novo entre 1 e 9999.')
+        if new_number!=pdv and g.user['role'] not in ['admin','manager']:
+            return core['error']('Somente Administrador ou Gestor pode alterar a numeração do PDV.',403)
         base=body['base'];machines=base.get('machines')
         if not isinstance(machines,list) or len(machines)!=1 or not isinstance(machines[0],dict) or pdv_number(machines[0].get('pdv'))!=pdv:return core['error']('O salvamento deve conter somente o PDV selecionado.')
         g.atomic_write=True
@@ -174,8 +178,18 @@ def register_management(app,core):
                         response=app.make_response(core['update_cutover'](check['id'],body={'state':check.get('state'),'version':check.get('version')}))
                         if response.status_code>=400:raise AtomicRejected(response)
                         saved=response.get_json()
-                    core['audit'](c,g.user['email'],'salvamento único da central',check['id'] if check else None,{'branch_id':id,'pdv':pdv})
-                    result={'ok':True,'checklist':saved,'base':branch_context(core,id)}
+                    if new_number!=pdv:
+                        # Reuse the same identity correction after the submitted versions have been validated.
+                        response=app.make_response(app.view_functions['renumber_rollout_pdv'](id,body={
+                            'from_pdv':pdv,'to_pdv':new_number,'plan_version':base['plan_version'],
+                            'inventory_version':machines[0]['version']+1,
+                        }))
+                        if response.status_code>=400:raise AtomicRejected(response)
+                        if saved:
+                            row=c.execute('SELECT state,version FROM ct_cutovers WHERE id=%s',(check['id'],)).fetchone()
+                            saved.update(version=row['version'],meta=json.loads(row['state'])['meta'])
+                    core['audit'](c,g.user['email'],'salvamento único da central',check['id'] if check else None,{'branch_id':id,'pdv':new_number})
+                    result={'ok':True,'pdv':new_number,'checklist':saved,'base':branch_context(core,id)}
                 finally:g.pop('atomic_db',None)
         except AtomicRejected as exc:return exc.response
         except PermissionError as exc:return core['error'](str(exc),403)

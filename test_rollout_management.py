@@ -27,6 +27,42 @@ def test_atomic_save_commits_every_part_and_rolls_back_base_on_checklist_conflic
     assert save(c,b,fresh).status_code==409
     assert c.get('/api/rollout/branches/'+b+'/context').json['assignments']==[]
 
+def test_central_pdv_numbers_save_atomically_and_appear_in_report(isolated):
+    c=admin(isolated);id=create(c);b,body=central(c,id)
+    body['base']['machines'][0]['legacy_pdv']='0023'
+    body['checklist']['state']['tasks']['linx1']={'status':'Concluído','notes':'Validado no caixa'}
+    body['assignment']={'version':0,'planned_date':'2026-11-10'}
+    body['new_pdv']='02'
+    assert save(c,b,body).status_code==409
+    assert form(c,b)['machines'][0]['legacy_pdv']==''
+    assert c.get('/api/cutovers/'+id).json['state']['tasks']=={}
+    assert c.get('/api/rollout/branches/'+b+'/context').json['assignments']==[]
+    body['new_pdv']='15'
+    operator,_=add_user(c,'operator-numbers@qa.test','operator',isolated)
+    assert save(operator,b,{**body,'assignment':None}).status_code==403
+    response=save(c,b,body)
+    assert response.status_code==200 and response.json['pdv']=='15'
+    assert response.json['checklist']['meta']['pdv']=='15'
+    assert response.json['base']['assignments'][0]['pdv']=='15'
+    machine=next(row for row in response.json['base']['machines'] if row['pdv']=='15')
+    assert machine['legacy_pdv']=='0023'
+    before=c.get('/api/cutovers/'+id).json
+    assert before['state']['tasks']['linx1']['notes']=='Validado no caixa'
+    assert before['version']==response.json['checklist']['version']
+    assert any(row['action']=='renumeração de PDV' for row in c.get('/api/cutovers/'+id+'/audit').json)
+    pdf=c.get('/api/cutovers/'+id+'/pdf?version='+str(before['version']))
+    pages=PdfReader(io.BytesIO(pdf.data)).pages
+    assert all(label in pages[0].extract_text() for label in ['PDV NOVO', 'PDV ANTIGO', '0023', 'Avanço por fase'])
+    assert any('Validado no caixa' in page.extract_text() for page in pages[1:])
+
+    base=form(c,b);machine=next(row for row in base['machines'] if row['pdv']=='15')
+    machine.pop('legacy_pdv')
+    assert put(c,b,{**base,'machines':[machine]}).status_code==200
+    base=form(c,b);machine=next(row for row in base['machines'] if row['pdv']=='15')
+    assert machine['legacy_pdv']=='0023'
+    assert put(operator,b,{**base,'machines':[{**machine,'legacy_pdv':''}]}).status_code==200
+    assert next(row for row in form(c,b)['machines'] if row['pdv']=='15')['legacy_pdv']==''
+
 def test_assignment_roles_named_validator_and_operator_cannot_reassign(isolated):
     c=admin(isolated);id=create(c);b,body=central(c,id)
     manager,_=add_user(c,'validator-v5@qa.test','manager',isolated);other,_=add_user(c,'other-v5@qa.test','manager',isolated);operator,_=add_user(c,'exec-v5@qa.test','operator',isolated)

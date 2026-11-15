@@ -1,3 +1,9 @@
+# Atualização v5.1.9
+
+Na Central, **PDV novo (Orion)** e **PDV antigo (Linx)** aparecem juntos. O Administrador ou Gestor pode renumerar o PDV novo. O campo Linx é opcional. Use **Salvar tudo** para gravar a identificação com o checklist. O PDF individual traz a identificação, o avanço por fase, os aceites e o checklist detalhado.
+
+Envie o conteúdo do ZIP para a raiz do GitHub. Mantenha o Start Command `bash start.sh` e confirme a versão 5.1.9 em /healthz após o deploy.
+
 # Atualização v5.1.8
 
 No celular, o Cutover Online usa um cabeçalho compacto, indicadores em duas colunas, rolagem dentro das tabelas e campos maiores para toque. O menu se fecha ao escolher uma seção. A Central mantém a lista de PDVs na horizontal e o botão de salvar ao alcance no checklist.
