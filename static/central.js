@@ -1,7 +1,12 @@
 /* Central workspace: saved base and checklist share a screen, never an implicit write. */
 let centralData=null,centralSaved=null,centralPdv='',centralDirty=false,centralSaving=false,centralLoading=null,centralSequence=0,centralRevision=0;
 const centralClone=v=>JSON.parse(JSON.stringify(v));
+const centralPdvKey=value=>{
+ const match=/^(?:PDV[\s_-]*)?0*([1-9][0-9]{0,3})$/i.exec(String(value??'').trim());
+ return match?match[1].padStart(2,'0'):String(value??'').trim();
+};
 function centralMachine(){return centralData?.machines.find(m=>m.pdv===centralPdv)}
+function centralChecklistOpen(){return !!(currentId&&cutoverEditing&&state.meta.branch_id===selectedBranchId)}
 function centralPending(){return centralDirty||centralSaving}
 function centralSyncBadge(){
  const badge=$('centralSaveState');if(badge){badge.textContent=centralSaving?'Salvando tudo…':centralDirty||dirty?'Alterações não salvas':'Dados salvos';badge.classList.toggle('unsaved',centralDirty||dirty)}
@@ -35,11 +40,13 @@ function renderCentral(){
  if(!branch){host.innerHTML='';return}
  $('centralBranchLabel').textContent=branch.code+' · '+branch.name;
  $('centralEditBranch').hidden=!DECIDE;$('centralAddPdv').hidden=!DECIDE;
- if(!data||data.branch.id!==selectedBranchId){host.innerHTML='<p class="muted">Selecione um PDV para carregar o cadastro.</p>';return}
- if(cutoverEditing&&state.meta.branch_id===selectedBranchId&&data.machines.some(m=>Number(m.pdv)===Number(state.meta.pdv)))centralPdv=data.machines.find(m=>Number(m.pdv)===Number(state.meta.pdv)).pdv;
+ if(centralChecklistOpen())centralPdv=centralPdvKey(state.meta.pdv)||'Não informado';
+ const hasBase=data?.branch.id===selectedBranchId;
+ $('saveChecklist').textContent=hasBase&&centralMachine()?'Salvar tudo':'Salvar checklist';
+ if(!hasBase){host.innerHTML='<p class="muted">Selecione um PDV para carregar o cadastro.</p>';return}
  const m=centralMachine(),latest=branchProgress?.machines.find(m=>m.pdv===centralPdv)?.execution;
- const execution=cutoverEditing&&Number(state.meta.pdv)===Number(centralPdv)?branchProgress?.executions.find(r=>r.id===currentId)||latest:latest;
- if(!m){host.innerHTML='<div class="notice"><b>PDV '+esc(centralPdv)+' fora da lista prevista</b><p>O checklist continua disponível abaixo. Para cadastrar a implantação ou alterar o número, inclua este PDV no plano da filial pelo botão Adicionar PDV.</p></div>';highlightCentralPdv();return}
+ const execution=centralChecklistOpen()?branchProgress?.executions.find(r=>r.id===currentId)||latest:latest;
+ if(!m){host.innerHTML='<div class="notice"><b>PDV '+esc(centralPdv)+' fora da lista prevista</b><p>Use <strong>Salvar checklist</strong> para gravar esta execução. Para atualizar também o cadastro de implantação, inclua o PDV no plano da filial.</p></div>';highlightCentralPdv();return}
  const disabled=READONLY||centralSaving?'disabled':'';
  const assignment=(data.assignments||[]).find(a=>a.pdv===centralPdv)||{pdv:centralPdv,version:0,executor_id:'',validator_id:'',wave_id:'',planned_date:''};
  if(!data.assignments)data.assignments=[];if(!data.assignments.includes(assignment))data.assignments.push(assignment);
@@ -131,10 +138,17 @@ function removeCentralPdv(pdv){
  };
 }
 async function saveCentralBase(event){event?.preventDefault();return saveCentralAll()}
+const saveChecklistOnly=saveAndOfferPdf;
 async function saveCentralAll(){
- if(READONLY||centralSaving||saving||!centralData)return false;
+ if(READONLY||centralSaving||saving)return false;
  if(executionLoading){toast('Aguarde a abertura do PDV antes de salvar.');return false}
- const data=centralData,m=centralMachine(),id=selectedBranchId,pdv=centralPdv;if(!m)return false;
+ const data=centralData,id=selectedBranchId,pdv=centralPdv;
+ const m=data?.branch.id===id?centralMachine():null;
+ if(!m){
+  if(centralChecklistOpen()&&!currentRejection&&!centralDirty)return saveChecklistOnly();
+  toast('Abra um checklist editável ou selecione um PDV previsto para salvar o cadastro.');
+  return false;
+ }
  const newNumber=(m.new_pdv??m.pdv).trim(),legacy=(m.legacy_pdv||'').trim();
  const validNumber=value=>/^[0-9]{1,4}$/.test(value)&&Number(value)>0;
  if(!validNumber(newNumber)||legacy&&!validNumber(legacy)){
@@ -143,7 +157,7 @@ async function saveCentralAll(){
   $(invalidNew?'centralNewNumber':'centralLegacyNumber').focus();
   return false;
  }
- const check=currentId&&cutoverEditing&&!currentRejection&&Number(state.meta.pdv)===Number(pdv)?{id:currentId,state:centralClone(state),version}:null;
+ const check=centralChecklistOpen()&&!currentRejection&&centralPdvKey(state.meta.pdv)===pdv?{id:currentId,state:centralClone(state),version}:null;
  const assignment=(data.assignments||[]).find(a=>a.pdv===pdv)||{version:0,planned_date:''};
  const revision=editRevision,baseRevision=centralRevision;
  const {new_pdv, ...machine}=m;
@@ -182,13 +196,13 @@ async function saveCentralAll(){
  finally{centralSaving=false;saving=false;for(const field of ['centralNewNumber','centralLegacyNumber','centralSaveIdentity'])if($(field))$(field).disabled=READONLY;centralSyncBadge();if($('centralSaveBase'))$('centralSaveBase').disabled=READONLY;$('saveChecklist').disabled=READONLY||!currentId||!!currentRejection;$('saveChecklist').textContent='Salvar tudo'}
 }
 async function openCentralPdv(pdv){
- const machine=branchProgress?.machines.find(m=>m.pdv===pdv);if(!machine){toast('Este PDV não está no plano atual. Confira a lista de equipamentos da filial.');return false}
+ const machine=branchProgress?.machines.find(m=>m.pdv===pdv)||branchProgress?.machines.find(m=>m.pdv===centralPdvKey(pdv));if(!machine){toast('Não encontrei este PDV na filial selecionada. Atualize a lista e tente novamente.');return false}
  if(machine.execution){
   if(!await loadExecution(machine.execution.id))return false;
-  centralPdv=pdv;renderCentral();$('centralFormHost').scrollIntoView?.({behavior:'smooth',block:'start'});return true;
+  centralPdv=machine.pdv;renderCentral();$('centralFormHost').scrollIntoView?.({behavior:'smooth',block:'start'});return true;
  }
  if(!allowDiscard())return false;
- dirty=false;clearCurrentCutover();showBranchPdvs();centralPdv=pdv;renderCentral();return true;
+ dirty=false;clearCurrentCutover();showBranchPdvs();centralPdv=machine.pdv;renderCentral();return true;
 }
 async function startCentralPdv(){
  const b=currentBranch();if(!b||!DECIDE||!centralIdentityGuard())return;
@@ -206,7 +220,7 @@ async function openCentralFromDashboard(id,pdv=null){
  if(!allowDiscard())return false;dirty=false;
  if(!await switchBranch(id))return false;
  $('modal').close();document.querySelector('[data-view="run"]').click();
- if(pdv)await openCentralPdv(String(Number(pdv)).padStart(2,'0'));else showBranchPdvs();
+ if(pdv)await openCentralPdv(pdv);else showBranchPdvs();
  renderCentral();return true;
 }
 async function centralOnBranchSaved(id){

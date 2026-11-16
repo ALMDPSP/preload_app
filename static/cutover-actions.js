@@ -19,13 +19,31 @@ $('rejectCutover').onclick=()=>{
  $('cancelRejectCutover').onclick=()=>$('modal').close();
  $('rejectCutoverForm').onsubmit=async e=>{e.preventDefault();$('confirmRejectCutover').disabled=true;try{await api('/api/cutovers/'+id+'/reject','POST',{reason:$('rejectionReason').value.trim(),version:expected});$('modal').close();await refreshList(id);await loadExecution(id);toast('Cutover rejeitado. Motivo registrado no histórico.')}catch(err){$('rejectCutoverError').textContent=err.message;$('confirmRejectCutover').disabled=false}};
 };
+function confirmCutoverDeletion(execution){
+ if(ROLE!=='admin'||!execution)return;
+ if(saving||executionLoading){toast('Aguarde a operação atual terminar antes de excluir.');return}
+ const {id,title,version:expected}=execution,branch=selectedBranchId;
+ const discarding=currentId===id&&dirty;
+ modal(`<h2>Excluir cutover</h2><p>Confirma excluir <b>${esc(title)}</b>?</p><p>O checklist desta execução será excluído. A filial e o plano de PDVs serão mantidos.</p>${discarding?'<p class="notice">As alterações não salvas deste checklist também serão descartadas.</p>':''}<p id="deleteCutoverError" role="alert" class="sync-error"></p><div class="actions"><button id="cancelDeleteCutover">Cancelar</button><button id="confirmDeleteCutover" class="danger">Excluir cutover</button></div>`);
+ const button=$('confirmDeleteCutover'),cancel=$('cancelDeleteCutover'),error=$('deleteCutoverError');
+ cancel.onclick=()=>$('modal').close();
+ button.onclick=async()=>{
+  if(saving||executionLoading||selectedBranchId!==branch)return;
+  button.disabled=true;cancel.disabled=true;saving=true;
+  try{
+   await api('/api/cutovers/'+encodeURIComponent(id),'DELETE',{version:expected});
+  }catch(err){
+   error.textContent=err.message;button.disabled=false;cancel.disabled=false;return;
+  }finally{saving=false}
+  $('modal').close();
+  if(currentId===id){cutoverEditing=false;clearCurrentCutover();showBranchPdvs()}
+  toast('Cutover excluído.');
+  try{await refreshList()}
+  catch(err){toast('Cutover excluído. Atualize a lista para conferir. '+err.message)}
+ };
+}
 $('deleteCutover').onclick=()=>{
- if(!currentId||ROLE!=='admin')return;
- if(dirty||saving){toast('Salve o checklist ou descarte as alterações antes de excluir.');return}
- const id=currentId,expected=version;
- modal(`<h2>Excluir cutover</h2><p>Confirma excluir <b>${esc(state.meta.branch)}</b>?</p><p>O checklist desta execução será removido. A filial continuará cadastrada e você poderá iniciar outro cutover do zero para o mesmo PDV. Baixe o PDF antes, se precisar guardar uma cópia.</p><p id="deleteCutoverError" role="alert" class="sync-error"></p><div class="actions"><button id="cancelDeleteCutover">Cancelar</button><button id="confirmDeleteCutover" class="danger">Excluir e liberar para refazer</button></div>`);
- $('cancelDeleteCutover').onclick=()=>$('modal').close();
- $('confirmDeleteCutover').onclick=async()=>{$('confirmDeleteCutover').disabled=true;try{await api('/api/cutovers/'+id,'DELETE',{version:expected});$('modal').close();clearCurrentCutover();await refreshList();await refreshBranches();syncText('Cutover excluído. Clique em Iniciar cutover para refazer nesta filial.');toast('Execução excluída. Filial liberada para refazer.')}catch(err){$('deleteCutoverError').textContent=err.message;$('confirmDeleteCutover').disabled=false}};
+ if(currentId&&cutoverEditing)confirmCutoverDeletion({id:currentId,title:state.meta.branch,version});
 };
 const renderBeforeCutoverActions=render;
 render=function(){renderBeforeCutoverActions();updateCutoverActions()};

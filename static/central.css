@@ -34,3 +34,5 @@
 .central-identity-footer{display:flex;align-items:center;justify-content:space-between;gap:12px;flex-wrap:wrap;margin-top:10px;color:#536681}
 .central-pdv-identity .sync-error:empty{display:none}
 @media(max-width:420px){.central-pdv-identity{padding:12px}.central-pdv-numbers{gap:10px}.central-identity-footer button{width:100%}}
+
+.central-main .editor-toolbar .actions{display:flex;flex-wrap:wrap;gap:8px}

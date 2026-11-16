@@ -42,7 +42,7 @@ async function openCutoverFromBase(id,pdv=null){
   if(!await switchBranch(id))return false;
   await refreshList();
   $('modal').close();document.querySelector('[data-view="run"]').click();showBranchPdvs();
-  if(pdv&&typeof openCentralPdv==='function'){await openCentralPdv(String(Number(pdv)).padStart(2,'0'));return true}
+  if(pdv&&typeof openCentralPdv==='function'){await openCentralPdv(pdv);return true}
   if(pdv){
    const machine=branchProgress?.machines.find(m=>Number(m.pdv)===Number(pdv));
    if(machine?.execution){if(await loadExecution(machine.execution.id))$('context').scrollIntoView?.({behavior:'smooth',block:'start'})}
