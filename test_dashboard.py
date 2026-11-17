@@ -37,13 +37,13 @@ def test_scope_plan_numbers_exceptions_permissions_and_pdf(isolated):
     viewer,_=add_user(a,'dash-view@example.test','viewer',isolated)
     for c in [operator,viewer]:
         assert c.get('/api/dashboard').status_code==200
-        assert c.put('/api/branches/'+branch+'/pdv-plan',headers=headers(c),json={'version':0,'pdvs':['01']}).status_code==403
+    assert viewer.put('/api/branches/'+branch+'/pdv-plan',headers=headers(viewer),json={'version':0,'pdvs':['01']}).status_code==403
     assert module.app.test_client().get('/api/dashboard').status_code==401
     assert module.app.test_client().get('/api/dashboard/executive.pdf').status_code==401
     assert a.put('/api/branches/'+branch+'/pdv-plan',json={'version':0,'pdvs':['01']}).status_code==403
     planurl='/api/branches/'+branch+'/pdv-plan'
     for values in [[],['0'],['1','01'],['word'],['10000']]:assert a.put(planurl,headers=headers(a),json={'version':0,'pdvs':values}).status_code==400
-    assert a.put(planurl,headers=headers(a),json={'version':0,'pdvs':['01','05']}).status_code==200
+    assert operator.put(planurl,headers=headers(operator),json={'version':0,'pdvs':['01','05']}).status_code==200
     assert a.put(planurl,headers=headers(a),json={'version':0,'pdvs':['01']}).status_code==409
     five=new_run(a,branch,'5');finish(a,five)
     extra=new_run(a,branch,'99');finish(a,extra)

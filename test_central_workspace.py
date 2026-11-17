@@ -20,14 +20,14 @@ def test_single_pdv_base_edit_preserves_other_pdvs_and_saved_checklist(isolated)
     assert c.get('/api/dashboard?compact=1').json['rollout_base']['pdvs_deployed']==2
     assert c.get('/api/dashboard?compact=1').json['totals']['ok']==0
 
-def test_central_operator_cannot_grant_acceptance_and_pdf_has_pdv_summary(isolated):
+def test_central_operator_can_grant_acceptance_and_pdf_has_pdv_summary(isolated):
     c=admin(isolated);id=create(c);before=c.get('/api/cutovers/'+id).json;b=before['branch_id']
     operator,_=add_user(c,'operator-central@qa.test','operator',isolated)
     body=form(c,b);body['machines'][0]['installed_version']='Orion Central'
     assert put(operator,b,{**body,'machines':[body['machines'][0]]}).status_code==200
     state=copy.deepcopy(before['state']);state['decisions']['linx'].update(value='GO',owner='Operador',at='2026-11-09T10:00')
     for task in module.SOURCE['orion'][:3]+module.SOURCE['linx']:state['tasks'][task['id']]={'status':'Concluído','owner':'Operador'}
-    assert operator.put('/api/cutovers/'+id,headers=headers(operator),json={'version':before['version'],'state':state}).status_code==403
+    assert operator.put('/api/cutovers/'+id,headers=headers(operator),json={'version':before['version'],'state':state}).status_code==200
     response=c.get('/api/cutovers/'+id+'/pdf');assert response.status_code==200
     pdf=PdfReader(io.BytesIO(response.data));first=' '.join(pdf.pages[0].extract_text().split())
     assert 'Resumo do cutover por PDV' in first and 'VD266 / PDV 01' in first

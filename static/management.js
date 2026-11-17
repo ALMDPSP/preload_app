@@ -9,7 +9,7 @@ function activateManagement(tab){
  $('managementFilters').hidden=tab!=='queue';$('managementAdd').hidden=tab!=='waves'||!DECIDE;$('managementCards').innerHTML='';$('managementContent').innerHTML='';
 }
 async function showManagement(tab='queue'){
- if(tab==='backup'&&ROLE!=='admin'){toast('Somente Administrador gerencia backups.');return}
+ if(tab==='backup'&&!OPERATIONS_ADMIN){toast('Somente Administrador ou Operador gerencia backups.');return}
  activateManagement(tab);managementPage=1;
  if(tab==='queue')await refreshManagementQueue();
  else if(tab==='waves')await refreshManagementWaves();
@@ -118,7 +118,7 @@ function initManagement(){
  document.querySelector('main').append(section);
  const oldHide=hideRolloutBase;hideRolloutBase=function(){oldHide();hideManagement()};
  const nav=document.querySelector('.nav'),icon=$('reportsNav').querySelector('svg')?.outerHTML||'';
- for(const [id,label,tab] of [['queueNav','Fila do dia','queue'],['wavesNav','Ondas de rollout','waves'],...(ROLE==='admin'?[['backupNav','Gestão de dados','backup']]:[])]){
+ for(const [id,label,tab] of [['queueNav','Fila do dia','queue'],['wavesNav','Ondas de rollout','waves'],...(OPERATIONS_ADMIN?[['backupNav','Gestão de dados','backup']]:[])]){
   const button=document.createElement('button');button.id=id;button.title=label;button.innerHTML=icon+'<span class="nav-label">'+label+'</span>';button.onclick=()=>showManagement(tab);nav.append(button);
  }
  $('managementRefresh').onclick=()=>managementTab==='queue'?refreshManagementQueue(managementPage):managementTab==='waves'?refreshManagementWaves():renderBackupManager();

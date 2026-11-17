@@ -5,6 +5,7 @@ from itertools import groupby
 from datetime import datetime
 from zoneinfo import ZoneInfo
 from flask import request,g,jsonify,send_file,has_request_context
+from permissions import ROLLOUT_EDITOR_ROLES
 from reports import summarize
 
 DEFAULT_PDVS=['01','02','03','04','05']
@@ -155,7 +156,7 @@ def register_dashboard(app,core):
         return jsonify(id=branch['id'],code=branch['code'],name=branch['name'],pdvs=json.loads(plan['pdvs']) if plan else DEFAULT_PDVS,plan_version=plan['version'] if plan else 0)
     @app.put('/api/branches/<id>/pdv-plan')
     def save_plan(id):
-        if g.user['role'] not in ['admin','manager']:return error('Somente Administrador ou Gestor pode ajustar os PDVs previstos.',403)
+        if g.user['role'] not in ROLLOUT_EDITOR_ROLES:return error('Somente Administrador, Operador ou Gestor pode ajustar os PDVs previstos.',403)
         body=request.get_json() or {};values=body.get('pdvs');version=body.get('version')
         if not isinstance(values,list) or not 1<=len(values)<=50 or type(version) is not int:return error('Informe de 1 a 50 números de PDV e a versão do cadastro.')
         numbers=[pdv_number(v) if isinstance(v,str) else None for v in values]

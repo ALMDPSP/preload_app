@@ -1,3 +1,7 @@
+# Atualização v5.1.13
+
+O perfil Operador tem as mesmas permissões operacionais do Administrador, incluindo aceites, exclusões elegíveis, importações, planejamento e Gestão de dados. A Gestão de Acesso continua exclusiva do Administrador. Confira a tabela atual em **Perfis e permissões**. As notas de versões anteriores abaixo registram as regras da época.
+
 # Atualização v5.1.0
 
 - No Dashboard, clique em **PDVs implantados** para ver filial, equipamento, situação, versão e data cadastrada. O botão de cada linha abre o PDV na Central.
@@ -346,14 +350,16 @@ A chave usada precisa permanecer estável: sem variável adicional, preserve `SE
 | Ver cutovers, rede e histórico | Sim | Sim | Sim | Sim |
 | Exportar JSON e imprimir/PDF | Sim | Sim | Sim | Sim |
 | Atualizar etapas, responsáveis e evidências | Sim | Sim | Sim | Não |
-| Criar cutovers | Sim | Sim | Não | Não |
-| Registrar/alterar decisões GO e NO-GO | Sim | Sim | Não | Não |
-| Importar registros | Sim | Sim | Somente sem mudar decisões reservadas | Não |
+| Criar cutovers | Sim | Sim | Sim | Não |
+| Registrar/alterar decisões GO e NO-GO | Sim | Sim | Sim | Não |
+| Importar registros | Sim | Sim | Sim | Não |
+| Excluir cutovers, pendências e filiais elegíveis | Sim | Não | Sim | Não |
+| Backup, restauração e integridade operacional | Sim | Não | Sim | Não |
 | Criar usuários, alterar perfis e bloquear acessos | Sim | Não | Não | Não |
 | Redefinir senha temporária ou MFA de outros usuários | Sim | Não | Não | Não |
 | Trocar a própria senha | Sim | Sim | Sim | Sim |
 
-As permissões são verificadas no servidor, inclusive em solicitações diretas à API. Os perfis valem para todos os cutovers; não há restrição por filial. Operadores podem voltar uma aprovação para Pendente ao reabrir uma etapa, mas não podem emitir GO/NO-GO ou editar seus dados.
+As permissões são verificadas no servidor, inclusive em solicitações diretas à API. Os perfis valem para todos os cutovers; não há restrição por filial. O Operador tem as mesmas permissões operacionais do Administrador. A Gestão de Acesso é exclusiva do Administrador.
 
 ## Authenticator e recuperação
 

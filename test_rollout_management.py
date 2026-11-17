@@ -39,8 +39,7 @@ def test_central_pdv_numbers_save_atomically_and_appear_in_report(isolated):
     assert c.get('/api/rollout/branches/'+b+'/context').json['assignments']==[]
     body['new_pdv']='15'
     operator,_=add_user(c,'operator-numbers@qa.test','operator',isolated)
-    assert save(operator,b,{**body,'assignment':None}).status_code==403
-    response=save(c,b,body)
+    response=save(operator,b,body)
     assert response.status_code==200 and response.json['pdv']=='15'
     assert response.json['checklist']['meta']['pdv']=='15'
     assert response.json['base']['assignments'][0]['pdv']=='15'
@@ -63,19 +62,20 @@ def test_central_pdv_numbers_save_atomically_and_appear_in_report(isolated):
     assert put(operator,b,{**base,'machines':[{**machine,'legacy_pdv':''}]}).status_code==200
     assert next(row for row in form(c,b)['machines'] if row['pdv']=='15')['legacy_pdv']==''
 
-def test_assignment_roles_named_validator_and_operator_cannot_reassign(isolated):
+def test_assignment_roles_and_named_validator(isolated):
     c=admin(isolated);id=create(c);b,body=central(c,id)
     manager,_=add_user(c,'validator-v5@qa.test','manager',isolated);other,_=add_user(c,'other-v5@qa.test','manager',isolated);operator,_=add_user(c,'exec-v5@qa.test','operator',isolated)
     with module.db() as db:people={r['email']:r['id'] for r in db.execute('SELECT id,email FROM ct_users').fetchall()}
     body['assignment']={'version':0,'executor_id':people['exec-v5@qa.test'],'validator_id':people['validator-v5@qa.test']}
     assert save(c,b,body).status_code==200
-    b,body=central(c,id);body['assignment']={'version':1,'executor_id':people['exec-v5@qa.test']}
-    assert save(operator,b,body).status_code==403
     b,body=central(c,id)
     for t in module.SOURCE['orion'][:3]+module.SOURCE['linx']:body['checklist']['state']['tasks'][t['id']]={'status':'Concluído'}
     body['checklist']['state']['decisions']['linx']={'value':'GO','owner':'Validador','at':'2026-11-10T10:00'}
     assert save(other,b,body).status_code==403
     assert save(manager,b,body).status_code==200
+    b,body=central(c,id)
+    body['assignment']={'version':1,'executor_id':people['exec-v5@qa.test'],'validator_id':people['exec-v5@qa.test']}
+    assert save(operator,b,body).status_code==200
     assert module.app.test_client().get('/api/rollout/queue').status_code==401
     assert c.post('/api/rollout/branches/'+b+'/save-all',json=body).status_code==403
 
@@ -98,12 +98,13 @@ def test_waves_queue_period_and_csv_with_actual_pdvs(isolated):
 def test_signed_backup_preview_and_atomic_restore_preserve_accounts(isolated):
     c=admin(isolated);id=create(c);b,body=central(c,id)
     body['base']['machines'][0]['installed_version']='Versão original';assert save(c,b,body).status_code==200
-    backup=c.get('/api/admin/operational-backup');assert backup.status_code==200
+    operator,_=add_user(c,'backup-operator@qa.test','operator',isolated)
+    backup=operator.get('/api/admin/operational-backup');assert backup.status_code==200
     raw=json.loads(gzip.decompress(backup.data));assert not any(k in raw['payload']['tables'] for k in ['ct_users','ct_auth','ct_attempts'])
     with module.db() as db:users=[dict(r) for r in db.execute('SELECT * FROM ct_users').fetchall()]
     b,body=central(c,id);body['base']['machines'][0]['installed_version']='Mudança posterior';assert save(c,b,body).status_code==200
-    pv=preview(c,backup.data);assert pv.status_code==200
-    applied=restore(c,backup.data,pv.json['token']);assert applied.status_code==200
+    pv=preview(operator,backup.data);assert pv.status_code==200
+    applied=restore(operator,backup.data,pv.json['token']);assert applied.status_code==200
     assert form(c,b)['machines'][0]['installed_version']=='Versão original'
     with module.db() as db:assert users==[dict(r) for r in db.execute('SELECT * FROM ct_users').fetchall()]
     assert c.get('/api/cutovers/'+id).status_code==200

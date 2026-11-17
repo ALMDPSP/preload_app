@@ -3,6 +3,7 @@ import json,secrets
 from datetime import datetime,date,timedelta
 from zoneinfo import ZoneInfo
 from flask import request,g,jsonify
+from permissions import OPERATIONAL_ADMIN_ROLES, ROLLOUT_EDITOR_ROLES
 from dashboard import dashboard_data,pdv_number,DEFAULT_PDVS
 
 SCHEMA=[
@@ -110,7 +111,7 @@ def register_operations(app,core):
         return jsonify(today=current.isoformat(),from_date=start,to_date=end,comparisons=history_comparisons(comparisons,current),rows=[{'day':r['day'],'captured_at':r['captured_at'],'provisional':r['day']==current.isoformat(),**json.loads(r['payload'])} for r in rows])
     @app.put('/api/operations/goals/<week>')
     def ops_goal(week):
-        if g.user['role'] not in ['admin','manager']:return error('Somente Administrador ou Gestor define metas.',403)
+        if g.user['role'] not in ROLLOUT_EDITOR_ROLES:return error('Somente Administrador, Operador ou Gestor define metas.',403)
         body=request.get_json() or {}
         try:
             valid_date(week,True)
@@ -126,7 +127,7 @@ def register_operations(app,core):
         return jsonify(ok=True)
     @app.put('/api/operations/schedule')
     def ops_save_schedule():
-        if g.user['role'] not in ['admin','manager']:return error('Somente Administrador ou Gestor pode planejar o rollout.',403)
+        if g.user['role'] not in ROLLOUT_EDITOR_ROLES:return error('Somente Administrador, Operador ou Gestor pode planejar o rollout.',403)
         body=request.get_json() or {}
         try:
             branch=text(body,'branch_id',80,True);pdv=pdv_number(body.get('pdv'));owner=text(body,'owner',120,True);start=valid_date(body.get('start_date',''));due=valid_date(body.get('due_date',''),True);notes=text(body,'notes',2000)
@@ -143,7 +144,7 @@ def register_operations(app,core):
         return jsonify(ok=True)
     @app.delete('/api/operations/schedule')
     def ops_remove_schedule():
-        if g.user['role'] not in ['admin','manager']:return error('Somente Administrador ou Gestor pode remover um planejamento.',403)
+        if g.user['role'] not in ROLLOUT_EDITOR_ROLES:return error('Somente Administrador, Operador ou Gestor pode remover um planejamento.',403)
         body=request.get_json() or {}
         if type(body.get('version')) is not int:return error('Versão inválida.')
         with db() as c:
@@ -190,7 +191,7 @@ def register_operations(app,core):
         return jsonify(ok=True)
     @app.delete('/api/operations/issues/<id>')
     def ops_delete_issue(id):
-        if g.user['role']!='admin':return error('Somente Administrador pode excluir pendências.',403)
+        if g.user['role'] not in OPERATIONAL_ADMIN_ROLES:return error('Somente Administrador ou Operador pode excluir pendências.',403)
         body=request.get_json() or {}
         if type(body.get('version')) is not int or body['version']<1:return error('Versão inválida.')
         with db() as c:

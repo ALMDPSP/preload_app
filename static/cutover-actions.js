@@ -1,9 +1,9 @@
 /* Explicit review and administrative deletion of a saved cutover. */
 function updateCutoverActions(){
  $('rejectCutover').hidden=!DECIDE||!currentId||!cutoverEditing||!!currentRejection;
- $('deleteCutover').hidden=ROLE!=='admin'||!currentId||!cutoverEditing;
+ $('deleteCutover').hidden=!OPERATIONS_ADMIN||!currentId||!cutoverEditing;
  const panel=$('cutoverRejection');panel.hidden=!currentRejection;
- panel.innerHTML=currentRejection?`<strong>Cutover rejeitado</strong><p>${esc(currentRejection.reason)}</p><small>${esc(currentRejection.actor)} · ${esc(new Date(currentRejection.created_at).toLocaleString('pt-BR'))}</small><p>Execução disponível para consulta. Solicite ao Administrador a exclusão para refazer.</p>`:'';
+ panel.innerHTML=currentRejection?`<strong>Cutover rejeitado</strong><p>${esc(currentRejection.reason)}</p><small>${esc(currentRejection.actor)} · ${esc(new Date(currentRejection.created_at).toLocaleString('pt-BR'))}</small><p>Execução disponível para consulta. Solicite a exclusão a um Administrador ou Operador para refazer.</p>`:'';
  $('import').disabled=!!currentRejection||!currentId||!cutoverEditing;
  $('history').disabled=!currentId||!cutoverEditing;
 }
@@ -20,7 +20,7 @@ $('rejectCutover').onclick=()=>{
  $('rejectCutoverForm').onsubmit=async e=>{e.preventDefault();$('confirmRejectCutover').disabled=true;try{await api('/api/cutovers/'+id+'/reject','POST',{reason:$('rejectionReason').value.trim(),version:expected});$('modal').close();await refreshList(id);await loadExecution(id);toast('Cutover rejeitado. Motivo registrado no histórico.')}catch(err){$('rejectCutoverError').textContent=err.message;$('confirmRejectCutover').disabled=false}};
 };
 function confirmCutoverDeletion(execution){
- if(ROLE!=='admin'||!execution)return;
+ if(!OPERATIONS_ADMIN||!execution)return;
  if(saving||executionLoading){toast('Aguarde a operação atual terminar antes de excluir.');return}
  const {id,title,version:expected}=execution,branch=selectedBranchId;
  const discarding=currentId===id&&dirty;

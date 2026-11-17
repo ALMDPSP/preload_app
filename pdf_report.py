@@ -127,7 +127,7 @@ def create_report(source, state, saved):
     retirada=state.get('decisions',{}).get('linx',{})
     retirada_ok=retirada.get('value')=='GO' and all(retirada.get(k) for k in ['owner','at'])
     pending=[t['title'] for t in source['orion'][:3]+source['linx']+source['orion'][3:] if tasks.get(t['id'],{}).get('status')!='Concluído']
-    if review:elements.append(p('Próxima ação: solicitar ao Administrador a revisão e a reabertura da execução rejeitada.','BodySmall'))
+    if review:elements.append(p('Próxima ação: solicitar a revisão ou a exclusão a um Administrador ou Operador.','BodySmall'))
     elif all(tasks.get(t['id'],{}).get('status')=='Concluído' for t in source['orion'][:3]+source['linx']) and not retirada_ok:elements.append(p('Próxima ação: conferir e registrar o GO da retirada antes da instalação do Orion.','BodySmall'))
     elif pending:elements.append(p('Próxima ação: '+pending[0]+'.','BodySmall'))
     elif status!='Concluído':elements.append(p('Próxima ação: conferir os aceites e registrar as liberações pendentes.','BodySmall'))

@@ -1,6 +1,7 @@
-"""Administrator-only, signed operational backups with preview and atomic restore."""
+"""Signed operational backups with preview and atomic restore."""
 import gzip,io,json,hmac,hashlib,time,secrets
 from flask import request,g,session,jsonify,send_file
+from permissions import OPERATIONAL_ADMIN_ROLES, ROLLOUT_EDITOR_ROLES
 from release import APP_VERSION
 
 TABLES=['ct_branches','ct_branch_pdv_plan','ct_cutovers','ct_cutover_branch','ct_cutover_reviews','ct_audit',
@@ -64,17 +65,16 @@ def read_upload(core,c):
         for row in payload['tables']['ct_pdv_assignments']['rows']:
             for key in ['executor_id','validator_id']:
                 before=row[key];user=mapping.get(before)
-                roles=['admin','manager'] if key=='validator_id' else ['admin','manager','operator']
-                after=user['id'] if user and user['active'] and user['role'] in roles else None
+                after=user['id'] if user and user['active'] and user['role'] in ROLLOUT_EDITOR_ROLES else None
                 unlinked+=int(bool(before) and not after);row[key]=after
         return payload,unlinked,hashlib.sha256(raw).hexdigest()
     except (KeyError,TypeError,json.JSONDecodeError,UnicodeDecodeError,OSError,EOFError,RecursionError) as exc:raise ValueError('Arquivo de backup inválido ou corrompido.') from exc
 
 def register_backup(app,core):
-    def admin_error():return core['error']('Somente Administrador gerencia backups e restaurações.',403)
+    def admin_error():return core['error']('Somente Administrador ou Operador gerencia backups e restaurações.',403)
     @app.get('/api/admin/operational-integrity')
     def integrity_check():
-        if g.user['role']!='admin':return admin_error()
+        if g.user['role'] not in OPERATIONAL_ADMIN_ROLES:return admin_error()
         from dashboard import pdv_number,dashboard_data
         from rollout_base import rollout_base_summary
         issues=[];g.operational_exclusive=True
@@ -113,7 +113,7 @@ def register_backup(app,core):
 
     @app.get('/api/admin/operational-backup')
     def export_backup():
-        if g.user['role']!='admin':return admin_error()
+        if g.user['role'] not in OPERATIONAL_ADMIN_ROLES:return admin_error()
         g.operational_exclusive=True
         try:
             with core['db']() as c:
@@ -130,7 +130,7 @@ def register_backup(app,core):
 
     @app.post('/api/admin/operational-restore/preview')
     def preview_restore():
-        if g.user['role']!='admin':return admin_error()
+        if g.user['role'] not in OPERATIONAL_ADMIN_ROLES:return admin_error()
         g.operational_exclusive=True
         try:
             with core['db']() as c:
@@ -146,7 +146,7 @@ def register_backup(app,core):
 
     @app.post('/api/admin/operational-restore/apply')
     def apply_restore():
-        if g.user['role']!='admin':return admin_error()
+        if g.user['role'] not in OPERATIONAL_ADMIN_ROLES:return admin_error()
         preview=session.get('restore_preview',{})
         if request.form.get('confirmation')!='RESTAURAR' or not preview or not hmac.compare_digest(str(request.form.get('token','')),str(preview.get('token','!'))) or preview.get('expires',0)<time.time():return core['error']('Confira a prévia e digite RESTAURAR para confirmar.',409)
         g.operational_exclusive=True

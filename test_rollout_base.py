@@ -42,12 +42,12 @@ def test_role_permissions_and_conflicts_never_partially_save(isolated):
     operator,_=add_user(c,'base-operator@qa.test','operator',isolated);viewer,_=add_user(c,'base-viewer@qa.test','viewer',isolated)
     assert viewer.get('/api/rollout-base').status_code==200
     assert put(viewer,b,body).status_code==403
-    assert put(operator,b,{**body,'gr':'Alteração proibida'}).status_code==403
+    body['gr']='GR OPERADOR'
     body['machines'][0].update(status='Implantado',installed_version='build-1');assert put(operator,b,body).status_code==200
     assert put(c,b,body).status_code==409
     fresh=form(c,b);fresh['gr']='Não deve salvar';fresh['machines'][0]['version']=0
     assert put(c,b,fresh).status_code==409
-    assert form(c,b)['gr']=='' and form(c,b)['machines'][0]['installed_version']=='build-1'
+    assert form(c,b)['gr']=='GR OPERADOR' and form(c,b)['machines'][0]['installed_version']=='build-1'
     assert module.app.test_client().get('/api/rollout-base').status_code==401
     assert c.put('/api/rollout-base/branches/'+b,json=form(c,b)).status_code==403
 

@@ -3,6 +3,7 @@ import json
 from datetime import date, datetime
 
 from flask import Response, g, jsonify, request
+from permissions import ROLLOUT_EDITOR_ROLES
 
 from branch_import import MAX_FILE, file_rows, normalized, text_value
 from dashboard import DEFAULT_PDVS, pdv_number
@@ -96,8 +97,8 @@ def check_schedule(c, prepared, errors, lock=False):
 def register_schedule_import(app, core):
     @app.get('/api/operations/schedule/import-template')
     def schedule_template():
-        if g.user['role'] not in {'admin', 'manager'}:
-            return core['error']('Somente Administrador ou Gestor pode importar o cronograma.', 403)
+        if g.user['role'] not in ROLLOUT_EDITOR_ROLES:
+            return core['error']('Somente Administrador, Operador ou Gestor pode importar o cronograma.', 403)
         return Response(
             '\ufeffFilial;PDV;Responsável;Início;Prazo;Observações\r\nVD266;01;Equipe de TI;11/11/2026;12/11/2026;Janela confirmada\r\n',
             content_type='text/csv; charset=utf-8',
@@ -106,8 +107,8 @@ def register_schedule_import(app, core):
 
     @app.post('/api/operations/schedule/import/<action>')
     def schedule_import(action):
-        if g.user['role'] not in {'admin', 'manager'}:
-            return core['error']('Somente Administrador ou Gestor pode importar o cronograma.', 403)
+        if g.user['role'] not in ROLLOUT_EDITOR_ROLES:
+            return core['error']('Somente Administrador, Operador ou Gestor pode importar o cronograma.', 403)
         if action not in {'preview', 'confirm'}:
             return core['error']('Ação inválida.', 404)
         upload = request.files.get('file')

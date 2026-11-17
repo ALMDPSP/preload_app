@@ -1,6 +1,7 @@
 """Atomic PDV identity correction without creating or reordering cutovers."""
 import json
 from flask import request,g,jsonify
+from permissions import ROLLOUT_EDITOR_ROLES
 from dashboard import pdv_number,DEFAULT_PDVS
 
 class RenumberConflict(Exception):pass
@@ -9,7 +10,7 @@ def register_pdv_renumber(app,core):
     @app.put('/api/rollout-base/branches/<id>/pdv-number')
     def renumber_rollout_pdv(id,body=None):
         error=core['error']
-        if g.user['role'] not in ['admin','manager']:return error('Somente Administrador ou Gestor pode alterar a numeração do PDV.',403)
+        if g.user['role'] not in ROLLOUT_EDITOR_ROLES:return error('Somente Administrador, Operador ou Gestor pode alterar a numeração do PDV.',403)
         body=body if body is not None else request.get_json(silent=True)
         if not isinstance(body,dict):return error('Informe o número atual e o novo número do PDV.')
         old=pdv_number(body.get('from_pdv'));new=pdv_number(body.get('to_pdv'))

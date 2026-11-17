@@ -102,7 +102,7 @@ def test_roles_decisions_shared_data_conflicts_and_revocation(isolated):
     operator,_=add_user(a,'operator@example.test','operator',isolated)
     viewer,_=add_user(a,'viewer@example.test','viewer',isolated)
     assert manager.get('/api/users').status_code==403
-    assert operator.post('/api/cutovers',headers=headers(operator),json={'title':'X'}).status_code==403
+    assert operator.get('/api/users').status_code==403
     assert viewer.post('/api/cutovers',headers=headers(viewer),json={'title':'X'}).status_code==403
     id=create(manager);initial=manager.get('/api/cutovers/'+id).json
     s=copy.deepcopy(initial['state'])
@@ -114,12 +114,10 @@ def test_roles_decisions_shared_data_conflicts_and_revocation(isolated):
     for key in ['orion1','orion2','orion3','linx1','linx2','linx3','linx4','linx5']:
         s['tasks'][key]={'status':'Concluído','owner':'Técnico','evidence':'Evidência validada'}
     s['decisions']['linx']={'value':'GO','owner':'Gestor','at':'2026-11-04T21:00','reason':'Pré-requisitos aprovados'}
-    assert save(operator,id,s,2).status_code==403
-    assert save(manager,id,s,2).json['version']==3
+    assert save(operator,id,s,2).json['version']==3
     s['tasks']['orion4']={'status':'Em andamento'}
     assert save(operator,id,s,3).json['version']==4
-    s['decisions']['linx']['owner']='Operador tentou aprovar'
-    assert save(operator,id,s,4).status_code==403
+    assert operator.get('/api/cutovers/'+id).json['updated_by']=='operator@example.test'
     assert viewer.get('/api/cutovers/'+id+'/audit').status_code==200
     uid=auth_row('operator@example.test')['user_id']
     assert a.put('/api/users/'+uid+'/role',headers=headers(a),json={'role':'viewer'}).status_code==200
@@ -128,6 +126,29 @@ def test_roles_decisions_shared_data_conflicts_and_revocation(isolated):
     assert operator.post('/api/cutovers',headers=headers(operator),json={'title':'X'}).status_code==403
     own=auth_row('admin@example.test')['user_id']
     assert a.put('/api/users/'+own+'/role',headers=headers(a),json={'role':'viewer'}).status_code==400
+
+
+def test_operator_operates_without_access_to_user_management(isolated):
+    a=admin(isolated)
+    operator,_=add_user(a,'operacao-qa@example.test','operator',isolated)
+    admin_id=auth_row('admin@example.test')['user_id']
+    html=operator.get('/').text
+    assert 'data-role="operator"' in html and 'data-operational-admin="1"' in html
+    assert 'id="quickCreateUser"' not in html and 'id="users"' not in html
+    assert 'id="quickCreateUser"' in a.get('/').text
+    for method,path,body in [
+        ('GET','/api/users',None),
+        ('POST','/api/users',{'name':'Teste','email':'novo@example.test','role':'admin','password':'Temporaria-123456'}),
+        ('PUT',f'/api/users/{admin_id}/role',{'role':'viewer'}),
+        ('PUT',f'/api/users/{admin_id}/active',{'active':False}),
+        ('POST',f'/api/users/{admin_id}/reset',{'kind':'mfa'}),
+        ('POST',f'/api/users/{admin_id}/reset',{'kind':'password','password':'Temporaria-123456'}),
+    ]:
+        response=operator.open(path,method=method,headers=headers(operator),json=body) if body is not None else operator.get(path)
+        assert response.status_code==403,(method,path,response.status_code)
+    assert a.get('/api/users').status_code==200
+    assert operator.get('/api/admin/operational-integrity').status_code==200
+    assert create(operator)
 
 
 def test_otp_replay_recovery_and_admin_reset(isolated):
@@ -309,7 +330,7 @@ def test_branch_registration_isolation_and_immutable_link(isolated):
     assert save(a,first,state,2).status_code==400
     assert a.put('/api/cutovers/'+first+'/branch',headers=headers(a),json={'branch_id':branch2['id'],'version':2}).status_code==400
     operator,_=add_user(a,'branch-operator@example.test','operator',isolated)
-    assert operator.post('/api/branches',headers=headers(operator),json={'code':'X22','name':'Sem permissão'}).status_code==403
+    assert operator.post('/api/branches',headers=headers(operator),json={'code':'X22','name':'Filial operacional'}).status_code==201
     viewer,_=add_user(a,'branch-viewer@example.test','viewer',isolated)
     assert viewer.get('/api/branches').status_code==200
     assert viewer.put('/api/branches/'+branch2['id'],headers=headers(viewer),json={'name':'X'}).status_code==403

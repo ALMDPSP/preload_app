@@ -4,6 +4,7 @@ from collections import Counter
 from datetime import date,timedelta,datetime
 from zoneinfo import ZoneInfo
 from flask import request,g,jsonify,Response
+from permissions import OPERATIONAL_ADMIN_ROLES, ROLLOUT_EDITOR_ROLES
 from dashboard import dashboard_data,pdv_number
 from rollout_base import branch_base,rollout_base_summary
 from operations import today,valid_date,planned_branch,operation_overview
@@ -28,14 +29,14 @@ def clean(body,key,maximum=160):
 def validator_guard(c,user,branch,pdv,previous,state):
     # Reopening tasks may invalidate approvals, but approval decisions remain accountable.
     changed=any(state.get('decisions',{}).get(k,{})!=previous.get('decisions',{}).get(k,{}) and state.get('decisions',{}).get(k,{}).get('value') in ['GO','NO-GO'] for k in ['linx','orion'])
-    if not changed or user['role']=='admin':return None
+    if not changed or user['role'] in OPERATIONAL_ADMIN_ROLES:return None
     row=c.execute('SELECT validator_id FROM ct_pdv_assignments WHERE branch_id=%s AND pdv=%s',(branch,pdv_number(pdv))).fetchone()
     if row and row['validator_id'] and row['validator_id']!=user['id']:
-        return 'O aceite deste PDV está atribuído a outro analista validador. Solicite a validação ou o ajuste da atribuição ao Administrador/Gestor.'
+        return 'O aceite deste PDV está atribuído a outro analista validador. Solicite a validação ou peça o ajuste da atribuição.'
     return None
 
 def assignment_write(core,c,branch,pdv,body):
-    if g.user['role'] not in ['admin','manager']:raise PermissionError('Somente Administrador ou Gestor atribui responsáveis e ondas.')
+    if g.user['role'] not in ROLLOUT_EDITOR_ROLES:raise PermissionError('Somente Administrador, Operador ou Gestor atribui responsáveis e ondas.')
     if not isinstance(body,dict) or type(body.get('version')) is not int or body['version']<0:raise ValueError('Atualize as atribuições antes de salvar.')
     planned_branch(c,branch,pdv)
     old=c.execute('SELECT * FROM ct_pdv_assignments WHERE branch_id=%s AND pdv=%s',(branch,pdv)).fetchone()
@@ -46,8 +47,7 @@ def assignment_write(core,c,branch,pdv,body):
         if value is not None and not isinstance(value,str):raise ValueError('Escolha um usuário cadastrado.')
         if value:
             user=c.execute('SELECT id,role,active FROM ct_users WHERE id=%s',(value,)).fetchone()
-            roles=['admin','manager'] if key=='validator_id' else ['admin','manager','operator']
-            if not user or not user['active'] or user['role'] not in roles:raise ValueError('Escolha responsáveis ativos e com perfil adequado.')
+            if not user or not user['active'] or user['role'] not in ROLLOUT_EDITOR_ROLES:raise ValueError('Escolha responsáveis ativos e com perfil adequado.')
         ids[key]=value
     wave=body.get('wave_id') or None
     if wave:
@@ -155,8 +155,8 @@ def register_management(app,core):
         if not pdv:return core['error']('Selecione o PDV.')
         new_number=pdv_number(body.get('new_pdv',pdv))
         if not new_number:return core['error']('Informe um número de PDV novo entre 1 e 9999.')
-        if new_number!=pdv and g.user['role'] not in ['admin','manager']:
-            return core['error']('Somente Administrador ou Gestor pode alterar a numeração do PDV.',403)
+        if new_number!=pdv and g.user['role'] not in ROLLOUT_EDITOR_ROLES:
+            return core['error']('Somente Administrador, Operador ou Gestor pode alterar a numeração do PDV.',403)
         base=body['base'];machines=base.get('machines')
         if not isinstance(machines,list) or len(machines)!=1 or not isinstance(machines[0],dict) or pdv_number(machines[0].get('pdv'))!=pdv:return core['error']('O salvamento deve conter somente o PDV selecionado.')
         g.atomic_write=True
@@ -232,7 +232,7 @@ def register_management(app,core):
     @app.route('/api/rollout/waves',methods=['POST'])
     @app.route('/api/rollout/waves/<id>',methods=['PUT'])
     def save_wave(id=None):
-        if g.user['role'] not in ['admin','manager']:return core['error']('Somente Administrador ou Gestor gerencia ondas.',403)
+        if g.user['role'] not in ROLLOUT_EDITOR_ROLES:return core['error']('Somente Administrador, Operador ou Gestor gerencia ondas.',403)
         body=request.get_json() or {}
         try:
             name=clean(body,'name',120);start=valid_date(body.get('start_date'),True);due=valid_date(body.get('due_date'),True);status=body.get('status','Planejada')
@@ -253,7 +253,7 @@ def register_management(app,core):
 
     @app.post('/api/rollout/waves/<id>/assign-branch')
     def assign_wave_branch(id):
-        if g.user['role'] not in ['admin','manager']:return core['error']('Somente Administrador ou Gestor vincula filiais.',403)
+        if g.user['role'] not in ROLLOUT_EDITOR_ROLES:return core['error']('Somente Administrador, Operador ou Gestor vincula filiais.',403)
         body=request.get_json() or {};branch=body.get('branch_id');expected=body.get('versions');plan_version=body.get('plan_version')
         if not isinstance(branch,str) or not isinstance(expected,dict) or type(plan_version) is not int:return core['error']('Selecione uma filial e atualize os PDVs.')
         g.atomic_write=True

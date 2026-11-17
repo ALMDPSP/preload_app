@@ -5,6 +5,7 @@ from datetime import datetime, timezone, timedelta
 from functools import wraps
 from pathlib import Path
 from flask import Flask, request, session, jsonify, render_template, redirect, g, has_request_context
+from permissions import OPERATIONAL_ADMIN_ROLES, ROLLOUT_EDITOR_ROLES
 from werkzeug.security import generate_password_hash, check_password_hash
 from werkzeug.middleware.proxy_fix import ProxyFix
 from branches import migrate_branches, branch_for, bound_meta, register_branches
@@ -202,7 +203,9 @@ def logout(): session.clear();return redirect('/login')
 @app.get('/')
 def index():
     if not g.user:return redirect('/login')
-    return render_template('index.html',csrf=token(),user=g.user,issue_towers=ISSUE_TOWERS)
+    return render_template('index.html',csrf=token(),user=g.user,issue_towers=ISSUE_TOWERS,
+                           operational_admin=g.user['role'] in OPERATIONAL_ADMIN_ROLES,
+                           rollout_editor=g.user['role'] in ROLLOUT_EDITOR_ROLES)
 
 def valid_state(s):
     if not isinstance(s,dict) or not all(isinstance(s.get(k),dict) for k in ('meta','tasks','decisions')):raise ValueError('Estrutura de dados inválida.')
@@ -237,7 +240,7 @@ def cutovers():
 
 @app.post('/api/cutovers')
 def create_cutover():
-    if g.user['role'] not in ['admin','manager']:return error('Somente Administrador ou Gestor pode criar cutovers.',403)
+    if g.user['role'] not in ROLLOUT_EDITOR_ROLES:return error('Somente Administrador, Operador ou Gestor pode criar cutovers.',403)
     body=request.get_json() or {};branch_id=body.get('branch_id')
     if not isinstance(branch_id,str) or not branch_id:return error('Selecione uma filial cadastrada para iniciar o cutover.')
     pdv=body.get('pdv','')
@@ -273,7 +276,7 @@ def update_cutover(id,body=None):
     with db() as c:
         old=c.execute('SELECT state FROM ct_cutovers WHERE id=%s',(id,)).fetchone()
         if not old:return error('Cutover não encontrado.',404)
-        if c.execute('SELECT cutover_id FROM ct_cutover_reviews WHERE cutover_id=%s',(id,)).fetchone():return error('Cutover rejeitado. Consulte o motivo ou solicite ao Administrador a exclusão para refazer.',409)
+        if c.execute('SELECT cutover_id FROM ct_cutover_reviews WHERE cutover_id=%s',(id,)).fetchone():return error('Cutover rejeitado. Consulte o motivo ou solicite a exclusão a um Administrador ou Operador para refazer.',409)
         previous=json.loads(old['state'])
         branch=branch_for(c,id)
         if not branch:return error('Vincule esta execução a uma filial antes de salvar.')
@@ -291,13 +294,6 @@ def update_cutover(id,body=None):
                 for key in ['checkedByEmail','checkedAt']:
                     if key in prior:record[key]=prior[key]
                     else:record.pop(key,None)
-        if g.user['role']=='operator':
-            for k in ['linx','orion']:
-                before=previous['decisions'].get(k,{})
-                after=s['decisions'].get(k,{})
-                # Operators can invalidate an approval by reopening a task, but cannot approve or edit a decision.
-                invalidated=dict(before);invalidated['value']='Pendente'
-                if after!=before and after!=invalidated:return error('Decisões GO / NO-GO são exclusivas de Administrador ou Gestor.',403)
         from rollout_management import validator_guard
         denied=validator_guard(c,g.user,branch['id'],s['meta'].get('pdv'),previous,s)
         if denied:return error(denied,403)
@@ -309,7 +305,7 @@ def update_cutover(id,body=None):
 
 @app.post('/api/cutovers/<id>/reject')
 def reject_cutover(id):
-    if g.user['role'] not in ['admin','manager']:return error('Somente Administrador ou Gestor pode rejeitar cutovers.',403)
+    if g.user['role'] not in ROLLOUT_EDITOR_ROLES:return error('Somente Administrador, Operador ou Gestor pode rejeitar cutovers.',403)
     body=request.get_json() or {};reason=body.get('reason');expected=body.get('version')
     if not isinstance(reason,str) or not 3<=len(reason.strip())<=2000:return error('Informe o motivo da rejeição, de 3 a 2.000 caracteres.')
     if type(expected) is not int:return error('Versão inválida.')
@@ -328,7 +324,7 @@ def reject_cutover(id):
 
 @app.delete('/api/cutovers/<id>')
 def delete_cutover(id):
-    if g.user['role']!='admin':return error('Somente Administrador pode excluir cutovers.',403)
+    if g.user['role'] not in OPERATIONAL_ADMIN_ROLES:return error('Somente Administrador ou Operador pode excluir cutovers.',403)
     body=request.get_json() or {};expected=body.get('version')
     if type(expected) is not int:return error('Versão inválida.')
     with db() as c:

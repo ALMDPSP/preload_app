@@ -2,7 +2,7 @@ let currentId=null,version=0,dirty=false,saving=false,timer=null,conflict=false;
 let executionLoadSequence=0,branchProgressSequence=0,editRevision=0,executionLoading=false;
 let selectedBranchId="",currentRejection=null,cutoverEditing=false,branchProgress=null;
 const csrf=document.querySelector('meta[name="csrf-token"]').content;
-const ROLE=document.body.dataset.role,READONLY=ROLE==='viewer',DECIDE=['admin','manager'].includes(ROLE);
+const ROLE=document.body.dataset.role,READONLY=ROLE==='viewer',DECIDE=document.body.dataset.rolloutEditor==='1',OPERATIONS_ADMIN=document.body.dataset.operationalAdmin==='1';
 const ROLES={admin:'Administrador',manager:'Gestor',operator:'Operador',viewer:'Consulta'};
 const originalRender=render;
 render=function(){originalRender();document.querySelectorAll('[data-meta],[data-task],[data-decision],[data-task-action],[data-use-name]').forEach(e=>e.disabled=!currentId||READONLY||!!currentRejection||!!e.dataset.decision&&!DECIDE)};

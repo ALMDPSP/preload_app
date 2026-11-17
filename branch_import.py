@@ -3,6 +3,7 @@ import csv, hashlib, io, json, re, secrets, sqlite3, time, unicodedata, zipfile
 from pathlib import Path
 from branch_values import normalize_uf, parse_status
 from flask import request, g, jsonify, Response
+from permissions import ROLLOUT_EDITOR_ROLES
 
 MAX_ROWS=10000
 MAX_FILE=10*1024*1024
@@ -115,7 +116,7 @@ def plan_import(rows,existing,mode):
 
 def register_branch_import(app,core):
     db,error,audit,now=(core[k] for k in ['db','error','audit','now'])
-    def allowed():return g.user['role'] in ['admin','manager']
+    def allowed():return g.user['role'] in ROLLOUT_EDITOR_ROLES
 
     @app.get('/api/branches/import-template')
     def import_template():
@@ -124,7 +125,7 @@ def register_branch_import(app,core):
 
     @app.post('/api/branches/import/preview')
     def preview_import():
-        if not allowed():return error('Somente Administrador ou Gestor pode importar filiais.',403)
+        if not allowed():return error('Somente Administrador, Operador ou Gestor pode importar filiais.',403)
         mode=request.form.get('mode','create_only')
         if mode not in ['create_only','upsert']:return error('Modo de importação inválido.')
         upload=request.files.get('file')
@@ -147,7 +148,7 @@ def register_branch_import(app,core):
 
     @app.post('/api/branches/import/confirm')
     def confirm_import():
-        if not allowed():return error('Somente Administrador ou Gestor pode importar filiais.',403)
+        if not allowed():return error('Somente Administrador, Operador ou Gestor pode importar filiais.',403)
         uid=(request.get_json() or {}).get('import_id')
         if not isinstance(uid,str):return error('Analise o arquivo antes de confirmar.')
         try:

@@ -62,15 +62,15 @@ def test_permissions_csrf_and_goal_cas(isolated):
     assert module.app.test_client().get('/api/operations/overview').status_code==401
     assert v.get('/api/operations/history').status_code==200
     assert v.post('/api/operations/issues',headers=headers(v),json=issue(b)).status_code==403
-    assert o.put('/api/operations/schedule',headers=headers(o),json=plan(b)).status_code==403
+    assert v.put('/api/operations/schedule',headers=headers(v),json=plan(b)).status_code==403
     assert o.post('/api/operations/issues',headers=headers(o),json=issue(b)).status_code==201
     assert m.put('/api/operations/schedule',headers=headers(m),json=plan(b)).status_code==200
     week=c.get('/api/operations/overview').json['goal']['week_start'];path='/api/operations/goals/'+week
     assert c.put(path,json={'target':10,'version':0}).status_code==403
-    assert o.put(path,headers=headers(o),json={'target':10,'version':0}).status_code==403
+    assert v.put(path,headers=headers(v),json={'target':10,'version':0}).status_code==403
     for target in [-1,True,1.2,100001]:assert c.put(path,headers=headers(c),json={'target':target,'version':0}).status_code==400
     assert c.put('/api/operations/goals/2026-11-03',headers=headers(c),json={'target':10,'version':0}).status_code==400
-    assert c.put(path,headers=headers(c),json={'target':10,'version':0}).status_code==200
+    assert o.put(path,headers=headers(o),json={'target':10,'version':0}).status_code==200
     assert c.put(path,headers=headers(c),json={'target':20,'version':0}).status_code==409
     assert c.put(path,headers=headers(c),json={'target':20,'version':1}).status_code==200
     assert c.get('/api/operations/overview').json['goal']['target']==20
@@ -117,13 +117,13 @@ def test_daily_boundary_cli_and_decreasing_counts(isolated,monkeypatch,capsys):
     import pytest
     with pytest.raises(SystemExit):manage.main(['snapshot-rollout','wrong-extra-argument'])
 
-def test_delete_issue_admin_only_conflicts_audit_and_preserves_checklist(isolated):
+def test_delete_issue_permissions_conflicts_audit_and_preserves_checklist(isolated):
     c=admin(isolated);cutover,b=setup(c);body=issue(b)
     r=c.post('/api/operations/issues',headers=headers(c),json=body);id=r.json['id'];path='/api/operations/issues/'+id
     original=c.get('/api/cutovers/'+cutover).json
     assert module.app.test_client().delete(path,json={'version':1}).status_code==403
     assert c.delete(path,json={'version':1}).status_code==403
-    for role in ['manager','operator','viewer']:
+    for role in ['manager','viewer']:
         user,_=add_user(c,'delete-'+role+'@qa.test',role,isolated)
         assert user.delete(path,headers=headers(user),json={'version':1}).status_code==403
     for version in [None,True,0,-1,'1']:
@@ -131,7 +131,8 @@ def test_delete_issue_admin_only_conflicts_audit_and_preserves_checklist(isolate
     assert c.put(path,headers=headers(c),json={**body,'version':1,'title':'Pendência atualizada'}).status_code==200
     assert c.delete(path,headers=headers(c),json={'version':1}).status_code==409
     assert c.get('/api/operations/overview').json['metrics']['open_issues']==1
-    assert c.delete(path,headers=headers(c),json={'version':2}).status_code==200
+    operator,_=add_user(c,'operator-delete-issue@qa.test','operator',isolated)
+    assert operator.delete(path,headers=headers(operator),json={'version':2}).status_code==200
     data=c.get('/api/operations/overview').json
     assert data['issues']==[] and data['metrics']['open_issues']==0
     assert c.get('/api/cutovers/'+cutover).json==original
@@ -168,7 +169,7 @@ def test_schedule_import_excel_dates_and_role_permissions(isolated):
     from datetime import date
     from openpyxl import Workbook
     c=admin(isolated);setup(c)
-    manager,_=add_user(c,'schedule-manager@qa.test','manager',isolated)
+    viewer,_=add_user(c,'schedule-viewer@qa.test','viewer',isolated)
     operator,_=add_user(c,'schedule-operator@qa.test','operator',isolated)
     book=Workbook();sheet=book.active
     sheet.append(['Filial','PDV','Responsável','Prazo'])
@@ -177,8 +178,8 @@ def test_schedule_import_excel_dates_and_role_permissions(isolated):
     def upload(user,action):
         return user.post('/api/operations/schedule/import/'+action,headers=headers(user),
                          data={'file':(io.BytesIO(output.getvalue()),'agenda.xlsx')})
-    assert upload(operator,'preview').status_code==403
-    assert upload(operator,'confirm').status_code==403
-    preview=upload(manager,'preview')
+    assert upload(viewer,'preview').status_code==403
+    assert upload(viewer,'confirm').status_code==403
+    preview=upload(operator,'preview')
     assert preview.status_code==200 and preview.json['rows'][0]['due_date']=='2026-11-12'
-    assert upload(manager,'confirm').json['created']==1
+    assert upload(operator,'confirm').json['created']==1

@@ -66,9 +66,8 @@ def test_duplicates_and_stale_versions_leave_everything_unchanged(isolated):
 def test_permissions_validation_and_default_plan_rename(isolated):
     c=admin(isolated);id=create(c);b=c.get('/api/cutovers/'+id).json['branch_id'];url='/api/rollout-base/branches/'+b+'/pdv-number'
     body={'from_pdv':'01','to_pdv':'06','plan_version':0,'inventory_version':0}
-    for role in ['viewer','operator']:
-        user,_=add_user(c,role+'-renumber@qa.test',role,isolated)
-        assert user.put(url,headers=headers(user),json=body).status_code==403
+    viewer,_=add_user(c,'viewer-renumber@qa.test','viewer',isolated)
+    assert viewer.put(url,headers=headers(viewer),json=body).status_code==403
     assert module.app.test_client().put(url,json=body).status_code in (401,403)
     assert c.put(url,json=body).status_code==403
     for changes in [{'to_pdv':'0'},{'to_pdv':'10000'},{'to_pdv':'abc'},{'to_pdv':'01'},{'from_pdv':[]},{'plan_version':True},{'inventory_version':-1}]:

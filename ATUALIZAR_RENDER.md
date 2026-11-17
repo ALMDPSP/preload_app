@@ -1,3 +1,9 @@
+# Atualização v5.1.13
+
+Operador e Administrador compartilham as permissões operacionais. Cadastro, bloqueio, alteração de perfis e redefinição de senha ou MFA de outras contas permanecem exclusivos do Administrador.
+
+Envie o conteúdo do ZIP para a raiz do GitHub. Mantenha o Start Command `bash start.sh` e confirme a versão 5.1.13 em /healthz após o deploy.
+
 # Atualização v5.1.12
 
 O PDF executivo geral passa a usar o formato 16:9, a capa colorida e o layout de conteúdo do Template Oficial 2026 do Grupo DPSP. O relatório continua disponível pelo Dashboard e pela tela de Relatórios.

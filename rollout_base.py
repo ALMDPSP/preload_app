@@ -3,6 +3,7 @@ import json
 from collections import Counter,defaultdict
 from datetime import date
 from flask import request,g,jsonify
+from permissions import ROLLOUT_EDITOR_ROLES
 from dashboard import dashboard_data,pdv_number,DEFAULT_PDVS,normalize
 
 SCHEMA=[
@@ -122,7 +123,7 @@ def register_rollout_base(app,core):
             if any(pdv not in expected for pdv,*rest in prepared):return core['error']('Inclua o PDV na lista prevista da filial antes de cadastrar.')
             org=c.execute('SELECT * FROM ct_rollout_organization WHERE branch_id=%s',(id,)).fetchone()
             if (org['version'] if org else 0)!=body['version']:return core['error']('Outra pessoa atualizou este cadastro. Reabra antes de salvar.',409)
-            if g.user['role'] not in ['admin','manager'] and (regional,gr)!=(org['regional'] if org else '',org['gr'] if org else ''):return core['error']('Somente Administrador ou Gestor altera GR e regional.',403)
+            if g.user['role'] not in ROLLOUT_EDITOR_ROLES and (regional,gr)!=(org['regional'] if org else '',org['gr'] if org else ''):return core['error']('Somente Administrador, Operador ou Gestor altera GR e regional.',403)
             old={r['pdv']:dict(r) for r in c.execute('SELECT * FROM ct_rollout_inventory WHERE branch_id=%s',(id,)).fetchall()}
             # Validate all versions before any write, so a conflict never saves a partial form.
             if any((old.get(pdv,{}).get('version',0))!=version for pdv,status,installed,at,notes,version,legacy in prepared):return core['error']('Um PDV foi atualizado por outra pessoa. Reabra o cadastro.',409)

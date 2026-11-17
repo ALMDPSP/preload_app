@@ -2,6 +2,7 @@
 import json, re, secrets
 from branch_values import normalize_uf, branch_status
 from flask import g, request, jsonify
+from permissions import OPERATIONAL_ADMIN_ROLES, ROLLOUT_EDITOR_ROLES
 
 BRANCH_SCHEMA=[
  'CREATE TABLE IF NOT EXISTS ct_branches (id TEXT PRIMARY KEY, code TEXT UNIQUE NOT NULL, name TEXT NOT NULL, city TEXT NOT NULL DEFAULT \'\', uf TEXT NOT NULL DEFAULT \'\', active INTEGER NOT NULL DEFAULT 1, needs_review INTEGER NOT NULL DEFAULT 0, created_at TEXT NOT NULL)',
@@ -51,7 +52,7 @@ def register_branches(app,core):
         if request.method=='GET':
             with db() as c:rows=c.execute('SELECT b.*,COUNT(l.cutover_id) AS cutover_count FROM ct_branches b LEFT JOIN ct_cutover_branch l ON l.branch_id=b.id WHERE b.needs_review=0 OR l.cutover_id IS NOT NULL GROUP BY b.id,b.code,b.name,b.city,b.uf,b.active,b.needs_review,b.created_at,b.opening_soon ORDER BY b.needs_review DESC,b.code').fetchall()
             return jsonify([dict(r) for r in rows])
-        if g.user['role'] not in ['admin','manager']:return error('Somente Administrador ou Gestor pode cadastrar filiais.',403)
+        if g.user['role'] not in ROLLOUT_EDITOR_ROLES:return error('Somente Administrador, Operador ou Gestor pode cadastrar filiais.',403)
         body=request.get_json() or {};code=str(body.get('code','')).strip().upper()
         if not re.fullmatch(r'[A-Z0-9][A-Z0-9_-]{1,29}',code):return error('Informe um código de filial de 2 a 30 caracteres, como VD266 ou L2621.')
         try:
@@ -67,7 +68,7 @@ def register_branches(app,core):
 
     @app.put('/api/branches/<id>')
     def edit_branch(id):
-        if g.user['role'] not in ['admin','manager']:return error('Acesso exclusivo de Administrador ou Gestor.',403)
+        if g.user['role'] not in ROLLOUT_EDITOR_ROLES:return error('Acesso exclusivo de Administrador, Operador ou Gestor.',403)
         body=request.get_json() or {}
         try:
             name,city,uf=valid_fields(body)
@@ -83,7 +84,7 @@ def register_branches(app,core):
 
     @app.delete('/api/branches/<id>')
     def delete_branch(id):
-        if g.user['role']!='admin':return error('Somente Administrador pode excluir filiais.',403)
+        if g.user['role'] not in OPERATIONAL_ADMIN_ROLES:return error('Somente Administrador ou Operador pode excluir filiais.',403)
         try:
             with db() as c:
                 row=c.execute('SELECT * FROM ct_branches WHERE id=%s',(id,)).fetchone()
@@ -101,7 +102,7 @@ def register_branches(app,core):
 
     @app.put('/api/cutovers/<id>/branch')
     def resolve_legacy_branch(id):
-        if g.user['role'] not in ['admin','manager']:return error('Acesso exclusivo de Administrador ou Gestor.',403)
+        if g.user['role'] not in ROLLOUT_EDITOR_ROLES:return error('Acesso exclusivo de Administrador, Operador ou Gestor.',403)
         body=request.get_json() or {}
         with db() as c:
             row=c.execute('SELECT * FROM ct_cutovers WHERE id=%s',(id,)).fetchone()
