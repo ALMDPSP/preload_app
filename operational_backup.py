@@ -43,18 +43,20 @@ def read_upload(core,c):
         payload=container['payload'];signature=container['signature']
         if not isinstance(signature,str) or not hmac.compare_digest(signature,sign(core,payload)):raise ValueError('A assinatura não confere. Use um backup deste sistema com a mesma SECRET_KEY.')
         if payload.get('format')!='ALM_ROLLOUT_OPERATIONAL_1' or set(payload.get('tables',{}))!=set(TABLES):raise ValueError('Formato de backup incompatível.')
+        added_columns={'ct_rollout_inventory':'legacy_pdv','ct_rollout_issues':'tower'}
         total=0
         for table in TABLES:
             saved=payload['tables'][table];expected=columns(c,table)
             if not isinstance(saved,dict) or not isinstance(saved.get('rows'),list):raise ValueError('Estrutura incompatível: '+table)
-            prior_inventory=table=='ct_rollout_inventory' and saved.get('columns')==[name for name in expected if name!='legacy_pdv']
-            if saved.get('columns')!=expected and not prior_inventory:raise ValueError('Estrutura incompatível: '+table)
+            added=added_columns.get(table)
+            prior_schema=added and saved.get('columns')==[name for name in expected if name!=added]
+            if saved.get('columns')!=expected and not prior_schema:raise ValueError('Estrutura incompatível: '+table)
             total+=len(saved['rows'])
             if total>200000:raise ValueError('O backup ultrapassa 200 mil registros.')
             for row in saved['rows']:
                 if not isinstance(row,dict) or set(row)!=set(saved['columns']) or any(type(v) not in [str,int,float,bool,type(None)] for v in row.values()):raise ValueError('Registro inválido em '+table)
-                if prior_inventory:row['legacy_pdv']=''
-            if prior_inventory:saved['columns']=expected
+                if prior_schema:row[added]=''
+            if prior_schema:saved['columns']=expected
         refs=payload.get('user_references')
         if not isinstance(refs,list) or any(not isinstance(u,dict) or set(u)!=set(['id','email']) for u in refs):raise ValueError('Referências de usuários inválidas.')
         users={r['email'].lower():dict(r) for r in c.execute('SELECT id,email,role,active FROM ct_users').fetchall()}

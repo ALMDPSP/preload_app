@@ -18,6 +18,7 @@ def migrate_management(c,postgres=False):
     for sql in SCHEMA:c.execute(sql)
     columns=[r['name'] for r in c.execute('PRAGMA table_info(ct_rollout_issues)').fetchall()] if not postgres else [r['column_name'] for r in c.execute("SELECT column_name FROM information_schema.columns WHERE table_schema=current_schema() AND table_name='ct_rollout_issues'").fetchall()]
     if 'impact' not in columns:c.execute("ALTER TABLE ct_rollout_issues ADD COLUMN impact TEXT NOT NULL DEFAULT ''")
+    if 'tower' not in columns:c.execute("ALTER TABLE ct_rollout_issues ADD COLUMN tower TEXT NOT NULL DEFAULT ''")
 
 def clean(body,key,maximum=160):
     value=body.get(key,'')

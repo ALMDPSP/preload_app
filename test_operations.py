@@ -40,6 +40,23 @@ def test_issue_resolution_conflicts_and_immutable_binding(isolated):
     assert c.get('/api/operations/overview').json['metrics']['open_issues']==0
     assert c.get('/api/cutovers/'+id).json['state']['tasks']=={}
 
+def test_issue_tower_can_be_assigned_and_changed_without_changing_status(isolated):
+    c=admin(isolated);_,branch=setup(c);body=issue(branch)
+    endpoint='/api/operations/issues'
+    assert c.post(endpoint,headers=headers(c),json={**body,'tower':'Outra torre'}).status_code==400
+    created=c.post(endpoint,headers=headers(c),json=body)
+    assert created.status_code==201
+    path=endpoint+'/'+created.json['id']
+    overview=lambda: c.get('/api/operations/overview').json['issues'][0]
+    assert overview()['tower']==''
+    assert c.put(path,headers=headers(c),json={**body,'version':1,'tower':'Torre Infraestrutura'}).status_code==200
+    assert c.put(path,headers=headers(c),json={**body,'version':2}).status_code==200
+    assert overview()['tower']=='Torre Infraestrutura'
+    assert c.put(path,headers=headers(c),json={**body,'version':3,'tower':'Torre Field/Suporte'}).status_code==200
+    assert overview()['status']=='Aberta'
+    context=c.get('/api/rollout/branches/'+branch+'/context').json
+    assert context['issues'][0]['tower']=='Torre Field/Suporte'
+
 def test_permissions_csrf_and_goal_cas(isolated):
     c=admin(isolated);id,b=setup(c);v,_=add_user(c,'view@qa.test','viewer',isolated);o,_=add_user(c,'op@qa.test','operator',isolated);m,_=add_user(c,'manager@qa.test','manager',isolated)
     assert module.app.test_client().get('/api/operations/overview').status_code==401

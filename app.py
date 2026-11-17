@@ -202,7 +202,7 @@ def logout(): session.clear();return redirect('/login')
 @app.get('/')
 def index():
     if not g.user:return redirect('/login')
-    return render_template('index.html',csrf=token(),user=g.user)
+    return render_template('index.html',csrf=token(),user=g.user,issue_towers=ISSUE_TOWERS)
 
 def valid_state(s):
     if not isinstance(s,dict) or not all(isinstance(s.get(k),dict) for k in ('meta','tasks','decisions')):raise ValueError('Estrutura de dados inválida.')
@@ -426,7 +426,7 @@ register_reports(app,globals())
 register_pwa(app,ROOT)
 from dashboard import register_dashboard
 register_dashboard(app,globals())
-from operations import register_operations
+from operations import ISSUE_TOWERS,register_operations
 register_operations(app,globals())
 
 from branch_progress import register_branch_progress

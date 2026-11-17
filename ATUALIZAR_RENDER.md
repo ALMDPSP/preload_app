@@ -1,3 +1,9 @@
+# Atualização v5.1.11
+
+Em Pendências, selecione a torre em análise no cadastro ou na edição. A lista oferece filtro por torre, inclusive para pendências sem atribuição, e o CSV inclui o campo.
+
+Envie o conteúdo do ZIP para a raiz do GitHub. Mantenha o Start Command `bash start.sh` e confirme a versão 5.1.11 em /healthz após o deploy.
+
 # Atualização v5.1.10
 
 Checklists de PDVs fora do plano da filial podem ser salvos pela Central. O Administrador pode excluir uma execução no cartão do PDV ou no checklist aberto. Excluir a execução mantém a filial e o plano.

@@ -13,6 +13,7 @@ SCHEMA=[
  'CREATE TABLE IF NOT EXISTS ct_rollout_snapshots (day TEXT PRIMARY KEY,payload TEXT NOT NULL,captured_at TEXT NOT NULL,revision BIGINT NOT NULL)'
 ]
 PRIORITIES=['Baixa','Normal','Alta','Crítica'];ISSUE_STATUSES=['Aberta','Em tratamento','Resolvida']
+ISSUE_TOWERS=('Torre Infraestrutura','Torre Lojas','Torre Projetos/Expansão','Torre Field/Suporte')
 
 def migrate_operations(c):
     for sql in SCHEMA:c.execute(sql)
@@ -154,7 +155,9 @@ def register_operations(app,core):
         branch=text(body,'branch_id',80,True);pdv=pdv_number(body.get('pdv'));title=text(body,'title',160,True);description=text(body,'description',2000);owner=text(body,'owner',120,True);due=valid_date(body.get('due_date'),True);priority=body.get('priority','Normal');status=body.get('status','Aberta');resolution=text(body,'resolution',2000);impact=text(body,'impact',1000)
         if not pdv or priority not in PRIORITIES or status not in ISSUE_STATUSES:raise ValueError('Confira o PDV, prioridade e situação.')
         if status=='Resolvida' and len(resolution)<3:raise ValueError('Descreva como a pendência foi resolvida.')
-        return branch,pdv,title,description,owner,due,priority,status,resolution,impact
+        tower=text(body,'tower',40) if 'tower' in body else None
+        if tower and tower not in ISSUE_TOWERS:raise ValueError('Selecione uma torre de análise válida.')
+        return branch,pdv,title,description,owner,due,priority,status,resolution,impact,tower
     @app.post('/api/operations/issues')
     def ops_create_issue():
         if g.user['role']=='viewer':return error('Consulta permite somente leitura.',403)
@@ -163,8 +166,9 @@ def register_operations(app,core):
             values=issue_fields(body)
             with db() as c:
                 planned_branch(c,values[0],values[1])
-                c.execute('INSERT INTO ct_rollout_issues (id,branch_id,pdv,title,description,owner,due_date,priority,status,resolution,impact,version,created_at,updated_at,updated_by) VALUES (%s,%s,%s,%s,%s,%s,%s,%s,%s,%s,%s,1,%s,%s,%s)',(id,*values,stamp(),stamp(),g.user['email']))
-                audit(c,g.user['email'],'abertura de pendência',detail={'id':id,'branch_id':values[0],'pdv':values[1],'title':values[2]})
+                tower=values[-1] or ''
+                c.execute('INSERT INTO ct_rollout_issues (id,branch_id,pdv,title,description,owner,due_date,priority,status,resolution,impact,tower,version,created_at,updated_at,updated_by) VALUES (%s,%s,%s,%s,%s,%s,%s,%s,%s,%s,%s,%s,1,%s,%s,%s)',(id,*values[:-1],tower,stamp(),stamp(),g.user['email']))
+                audit(c,g.user['email'],'abertura de pendência',detail={'id':id,'branch_id':values[0],'pdv':values[1],'title':values[2],'tower':tower})
         except ValueError as exc:return error(str(exc))
         return jsonify(id=id),201
     @app.put('/api/operations/issues/<id>')
@@ -178,9 +182,10 @@ def register_operations(app,core):
                 before=c.execute('SELECT * FROM ct_rollout_issues WHERE id=%s',(id,)).fetchone()
                 if not before:return error('Pendência não encontrada.',404)
                 if (values[0],values[1])!=(before['branch_id'],before['pdv']):return error('Não altere a filial/PDV de uma pendência existente.')
-                result=c.execute('UPDATE ct_rollout_issues SET title=%s,description=%s,owner=%s,due_date=%s,priority=%s,status=%s,resolution=%s,impact=%s,version=version+1,updated_at=%s,updated_by=%s WHERE id=%s AND version=%s',(*values[2:],stamp(),g.user['email'],id,body['version']))
+                tower=before['tower'] if values[-1] is None else values[-1]
+                result=c.execute('UPDATE ct_rollout_issues SET title=%s,description=%s,owner=%s,due_date=%s,priority=%s,status=%s,resolution=%s,impact=%s,tower=%s,version=version+1,updated_at=%s,updated_by=%s WHERE id=%s AND version=%s',(*values[2:-1],tower,stamp(),g.user['email'],id,body['version']))
                 if result.rowcount!=1:return error('A pendência mudou. Atualize a página.',409)
-                audit(c,g.user['email'],'atualização de pendência',detail={'id':id,'before_status':before['status'],'status':values[7],'owner':values[4],'resolution':values[8]})
+                audit(c,g.user['email'],'atualização de pendência',detail={'id':id,'before_status':before['status'],'status':values[7],'owner':values[4],'resolution':values[8],'before_tower':before['tower'],'tower':tower})
         except ValueError as exc:return error(str(exc))
         return jsonify(ok=True)
     @app.delete('/api/operations/issues/<id>')
