@@ -26,8 +26,11 @@ def test_pdf_all_saved_rollout_and_cutover_current_data(isolated):
     assert response.status_code==200 and response.mimetype=='application/pdf'
     assert 'attachment;' in response.headers['Content-Disposition']
     assert 'no-store' in response.headers['Cache-Control']
-    reader=PdfReader(io.BytesIO(response.data));assert len(reader.pages)==3
-    first_page=reader.pages[0].extract_text()
+    reader=PdfReader(io.BytesIO(response.data));assert len(reader.pages)==4
+    assert 'Relatório executivo' in reader.pages[0].extract_text()
+    assert all((float(page.mediabox.width),float(page.mediabox.height))==(960,540) for page in reader.pages)
+    assert all(page.images for page in reader.pages)
+    first_page=reader.pages[1].extract_text()
     for label in ('Filiais ativas','PDVs previstos','PDVs implantados','PDVs pendentes',
                   'Lojas atualizadas','Pendências abertas','Avanço do rollout','Prioridade executiva'):
         assert label in first_page
@@ -44,7 +47,7 @@ def test_pdf_read_permissions_empty_and_no_business_writes(isolated):
         user,_=add_user(c,'exec-'+role+'@qa.test',role,isolated)
         response=user.get('/api/reports/rollout-executive.pdf')
         assert response.status_code==200
-        pdf=PdfReader(io.BytesIO(response.data));assert len(pdf.pages)==3
+        pdf=PdfReader(io.BytesIO(response.data));assert len(pdf.pages)==4
         text=' '.join(' '.join(p.extract_text() for p in pdf.pages).split())
         assert 'Nenhuma versão registrada' in text and 'Sem registros salvos' in text
     id=create(c);before=c.get('/api/cutovers/'+id).json
@@ -61,7 +64,7 @@ def test_macro_bounds_large_group_and_version_counts(isolated):
     d['executive']['attention']=[dict(code='L2000',name='FILIAL COM NOME MUITO EXTENSO PARA CONFERENCIA EXECUTIVA',pdvs=[str(n).zfill(2) for n in range(1,51)],critical=3,overdue=4,open_issues=8) for _ in range(10)]
     d['updates']=[dict(code='L2000',pdv='9999',source='Base de Rollout',status='Cadastro atualizado',at=module.now()) for _ in range(5)]
     data=create_rollout_executive_pdf(d).getvalue();pdf=PdfReader(io.BytesIO(data))
-    assert len(pdf.pages)==3 and len(data)<100000
+    assert len(pdf.pages)==4 and len(data)<100000
     text=' '.join(' '.join(p.extract_text() for p in pdf.pages).split())
     assert text.count('Demais grupos (94)')==2 and 'Demais versões (94)' in text
     assert '7.200' in text and '3.600' in text

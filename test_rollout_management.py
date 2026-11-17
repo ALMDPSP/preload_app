@@ -161,7 +161,7 @@ def test_period_pdf_and_invalid_period(isolated):
     c=admin(isolated);create(c)
     r=c.get('/api/reports/rollout-executive.pdf?from=2026-11-01&to=2026-11-10')
     assert r.status_code==200
-    pdf=PdfReader(io.BytesIO(r.data));assert len(pdf.pages)==4
+    pdf=PdfReader(io.BytesIO(r.data));assert len(pdf.pages)==5
     text=' '.join(' '.join(p.extract_text() for p in pdf.pages).split())
     assert 'Resultado do período' in text and 'Período anterior' in text and 'Não informada' in text
     assert c.get('/api/reports/rollout-executive.pdf?from=2026-12-01&to=2026-11-10').status_code==400

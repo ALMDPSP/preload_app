@@ -1,3 +1,9 @@
+# Atualização v5.1.12
+
+O PDF executivo geral passa a usar o formato 16:9, a capa colorida e o layout de conteúdo do Template Oficial 2026 do Grupo DPSP. O relatório continua disponível pelo Dashboard e pela tela de Relatórios.
+
+Envie o conteúdo do ZIP para a raiz do GitHub, incluindo a pasta `static/report`. Mantenha o Start Command `bash start.sh` e confirme a versão 5.1.12 em /healthz após o deploy.
+
 # Atualização v5.1.11
 
 Em Pendências, selecione a torre em análise no cadastro ou na edição. A lista oferece filtro por torre, inclusive para pendências sem atribuição, e o CSV inclui o campo.

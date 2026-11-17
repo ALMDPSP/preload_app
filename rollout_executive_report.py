@@ -9,21 +9,23 @@ from zoneinfo import ZoneInfo
 from xml.sax.saxutils import escape
 from flask import send_file,request
 from reportlab.lib import colors
-from reportlab.lib.pagesizes import A4
 from reportlab.lib.styles import ParagraphStyle
-from reportlab.lib.units import mm
 from reportlab.platypus import SimpleDocTemplate,Paragraph,Spacer,Table,TableStyle,PageBreak
 from reportlab.graphics.shapes import Drawing,Rect,String,Line,PolyLine,Circle
 from dashboard import dashboard_data
 from rollout_base import rollout_base_summary
 from operations import operation_overview,today
 from executive_dashboard import approval_trend,executive_metrics
-from release import APP_VERSION
 
-INK=colors.HexColor('#28354d');MUTED=colors.HexColor('#718198')
-BLUE=colors.HexColor('#31527b');PALE=colors.HexColor('#a7dce9');GREEN=colors.HexColor('#137961')
-LINE=colors.HexColor('#dfe6f0');BG=colors.HexColor('#f4f7fb')
-WIDTH=174*mm
+INK=colors.HexColor('#2e3345')
+MUTED=colors.HexColor('#545d70')
+BLUE=colors.HexColor('#3c83f5')
+PALE=colors.HexColor('#99e0ff')
+LINE=colors.HexColor('#d9deea')
+BG=colors.HexColor('#f2f5fa')
+PAGE=(960,540)
+WIDTH=856
+ARTWORK=Path(__file__).parent/'static'/'report'
 
 def report_payload(core):
     data=dashboard_data(core)
@@ -51,25 +53,27 @@ def create_rollout_executive_pdf(data):
         pdfmetrics.registerFont(TTFont('RolloutSans',str(fonts/'Vera.ttf')))
         pdfmetrics.registerFont(TTFont('RolloutSans-Bold',str(fonts/'VeraBd.ttf')))
     out=io.BytesIO()
-    doc=SimpleDocTemplate(out,pagesize=A4,leftMargin=18*mm,rightMargin=18*mm,topMargin=27*mm,bottomMargin=19*mm,
+    doc=SimpleDocTemplate(out,pagesize=PAGE,leftMargin=46,rightMargin=46,topMargin=35,bottomMargin=35,
                           title='Relatório executivo - Rollout PDV Orion',author='ALM - Expansão de TI')
     styles={
-      'title':ParagraphStyle('rt',fontName='RolloutSans-Bold',fontSize=22,leading=27,textColor=INK,spaceAfter=7),
-      'h':ParagraphStyle('rh',fontName='RolloutSans-Bold',fontSize=13,leading=18,textColor=INK,spaceBefore=13,spaceAfter=9,keepWithNext=True),
-      'body':ParagraphStyle('rb',fontName='RolloutSans',fontSize=9,leading=13,textColor=INK,spaceAfter=6),
-      'muted':ParagraphStyle('rm',fontName='RolloutSans',fontSize=8,leading=11.5,textColor=MUTED,spaceAfter=6),
-      'cell':ParagraphStyle('rc',fontName='RolloutSans',fontSize=8,leading=11,textColor=INK),
-      'th':ParagraphStyle('rth',fontName='RolloutSans-Bold',fontSize=7.5,leading=10,textColor=BLUE),
-      'klabel':ParagraphStyle('rkl',fontName='RolloutSans',fontSize=8,leading=11,textColor=MUTED),
-      'kvalue':ParagraphStyle('rkv',fontName='RolloutSans-Bold',fontSize=23,leading=30,textColor=INK),
+      'title':ParagraphStyle('rt',fontName='RolloutSans-Bold',fontSize=25,leading=31,textColor=INK,spaceAfter=7),
+      'h':ParagraphStyle('rh',fontName='RolloutSans-Bold',fontSize=14,leading=19,textColor=INK,spaceBefore=12,spaceAfter=8,keepWithNext=True),
+      'body':ParagraphStyle('rb',fontName='RolloutSans',fontSize=11,leading=15,textColor=INK,spaceAfter=8),
+      'muted':ParagraphStyle('rm',fontName='RolloutSans',fontSize=9,leading=13,textColor=MUTED,spaceAfter=6),
+      'cell':ParagraphStyle('rc',fontName='RolloutSans',fontSize=10,leading=13,textColor=INK),
+      'th':ParagraphStyle('rth',fontName='RolloutSans-Bold',fontSize=9,leading=12,textColor=INK),
+      'klabel':ParagraphStyle('rkl',fontName='RolloutSans-Bold',fontSize=9,leading=12,textColor=INK),
+      'kvalue':ParagraphStyle('rkv',fontName='RolloutSans-Bold',fontSize=25,leading=33,textColor=INK),
     }
     def p(value,style='body'):
         return Paragraph(escape(str(value)).replace('\n','<br/>'),styles[style])
     def n(value):return f'{value:,}'.replace(',','.')
     def pct(value):return str(value).replace('.',',')+'%'
     def stamp(value):return datetime.fromisoformat(value).astimezone(ZoneInfo('America/Sao_Paulo')).strftime('%d/%m/%Y %H:%M')
-    def short(value,maximum=85):
-        text=str(value);return text if len(text)<=maximum else text[:maximum-3]+'...'
+    def short(value,maximum=85,tail=0):
+        text=str(value)
+        if len(text)<=maximum:return text
+        return text[:maximum-3-tail]+'...'+(text[-tail:] if tail else '')
     def table(rows,widths,padding=7):
         t=Table([[p(v,'th' if i==0 else 'cell') for v in row] for i,row in enumerate(rows)],colWidths=widths,repeatRows=1,hAlign='LEFT')
         t.setStyle(TableStyle([('VALIGN',(0,0),(-1,-1),'TOP'),('BACKGROUND',(0,0),(-1,0),BG),
@@ -88,57 +92,54 @@ def create_rollout_executive_pdf(data):
         value = f'{count / total * 100:.2f}'.rstrip('0').rstrip('.') if total else '0'
         return pct(value)
 
+    def columns(left,right,widths):
+        grid=Table([[left,'',right]],colWidths=[widths[0],16,widths[1]],hAlign='LEFT')
+        grid.setStyle(TableStyle([('VALIGN',(0,0),(-1,-1),'TOP'),
+                                  ('LEFTPADDING',(0,0),(-1,-1),0),('RIGHTPADDING',(0,0),(-1,-1),0),
+                                  ('TOPPADDING',(0,0),(-1,-1),0),('BOTTOMPADDING',(0,0),(-1,-1),0)]))
+        return grid
+
     def headline_cards(items):
-        cells = [[p(label, 'klabel'), p(n(value), 'kvalue'), p(note, 'muted')]
-                 for label, value, note, _ in items]
-        grid = Table([cells[:3], cells[3:]], colWidths=[WIDTH/3]*3, hAlign='LEFT')
-        rules = [
-            ('VALIGN', (0,0), (-1,-1), 'TOP'),
-            ('GRID', (0,0), (-1,-1), 3, colors.white),
-            ('LEFTPADDING', (0,0), (-1,-1), 13),
-            ('TOPPADDING', (0,0), (-1,-1), 11),
-            ('BOTTOMPADDING', (0,0), (-1,-1), 8),
-        ]
-        for i, (_, _, _, background) in enumerate(items):
-            cell = (i % 3, i // 3)
-            rules.append(('BACKGROUND', cell, cell, background))
-        grid.setStyle(TableStyle(rules))
+        grid=kpis([(label,value,note) for label,value,note,_ in items])
+        grid.setStyle(TableStyle([('BACKGROUND',(i,0),(i,0),background) for i,(_,_,_,background) in enumerate(items)]))
         return grid
 
     def rollout_progress(expected, installed, ok, delayed, critical):
-        graphic = Drawing(WIDTH, 112)
-        dark = colors.HexColor('#24354e')
+        width=400
+        graphic = Drawing(width, 134)
+        dark = INK
         light = colors.HexColor('#dce7f6')
         track = colors.HexColor('#52647f')
-        graphic.add(Rect(0,0,WIDTH,112,fillColor=dark,strokeColor=None))
+        graphic.add(Rect(0,0,width,134,fillColor=dark,strokeColor=None))
 
         def label(x, y, value, size=8, bold=False, color=light, align='start'):
             graphic.add(String(x,y,str(value),fontName='RolloutSans-Bold' if bold else 'RolloutSans',
                                fontSize=size,fillColor=color,textAnchor=align))
 
-        label(14,91,'Avanço do rollout',11,True,colors.white)
-        label(257,91,'Atenção no rollout',11,True,colors.white)
-        graphic.add(Line(242,15,242,95,strokeColor=track))
-        for y, name, value, color in [(66,'Implantação',installed,PALE),(34,'Orion OK',ok,colors.HexColor('#a3c6fa'))]:
+        label(15,111,'Avanço do rollout',13,True,colors.white)
+        label(208,111,'Atenção no rollout',13,True,colors.white)
+        graphic.add(Line(192,19,192,117,strokeColor=track))
+        for y, name, value, color in [(82,'Implantação',installed,PALE),(43,'Orion OK',ok,PALE)]:
             label(14,y,name)
             unit = ' PDV' if value == 1 else ' PDVs'
-            label(228,y,n(value)+unit+' | '+rate(value,expected),8,True,colors.white,'end')
-            graphic.add(Rect(14,y-12,214,5,fillColor=track,strokeColor=None))
+            label(177,y,n(value)+unit+' | '+rate(value,expected),8,True,colors.white,'end')
+            graphic.add(Rect(14,y-12,162,5,fillColor=track,strokeColor=None))
             ratio = min(1,value/expected) if expected else 0
             if ratio:
-                graphic.add(Rect(14,y-12,214*ratio,5,fillColor=color,strokeColor=None))
+                graphic.add(Rect(14,y-12,162*ratio,5,fillColor=color,strokeColor=None))
         risks = [(max(0,installed-ok),'Implantados','sem Orion OK'),
                  (delayed,'PDVs','atrasados'),(critical,'Pendências','críticas')]
         for i,(value, first, second) in enumerate(risks):
-            x = 257+i*78
-            label(x,56,n(value),17,True,colors.white)
-            label(x,37,first)
-            label(x,25,second)
+            x = 209+i*64
+            label(x,70,n(value),17,True,colors.white)
+            label(x,48,first)
+            label(x,34,second)
         return graphic
 
     def approval_chart(trend):
-        chart = Drawing(WIDTH,106)
-        left, right, bottom, top = 32, WIDTH-7, 22, 85
+        width=440
+        chart = Drawing(width,162)
+        left, right, bottom, top = 38, width-16, 26, 135
         maximum = max([row['cumulative_ok'] for row in trend]+[1])
         for value in sorted({0, maximum//2, maximum}):
             y = bottom+(top-bottom)*value/maximum
@@ -154,16 +155,16 @@ def create_rollout_executive_pdf(data):
                 day = row['day'][8:10]+'/'+row['day'][5:7]
                 chart.add(String(x,8,day,fontName='RolloutSans',fontSize=7,textAnchor='middle',fillColor=MUTED))
         if trend and trend[-1]['cumulative_ok']:
-            chart.add(PolyLine(points,strokeColor=GREEN,strokeWidth=2))
+            chart.add(PolyLine(points,strokeColor=BLUE,strokeWidth=2))
             for i,row in enumerate(trend):
                 if row['count'] or i==len(trend)-1:
-                    chart.add(Circle(points[2*i],points[2*i+1],2.8,fillColor=GREEN,strokeColor=colors.white,strokeWidth=.7))
+                    chart.add(Circle(points[2*i],points[2*i+1],2.8,fillColor=BLUE,strokeColor=colors.white,strokeWidth=.7))
             total = trend[-1]['cumulative_ok']
             unit = ' PDV' if total == 1 else ' PDVs'
             chart.add(String(right,top+9,n(total)+unit,fontName='RolloutSans-Bold',
-                             fontSize=8,textAnchor='end',fillColor=GREEN))
+                             fontSize=8,textAnchor='end',fillColor=BLUE))
         else:
-            chart.add(String(WIDTH/2,54,'Sem aprovações com data identificada.',fontName='RolloutSans',
+            chart.add(String(width/2,78,'Sem aprovações com data identificada.',fontName='RolloutSans',
                              fontSize=9,textAnchor='middle',fillColor=MUTED))
         return chart
 
@@ -191,91 +192,120 @@ def create_rollout_executive_pdf(data):
         ('Pendências abertas',network['open_issues'],n(network['overdue_issues'])+' com prazo vencido na rede',colors.HexColor('#fcf0f2')),
     ]
     flow = [
-        p('Relatório executivo','title'),
+        Spacer(1,1),PageBreak(),
+        p('Visão geral do rollout','title'),
         p('Posição em '+stamp(data['generated_at'])+' (Brasília)','muted'),
-        headline_cards(cards), Spacer(1,12),
-        rollout_progress(b['pdvs_expected'],b['pdvs_deployed'],t['ok'],e['overdue_pdvs'],e['critical_issues']),
-        Spacer(1,9),p('Prioridade executiva','h'),p(focus),
-        p('Evolução acumulada do Orion OK','h'),
-        approval_chart(data['trend']),
-        p('Últimos 14 dias. PDVs atualmente Orion OK, por data de aprovação identificada. Inclui o saldo anterior ao período.','muted'),
-        p('Lojas com todos os PDVs Orion OK  '+n(t['stores_ok'])+' | Aprovações nos últimos 7 dias  '+n(e['recent_ok']),'body'),
-        p('Escopo geral: filiais ativas e abertas com cadastro sem revisão pendente. Implantação inclui declaração na Base ou Orion OK. Pendências abertas incluem ocorrências em tratamento na rede.','muted'),
+        headline_cards(cards),Spacer(1,16),
+        columns(
+            [p('Evolução acumulada do Orion OK','h'),approval_chart(data['trend']),
+             p('Últimos 14 dias, com saldo anterior. Considera PDVs atualmente Orion OK com data de aprovação identificada.','muted')],
+            [Spacer(1,12),rollout_progress(b['pdvs_expected'],b['pdvs_deployed'],t['ok'],e['overdue_pdvs'],e['critical_issues']),
+             p('Prioridade executiva','h'),p(focus),
+             p('Lojas com todos os PDVs Orion OK: '+n(t['stores_ok'])+'\nAprovações nos últimos 7 dias: '+n(e['recent_ok']))],
+            (440,400),
+        ),
+        p('Escopo: filiais ativas e abertas com cadastro confirmado. Implantação inclui declaração na Base ou Orion OK.','muted'),
         PageBreak(),
     ]
     period=data.get('period_summary')
     if period:
         def fmt_day(day):return day.split('-')[2]+'/'+day.split('-')[1]+'/'+day.split('-')[0]
         cur=period['current'];prior=period['previous']
-        flow.extend([p('Resultado do período','title'),p(fmt_day(period['from_date'])+' a '+fmt_day(period['to_date'])+' | Comparação com '+fmt_day(period['previous_from'])+' a '+fmt_day(period['previous_to']),'muted'),
-                     kpis([('PDVs previstos',cur['planned'],'Com prazo no período'),('Previstos validados',cur['validated_planned'],'Orion OK vigente'),('Previstos pendentes',cur['deviation'],'Ainda sem Orion OK')]),
-                     p('Comparação executiva','h'),
-                     table([['Indicador','Período anterior','Período selecionado'],['Previstos por prazo',n(prior['planned']),n(cur['planned'])],['Previstos já validados',n(prior['validated_planned']),n(cur['validated_planned'])],['Aprovações vigentes por data',n(prior['validated']),n(cur['validated'])],['Implantações declaradas por data',n(prior['declared_deployed']),n(cur['declared_deployed'])]],[90*mm,42*mm,42*mm]),
-                     Spacer(1,10),p('Variação das aprovações vigentes: '+('+' if period['validated_delta']>0 else '')+str(period['validated_delta'])+' PDV(s).','body'),
-                     p(str(period['overdue'])+' PDV(s) atrasado(s) hoje; '+str(period['awaiting_acceptance'])+' aguardando aceite; '+str(period['critical'])+' ocorrência(s) crítica(s).','muted'),
-                     p('Ondas e justificativas','h')])
         waves=sorted([w for w in period['waves'] if w['start_date']<=period['to_date'] and w['due_date']>=period['from_date']],key=lambda w:(-w['overdue'],w['due_date'],w['name']))[:3]
-        flow.append(table([['Onda','Previstos','Validados','Atrasados','Justificativa']]+[[short(w['name'],32),n(w['planned']),n(w['validated']),n(w['overdue']),short(w['delay_reason'] or 'Não informada',90)] for w in waves or [{'name':'Sem ondas cadastradas','planned':0,'validated':0,'overdue':0,'delay_reason':''}]],[49*mm,23*mm,23*mm,23*mm,56*mm]))
-        flow.extend([p('Até 3 ondas que cruzam o período selecionado, priorizadas por atraso. Os números das ondas mostram sua posição atual; os indicadores do período incluem todos os planejamentos. '+period['note'],'muted'),p(str(period['declared_without_date'])+' PDV(s) implantado(s) sem data declarada de implantação. Esses registros permanecem no total atual, sem estimar uma data para o comparativo.','muted'),p('O painel da primeira página e os detalhamentos seguintes mostram a posição atual do parque.','muted'),PageBreak()])
+        wave_rows=[['Onda','Previstos','Validados','Atrasados','Justificativa']]
+        wave_rows += [[short(w['name'],32),n(w['planned']),n(w['validated']),n(w['overdue']),short(w['delay_reason'] or 'Não informada',90)] for w in waves]
+        if not waves:wave_rows.append(['Sem ondas no período','0','0','0','Não informada'])
+        comparison=[['Indicador','Período anterior','Período selecionado'],
+                    ['Previstos por prazo',n(prior['planned']),n(cur['planned'])],
+                    ['Previstos já validados',n(prior['validated_planned']),n(cur['validated_planned'])],
+                    ['Aprovações vigentes por data',n(prior['validated']),n(cur['validated'])],
+                    ['Implantações declaradas por data',n(prior['declared_deployed']),n(cur['declared_deployed'])]]
+        flow.extend([
+            p('Resultado do período','title'),
+            p(fmt_day(period['from_date'])+' a '+fmt_day(period['to_date'])+' · Comparação com '+fmt_day(period['previous_from'])+' a '+fmt_day(period['previous_to']),'muted'),
+            kpis([('PDVs previstos',cur['planned'],'Com prazo no período'),('Previstos validados',cur['validated_planned'],'Orion OK vigente'),('Previstos pendentes',cur['deviation'],'Ainda sem Orion OK')]),
+            Spacer(1,10),columns(
+                [p('Comparação executiva','h'),table(comparison,[190,87,106],padding=6),
+                 Spacer(1,7),p('Variação das aprovações vigentes: '+('+' if period['validated_delta']>0 else '')+str(period['validated_delta'])+' PDV(s).'),
+                 p(str(period['declared_without_date'])+' PDV(s) implantado(s) sem data declarada.','muted')],
+                [p('Ondas e justificativas','h'),table(wave_rows,[102,64,66,68,157],padding=6),
+                 Spacer(1,7),p('Até 3 ondas do período, priorizadas por atraso.','muted'),
+                 p(str(period['overdue'])+' PDV(s) atrasado(s) hoje, '+str(period['awaiting_acceptance'])+' aguardando aceite e '+str(period['critical'])+' ocorrência(s) crítica(s).','muted')],
+                (383,457)),
+            p(period['note'].replace('; não','. Não'),'muted'),PageBreak(),
+        ])
 
-    flow += [p('Cobertura e versões','title'),p('Implantação por liderança e distribuição do parque instalado.','muted'),
-             p('Versões instaladas','h')]
+    flow += [p('Cobertura e versões','title'),p('Implantação por liderança e distribuição do parque instalado.','muted')]
     versions=[dict(v) for v in b['versions']]
     versions.sort(key=lambda v:(-v['count'],v['name']))
     selected=versions[:6]
     known=sum(v['count'] for v in versions)
     if len(versions)>6:
         count=sum(v['count'] for v in versions[6:]);selected.append({'name':'Demais versões ('+str(len(versions)-6)+')','count':count,'percent':round(count/known*100,1)})
-    rows=[['Versão instalada','PDVs','% com versão']]+[[short(v['name'],65),n(v['count']),pct(v['percent'])] for v in selected]
+    rows=[['Versão instalada','PDVs','% com versão']]+[[short(v['name'],42),n(v['count']),pct(v['percent'])] for v in selected]
     if not selected:rows.append(['Nenhuma versão registrada','0','0%'])
-    flow += [table(rows,[110*mm,28*mm,36*mm]),
-             p('A distribuição considera os PDVs com versão registrada. As versões de menor volume são agrupadas.','muted')]
+    version_content=[p('Versões instaladas','h'),table(rows,[159,49,76],padding=5),
+                     Spacer(1,7),p('As versões de menor volume são agrupadas. Percentuais entre PDVs com versão registrada.','muted')]
     def grouping(title,groups):
         ranked=sorted(groups,key=lambda r:(-(r['pdvs_expected']-r['pdvs_deployed']),r['name']))
         chosen=ranked[:6]
         if len(ranked)>6:
             rest=ranked[6:];expected=sum(r['stores_expected'] for r in rest);updated=sum(r['stores_updated'] for r in rest)
             chosen.append({'name':'Demais grupos ('+str(len(rest))+')','stores_expected':expected,'stores_updated':updated,'percent':round(updated/expected*100,1) if expected else 0})
-        return [p(title,'h'),table([['Grupo','Lojas','Atual.','Avanço']]+[[short(r['name'],38),n(r['stores_expected']),n(r['stores_updated']),pct(r['percent'])] for r in chosen or [{'name':'Sem lojas no escopo','stores_expected':0,'stores_updated':0,'percent':0}]],[36*mm,16*mm,16*mm,16*mm],padding=5)]
-    groups=Table([[grouping('Avanço por GR',b['by_gr']),Spacer(6*mm,1),grouping('Avanço por regional',b['by_regional'])]],colWidths=[84*mm,6*mm,84*mm])
-    groups.setStyle(TableStyle([('VALIGN',(0,0),(-1,-1),'TOP'),('LEFTPADDING',(0,0),(-1,-1),0),('RIGHTPADDING',(0,0),(-1,-1),0),('TOPPADDING',(0,0),(-1,-1),0),('BOTTOMPADDING',(0,0),(-1,-1),0)]))
-    flow.append(groups)
-    flow += [p('Até 6 grupos por visão, priorizados por PDVs ainda sem implantação. Avanço = lojas com ao menos um PDV implantado / lojas previstas do grupo.','muted'),
+        return [p(title,'h'),table([['Grupo','Lojas','Atual.','Avanço']]+[[short(r['name'],28,tail=7),n(r['stores_expected']),n(r['stores_updated']),pct(r['percent'])] for r in chosen or [{'name':'Sem lojas no escopo','stores_expected':0,'stores_updated':0,'percent':0}]],[111,45,53,61],padding=4)]
+    group_content=columns(grouping('Avanço por GR',b['by_gr']),grouping('Avanço por regional',b['by_regional']),(270,270))
+    flow += [columns(version_content,[group_content],(284,556)),
+             p('Até 6 grupos por visão, priorizados por PDVs ainda sem implantação. O avanço mede a proporção de lojas com ao menos um PDV implantado.','muted'),
              p('Orion OK exige todos os processos e os dois aceites GO com responsável e data.','muted'),
              PageBreak(),p('Atenção e atualizações','title'),p('Pendências operacionais e registros salvos recentemente.','muted'),
-             kpis([('Ocorrências abertas no escopo',e['open_issues'],str(e['critical_issues'])+' críticas'),('PDVs atrasados',e['overdue_pdvs'],'Conforme cronograma'),('Lojas com atenção',e['attention_total'],'Riscos e pendências')]),
-             p('Prioridades por filial e PDV','h')]
+             kpis([('Ocorrências abertas no escopo',e['open_issues'],str(e['critical_issues'])+(' crítica' if e['critical_issues']==1 else ' críticas')),('PDVs atrasados',e['overdue_pdvs'],'Conforme cronograma'),('Lojas com atenção',e['attention_total'],'Riscos e pendências')]),Spacer(1,10)]
     attention=e['attention'][:4]
-    rows=[['Filial / loja','PDVs','Pontos de atenção']]
+    priorities=[['Filial / loja','PDVs','Pontos de atenção']]
     for r in attention:
         pdvs=', '.join(r['pdvs'][:6])+(' +'+str(len(r['pdvs'])-6) if len(r['pdvs'])>6 else '')
-        rows.append([short(r['code']+' - '+r['name'],45),pdvs,str(r['critical'])+' crítica(s); '+str(r['overdue'])+' atraso(s); '+str(r['open_issues'])+' ocorrência(s)'])
-    if not attention:rows.append(['Nenhuma prioridade identificada','-','Não há alertas neste recorte.'])
-    flow += [table(rows,[78*mm,30*mm,66*mm]),p('Até 4 lojas priorizadas por criticidade, atraso e ocorrências. Os indicadores acima incluem todas as lojas do escopo.','muted'),
-             p('Registros atualizados recentemente','h')]
-    rows=[['Filial / PDV','Origem','Situação','Salvo em (Brasília)']]
+        priorities.append([short(r['code']+' - '+r['name'],45),pdvs,str(r['critical'])+' crítica(s), '+str(r['overdue'])+' atraso(s), '+str(r['open_issues'])+' ocorrência(s)'])
+    if not attention:priorities.append(['Nenhuma prioridade identificada','-','Não há alertas neste recorte.'])
+    recent=[['Filial / PDV','Origem','Situação','Salvo em (Brasília)']]
     for r in data['updates']:
-        rows.append([r['code']+(' / '+r['pdv'] if r['pdv'] else ''),r['source'],r['status'],stamp(r['at'])])
-    if not data['updates']:rows.append(['Sem registros salvos','-','-','-'])
-    flow += [table(rows,[33*mm,38*mm,56*mm,47*mm]),p('Até 5 registros mais recentes entre cutover, implantação e GR/regional. Mostra a última gravação por registro, sem reproduzir o histórico completo de alterações.','muted'),
-             p('Critérios e qualidade da informação','h'),
-             p(n(b['stores_missing_organization'])+' loja(s) sem GR e/ou regional; '+n(b['deployed_without_version'])+' PDV(s) implantado(s) sem versão. '+n(t['exceptions'])+' registro(s) com numeração fora do plano.','muted'),
-             p('Fora do escopo geral: '+n(data['excluded']['inactive'])+' filial(is) inativa(s), '+n(data['excluded']['opening_soon'])+' a inaugurar e '+n(data['excluded']['needs_review'])+' a revisar. Alterações ainda não salvas não entram neste relatório.','muted')]
-    def footer(canvas,doc):
+        recent.append([r['code']+(' / '+r['pdv'] if r['pdv'] else ''),r['source'],r['status'],stamp(r['at'])])
+    if not data['updates']:recent.append(['Sem registros salvos','-','-','-'])
+    flow += [
+        columns(
+            [p('Prioridades por filial e PDV','h'),table(priorities,[145,105,160],padding=5),
+             Spacer(1,7),p('Até 4 lojas priorizadas por criticidade, atraso e ocorrências.','muted')],
+            [p('Registros atualizados recentemente','h'),table(recent,[83,99,131,117],padding=5),
+             Spacer(1,7),p('Até 5 gravações recentes de cutover, implantação e GR/regional.','muted')],
+            (410,430)),
+        p('Qualidade da informação','h'),
+        p(n(b['stores_missing_organization'])+' loja(s) sem GR ou regional. '+n(b['deployed_without_version'])+' PDV(s) implantado(s) sem versão. '+n(t['exceptions'])+' registro(s) com numeração fora do plano.','muted'),
+        p('Fora do escopo: '+n(data['excluded']['inactive'])+' filial(is) inativa(s), '+n(data['excluded']['opening_soon'])+' a inaugurar e '+n(data['excluded']['needs_review'])+' a revisar.','muted'),
+    ]
+    def draw_cover(canvas,doc):
         canvas.saveState()
-        canvas.setFillColor(colors.HexColor('#242735'))
-        canvas.roundRect(18*mm,274*mm,27*mm,16*mm,3*mm,fill=1,stroke=0)
-        canvas.setFillColor(colors.HexColor('#d6e8ff'))
-        canvas.setFont('RolloutSans-Bold',13)
-        canvas.drawString(21*mm,283*mm,'Cutover')
-        canvas.setFillColor(colors.HexColor('#a8ddeb'))
-        canvas.setFont('RolloutSans-Bold',9)
-        canvas.drawString(21*mm,278*mm,'online')
-        canvas.setFont('RolloutSans',7.5);canvas.setFillColor(MUTED);canvas.drawRightString(192*mm,278*mm,'ROLLOUT PDV ORION')
-        canvas.setStrokeColor(LINE);canvas.line(18*mm,14*mm,192*mm,14*mm);canvas.setFont('RolloutSans',7)
-        canvas.drawString(18*mm,10*mm,'Developed by ALM - Expansão de TI | v'+APP_VERSION)
-        canvas.drawRightString(192*mm,10*mm,'Página '+str(doc.page));canvas.restoreState()
-    doc.build(flow,onFirstPage=footer,onLaterPages=footer);out.seek(0);return out
+        canvas.drawImage(str(ARTWORK/'dpsp-cover.png'),0,0,*PAGE)
+        canvas.setFillColor(INK)
+        canvas.setFont('RolloutSans-Bold',39)
+        canvas.drawString(48,333,'Relatório executivo')
+        canvas.setFont('RolloutSans-Bold',27)
+        canvas.drawString(49,286,'Rollout PDV Orion')
+        canvas.setFont('RolloutSans',17)
+        canvas.drawString(49,243,'Cutover Online')
+        canvas.setFont('RolloutSans',13)
+        canvas.drawString(49,184,'Posição em '+stamp(data['generated_at'])+' (Brasília)')
+        canvas.restoreState()
+
+    def draw_body(canvas,doc):
+        canvas.saveState()
+        canvas.drawImage(str(ARTWORK/'dpsp-content.png'),0,0,*PAGE)
+        canvas.setFont('RolloutSans',8)
+        canvas.setFillColor(MUTED)
+        canvas.drawString(52,24,'Cutover Online · Expansão de TI')
+        canvas.drawRightString(875,24,f'Página {doc.page}')
+        canvas.restoreState()
+
+    doc.build(flow,onFirstPage=draw_cover,onLaterPages=draw_body)
+    out.seek(0)
+    return out
 
 def download_rollout_executive(core):
     if request.args.get('from') or request.args.get('to'):
