@@ -1,31 +1,18 @@
 """Executive report with the rollout dashboard first and bounded detail pages."""
-import io
-from pathlib import Path
-import reportlab
-from reportlab.pdfbase import pdfmetrics
-from reportlab.pdfbase.ttfonts import TTFont
 from datetime import datetime
 from zoneinfo import ZoneInfo
 from xml.sax.saxutils import escape
 from flask import send_file,request
 from reportlab.lib import colors
 from reportlab.lib.styles import ParagraphStyle
-from reportlab.platypus import SimpleDocTemplate,Paragraph,Spacer,Table,TableStyle,PageBreak
+from reportlab.platypus import Paragraph,Spacer,Table,TableStyle,PageBreak
 from reportlab.graphics.shapes import Drawing,Rect,String,Line,PolyLine,Circle
 from dashboard import dashboard_data
 from rollout_base import rollout_base_summary
 from operations import operation_overview,today
 from executive_dashboard import approval_trend,executive_metrics
 
-INK=colors.HexColor('#2e3345')
-MUTED=colors.HexColor('#545d70')
-BLUE=colors.HexColor('#3c83f5')
-PALE=colors.HexColor('#99e0ff')
-LINE=colors.HexColor('#d9deea')
-BG=colors.HexColor('#f2f5fa')
-PAGE=(960,540)
-WIDTH=856
-ARTWORK=Path(__file__).parent/'static'/'report'
+from pdf_brand import INK, MUTED, BLUE, PALE, LINE, BG, WIDTH, build_report, columns, register_fonts
 
 def report_payload(core):
     data=dashboard_data(core)
@@ -48,13 +35,7 @@ def report_payload(core):
             'open_issues':operations['metrics']['open_issues'],'overdue_issues':operations['metrics']['overdue_issues']},'trend':trend,'updates':updates[:5],'updates_total':len(updates),'date_references':data['date_references']}
 
 def create_rollout_executive_pdf(data):
-    fonts=Path(reportlab.__file__).parent/'fonts'
-    if 'RolloutSans' not in pdfmetrics.getRegisteredFontNames():
-        pdfmetrics.registerFont(TTFont('RolloutSans',str(fonts/'Vera.ttf')))
-        pdfmetrics.registerFont(TTFont('RolloutSans-Bold',str(fonts/'VeraBd.ttf')))
-    out=io.BytesIO()
-    doc=SimpleDocTemplate(out,pagesize=PAGE,leftMargin=46,rightMargin=46,topMargin=35,bottomMargin=35,
-                          title='Relatório executivo - Rollout PDV Orion',author='ALM - Expansão de TI')
+    register_fonts()
     styles={
       'title':ParagraphStyle('rt',fontName='RolloutSans-Bold',fontSize=25,leading=31,textColor=INK,spaceAfter=7),
       'h':ParagraphStyle('rh',fontName='RolloutSans-Bold',fontSize=14,leading=19,textColor=INK,spaceBefore=12,spaceAfter=8,keepWithNext=True),
@@ -91,13 +72,6 @@ def create_rollout_executive_pdf(data):
     def rate(count, total):
         value = f'{count / total * 100:.2f}'.rstrip('0').rstrip('.') if total else '0'
         return pct(value)
-
-    def columns(left,right,widths):
-        grid=Table([[left,'',right]],colWidths=[widths[0],16,widths[1]],hAlign='LEFT')
-        grid.setStyle(TableStyle([('VALIGN',(0,0),(-1,-1),'TOP'),
-                                  ('LEFTPADDING',(0,0),(-1,-1),0),('RIGHTPADDING',(0,0),(-1,-1),0),
-                                  ('TOPPADDING',(0,0),(-1,-1),0),('BOTTOMPADDING',(0,0),(-1,-1),0)]))
-        return grid
 
     def headline_cards(items):
         grid=kpis([(label,value,note) for label,value,note,_ in items])
@@ -192,7 +166,6 @@ def create_rollout_executive_pdf(data):
         ('Pendências abertas',network['open_issues'],n(network['overdue_issues'])+' com prazo vencido na rede',colors.HexColor('#fcf0f2')),
     ]
     flow = [
-        Spacer(1,1),PageBreak(),
         p('Visão geral do rollout','title'),
         p('Posição em '+stamp(data['generated_at'])+' (Brasília)','muted'),
         headline_cards(cards),Spacer(1,16),
@@ -280,32 +253,8 @@ def create_rollout_executive_pdf(data):
         p(n(b['stores_missing_organization'])+' loja(s) sem GR ou regional. '+n(b['deployed_without_version'])+' PDV(s) implantado(s) sem versão. '+n(t['exceptions'])+' registro(s) com numeração fora do plano.','muted'),
         p('Fora do escopo: '+n(data['excluded']['inactive'])+' filial(is) inativa(s), '+n(data['excluded']['opening_soon'])+' a inaugurar e '+n(data['excluded']['needs_review'])+' a revisar.','muted'),
     ]
-    def draw_cover(canvas,doc):
-        canvas.saveState()
-        canvas.drawImage(str(ARTWORK/'dpsp-cover.png'),0,0,*PAGE)
-        canvas.setFillColor(INK)
-        canvas.setFont('RolloutSans-Bold',39)
-        canvas.drawString(48,333,'Relatório executivo')
-        canvas.setFont('RolloutSans-Bold',27)
-        canvas.drawString(49,286,'Rollout PDV Orion')
-        canvas.setFont('RolloutSans',17)
-        canvas.drawString(49,243,'Cutover Online')
-        canvas.setFont('RolloutSans',13)
-        canvas.drawString(49,184,'Posição em '+stamp(data['generated_at'])+' (Brasília)')
-        canvas.restoreState()
-
-    def draw_body(canvas,doc):
-        canvas.saveState()
-        canvas.drawImage(str(ARTWORK/'dpsp-content.png'),0,0,*PAGE)
-        canvas.setFont('RolloutSans',8)
-        canvas.setFillColor(MUTED)
-        canvas.drawString(52,24,'Cutover Online · Expansão de TI')
-        canvas.drawRightString(875,24,f'Página {doc.page}')
-        canvas.restoreState()
-
-    doc.build(flow,onFirstPage=draw_cover,onLaterPages=draw_body)
-    out.seek(0)
-    return out
+    return build_report(flow,'Relatório executivo','Rollout PDV Orion',
+                        'Posição em '+stamp(data['generated_at'])+' (Brasília)')
 
 def download_rollout_executive(core):
     if request.args.get('from') or request.args.get('to'):

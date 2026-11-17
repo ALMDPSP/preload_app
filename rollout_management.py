@@ -171,12 +171,13 @@ def register_management(app,core):
                         row=c.execute('SELECT x.state,l.branch_id FROM ct_cutovers x JOIN ct_cutover_branch l ON l.cutover_id=x.id WHERE x.id=%s'+(' FOR UPDATE OF x' if core['DATABASE'] else ''),(check['id'],)).fetchone()
                         if not isinstance(check.get('state'),dict) or pdv_number(check['state'].get('meta',{}).get('pdv'))!=pdv:raise ValueError('A numeração do checklist não corresponde ao PDV selecionado.')
                         if not row or row['branch_id']!=id or pdv_number(json.loads(row['state']).get('meta',{}).get('pdv'))!=pdv:raise ValueError('O checklist não corresponde à filial e ao PDV selecionados.')
+                        base={**base,'machines':[{**machines[0],'status':'Implantado'}]}
                     if assignment is not None:assignment_write(core,c,id,pdv,assignment)
                     response=app.make_response(app.view_functions['save_rollout_base'](id,body=base))
                     if response.status_code>=400:raise AtomicRejected(response)
                     saved=None
                     if check is not None:
-                        response=app.make_response(core['update_cutover'](check['id'],body={'state':check.get('state'),'version':check.get('version')}))
+                        response=app.make_response(core['update_cutover'](check['id'],body={'state':check.get('state'),'version':check.get('version')},declare_deployment=False))
                         if response.status_code>=400:raise AtomicRejected(response)
                         saved=response.get_json()
                     if new_number!=pdv:

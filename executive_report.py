@@ -1,54 +1,84 @@
-"""Executive PDF: unique planned machines, current acceptance and approval dates."""
-import io
+"""Summary of planned machines, current acceptance and approval dates."""
 from datetime import datetime
 from zoneinfo import ZoneInfo
 from xml.sax.saxutils import escape
-from reportlab.platypus import SimpleDocTemplate,Paragraph,Spacer,Table,TableStyle
-from reportlab.lib.styles import getSampleStyleSheet,ParagraphStyle
-from reportlab.lib import colors
-from reportlab.lib.units import mm
-from reportlab.lib.pagesizes import A4
-from reportlab.graphics.shapes import Drawing,Line,PolyLine,String,Circle,Rect
 
-GREEN=colors.HexColor('#087e67');INK=colors.HexColor('#18363b');MUTED=colors.HexColor('#61776c')
+from reportlab.graphics.shapes import Circle, Drawing, Line, PolyLine, Rect, String
+from reportlab.lib.styles import ParagraphStyle
+from reportlab.platypus import Paragraph, Spacer, Table, TableStyle
+
+from pdf_brand import BG, BLUE, INK, LINE, MUTED, WIDTH, build_report, columns, register_fonts
+
 
 def create_executive_pdf(data):
-    out=io.BytesIO();doc=SimpleDocTemplate(out,pagesize=A4,rightMargin=18*mm,leftMargin=18*mm,topMargin=17*mm,bottomMargin=19*mm,title='Evolução do PDV Orion',author='Expansão de TI')
-    styles=getSampleStyleSheet();styles.add(ParagraphStyle(name='ExecutiveTitle',fontName='Helvetica-Bold',fontSize=23,leading=28,textColor=INK,spaceAfter=10));styles.add(ParagraphStyle(name='ExecutiveBody',fontName='Helvetica',fontSize=9,leading=13,textColor=INK,spaceAfter=6));styles.add(ParagraphStyle(name='ExecutiveMuted',fontSize=8,leading=11,textColor=MUTED,spaceAfter=6));styles.add(ParagraphStyle(name='ExecutiveHeading',fontName='Helvetica-Bold',fontSize=13,leading=18,textColor=GREEN,spaceBefore=10,spaceAfter=9,keepWithNext=True))
-    def p(value,style='ExecutiveBody'):return Paragraph(escape(str(value or '')).replace('\n','<br/>'),styles[style])
-    def table(rows,widths,header=True):
-        t=Table([[p(v,'ExecutiveMuted' if i==0 and header else 'ExecutiveBody') for v in row] for i,row in enumerate(rows)],colWidths=widths,repeatRows=1 if header else 0,hAlign='LEFT')
-        t.setStyle(TableStyle([('VALIGN',(0,0),(-1,-1),'TOP'),('BACKGROUND',(0,0),(-1,0),colors.HexColor('#eaf4ee')),('LINEBELOW',(0,0),(-1,-1),.4,colors.HexColor('#dce7e0')),('LEFTPADDING',(0,0),(-1,-1),7),('RIGHTPADDING',(0,0),(-1,-1),7),('TOPPADDING',(0,0),(-1,-1),7),('BOTTOMPADDING',(0,0),(-1,-1),7)]));return t
-    totals=data['totals'];stamp=datetime.fromisoformat(data['generated_at']).astimezone(ZoneInfo('America/Sao_Paulo')).strftime('%d/%m/%Y %H:%M')
-    flow=[p('DPSP / EXPANSÃO DE TI','ExecutiveHeading'),p('Evolução do PDV Orion','ExecutiveTitle'),p('Relatório executivo | '+stamp+' (Brasília)','ExecutiveMuted')]
-    filters=data.get('filters',{});flow.append(p('Escopo: filiais ativas e abertas'+(' | UF: '+filters['uf'] if filters.get('uf') else '')+(' | Busca: '+filters['q'] if filters.get('q') else ''),'ExecutiveMuted'))
-    flow.append(table([['PDVs previstos','Virados e Orion OK','PDVs pendentes'],[str(totals['expected']),str(totals['ok']),str(totals['pending'])]],[58*mm]*3))
-    flow.append(Spacer(1,5*mm));flow.append(p(f"Avanço: {totals['percent']}% | {totals['stores_ok']} de {totals['stores']} lojas completas | {totals['stores_pending']} lojas com pendências."))
-    flow.append(p('Uma máquina por filial + número de PDV. Padrão de 5 por loja ou plano ajustado. Vale a execução mais recente.','ExecutiveMuted'))
-    flow.append(p('Execução do parque previsto','ExecutiveHeading'))
-    bar=Drawing(174*mm,25*mm);width=170*mm;ratio=totals['ok']/totals['expected'] if totals['expected'] else 0
-    bar.add(Rect(0,34,width,16,fillColor=colors.HexColor('#fae5bb'),strokeColor=None))
-    if ratio:bar.add(Rect(0,34,width*ratio,16,fillColor=GREEN,strokeColor=None))
-    bar.add(String(0,14,f"Orion OK: {totals['ok']} ({totals['percent']}%)",fontSize=9,fillColor=GREEN))
-    bar.add(String(width,14,f"Pendentes: {totals['pending']}",fontSize=9,textAnchor='end',fillColor=colors.HexColor('#916013')))
-    flow.append(bar)
-    flow.append(p('Evolução das aprovações vigentes','ExecutiveHeading'))
-    series=data['evolution'];drawing=Drawing(174*mm,53*mm)
+    register_fonts()
+    styles={
+        'title':ParagraphStyle('title',fontName='RolloutSans-Bold',fontSize=25,leading=31,textColor=INK,spaceAfter=7),
+        'heading':ParagraphStyle('heading',fontName='RolloutSans-Bold',fontSize=14,leading=19,textColor=INK,spaceAfter=8,keepWithNext=True),
+        'body':ParagraphStyle('body',fontName='RolloutSans',fontSize=11,leading=15,textColor=INK,spaceAfter=7),
+        'muted':ParagraphStyle('muted',fontName='RolloutSans',fontSize=9,leading=13,textColor=MUTED,spaceAfter=6),
+        'number':ParagraphStyle('number',fontName='RolloutSans-Bold',fontSize=25,leading=33,textColor=INK),
+    }
+
+    def p(value,style='body'):
+        return Paragraph(escape(str(value)),styles[style])
+
+    totals=data['totals']
+    stamp=datetime.fromisoformat(data['generated_at']).astimezone(ZoneInfo('America/Sao_Paulo')).strftime('%d/%m/%Y %H:%M')
+    filters=data.get('filters',{})
+    scope='Escopo: filiais ativas e abertas'
+    if filters.get('uf'):scope+=' · UF '+filters['uf']
+    if filters.get('q'):scope+=' · Busca: '+filters['q']
+    items=[('PDVs previstos',totals['expected']),('Virados e Orion OK',totals['ok']),('PDVs pendentes',totals['pending'])]
+    metrics=Table([[[p(label,'muted'),p(value,'number')] for label,value in items]],colWidths=[WIDTH/3]*3)
+    metrics.setStyle(TableStyle([
+        ('BACKGROUND',(0,0),(-1,-1),BG), ('GRID',(0,0),(-1,-1),.5,LINE),
+        ('LEFTPADDING',(0,0),(-1,-1),12), ('TOPPADDING',(0,0),(-1,-1),8), ('BOTTOMPADDING',(0,0),(-1,-1),8),
+    ]))
+
+    bar=Drawing(290,55)
+    ratio=totals['ok']/totals['expected'] if totals['expected'] else 0
+    bar.add(Rect(0,34,282,10,fillColor=LINE,strokeColor=None))
+    if ratio:bar.add(Rect(0,34,282*ratio,10,fillColor=BLUE,strokeColor=None))
+    bar.add(String(0,15,f"Orion OK: {totals['ok']} ({totals['percent']}%)",fontName='RolloutSans-Bold',fontSize=9,fillColor=INK))
+    bar.add(String(282,15,f"Pendentes: {totals['pending']}",fontName='RolloutSans',fontSize=9,textAnchor='end',fillColor=MUTED))
+
+    series=data['evolution'];chart=Drawing(550,133)
+    left,right,bottom,top=33,535,22,116
     if series:
-        left,right,bottom,top=28,174*mm-15,25,53*mm-12;maximum=max(1,totals['ok']);points=[]
-        drawing.add(Line(left,bottom,right,bottom,strokeColor=colors.HexColor('#c9d9cf')));drawing.add(Line(left,bottom,left,top,strokeColor=colors.HexColor('#c9d9cf')))
+        maximum=max(1,totals['ok'])
+        chart.add(Line(left,bottom,right,bottom,strokeColor=LINE))
+        chart.add(Line(left,top,right,top,strokeColor=LINE))
+        points=[]
         for i,item in enumerate(series):
-            x=left+(right-left)*i/max(1,len(series)-1);y=bottom+(top-bottom)*item['cumulative_ok']/maximum;points.extend([x,y])
-            if len(series)<=20:drawing.add(Circle(x,y,2.2,fillColor=GREEN,strokeColor=GREEN))
-        if len(points)>2:drawing.add(PolyLine(points,strokeColor=GREEN,strokeWidth=2))
-        drawing.add(String(2,bottom,'0',fontSize=8,fillColor=MUTED));drawing.add(String(2,top-2,str(totals['ok']),fontSize=8,fillColor=MUTED));drawing.add(String(left,6,series[0]['day'],fontSize=8,fillColor=MUTED));drawing.add(String(right,6,series[-1]['day'],textAnchor='end',fontSize=8,fillColor=MUTED))
-    else:drawing.add(String(15,60,'Nenhum PDV Orion OK neste recorte.',fontSize=10,fillColor=MUTED))
-    flow.append(drawing)
-    flow.append(p('Curva por data da aprovação dos PDVs que estão OK hoje. Não é uma fotografia histórica do parque: rejeições, exclusões, troca da última execução ou mudanças de escopo podem alterar o recorte.','ExecutiveMuted'))
-    if data['date_references']:flow.append(p(f"{data['date_references']} PDV(s) sem transição de aprovação identificada no histórico usam a data da última gravação como referência, sem afirmar a data real da virada.",'ExecutiveMuted'))
-    flow.append(p('Critério de OK e pontos de atenção','ExecutiveHeading'))
-    flow.append(p('Orion OK exige os 11 processos concluídos e GO da retirada e da operação, ambos com responsável e data. Sem cutover, em andamento, bloqueado, rejeitado ou aguardando aceite continua pendente.'))
-    flow.append(p(f"Registros com numeração a revisar: {totals['exceptions']} (fora da meta). Filiais inativas, a inaugurar ou com vínculo legado pendente ficam fora do recorte. Detalhes por loja/PDV estão na tela e no CSV.",'ExecutiveMuted'))
-    def footer(canvas,doc):
-        canvas.setStrokeColor(colors.HexColor('#d6e4da'));canvas.line(18*mm,14*mm,192*mm,14*mm);canvas.setFont('Helvetica',8);canvas.setFillColor(MUTED);canvas.drawString(18*mm,10*mm,'Developed by ALM - Expansão de TI');canvas.drawRightString(192*mm,10*mm,f'Página {doc.page}')
-    doc.build(flow,onFirstPage=footer,onLaterPages=footer);out.seek(0);return out
+            x=left+(right-left)*i/max(1,len(series)-1)
+            y=bottom+(top-bottom)*item['cumulative_ok']/maximum
+            points.extend([x,y])
+        if len(points)>2:chart.add(PolyLine(points,strokeColor=BLUE,strokeWidth=2))
+        if len(series)<=20:
+            for x,y in zip(points[::2],points[1::2]):
+                chart.add(Circle(x,y,2.4,fillColor=BLUE,strokeColor=BLUE))
+        for y,value in [(bottom,0),(top,totals['ok'])]:
+            chart.add(String(left-5,y-2,str(value),fontName='RolloutSans',fontSize=8,textAnchor='end',fillColor=MUTED))
+        chart.add(String(left,6,series[0]['day'],fontName='RolloutSans',fontSize=8,fillColor=MUTED))
+        if len(series)>1:
+            chart.add(String(right,6,series[-1]['day'],fontName='RolloutSans',fontSize=8,textAnchor='end',fillColor=MUTED))
+    else:
+        chart.add(String(15,67,'Nenhum PDV Orion OK neste recorte.',fontName='RolloutSans',fontSize=11,fillColor=MUTED))
+
+    flow=[
+        p('Evolução do PDV Orion','title'),p(scope,'muted'),metrics,Spacer(1,14),
+        columns(
+            [p('Execução do parque previsto','heading'),bar,
+             p(f"{totals['stores_ok']} de {totals['stores']} lojas completas. {totals['stores_pending']} lojas com PDVs pendentes."),
+             p('Uma máquina por filial e número de PDV. Vale a execução mais recente.','muted')],
+            [p('Evolução das aprovações vigentes','heading'),chart,
+             p('Curva pelas datas de aprovação dos PDVs que estão Orion OK hoje. Mudanças nas execuções ou no escopo podem alterar a curva.','muted')],
+            (290,550)),
+        Spacer(1,9),p('Critério de OK e pontos de atenção','heading'),
+        p('Orion OK exige todos os processos concluídos e ambos os aceites GO com responsável e data.'),
+        p(f"Registros fora da meta por numeração a revisar: {totals['exceptions']}. Filiais inativas, a inaugurar ou com vínculo legado pendente ficam fora do recorte.",'muted'),
+    ]
+    if data['date_references']:
+        flow.append(p(f"{data['date_references']} PDV(s) sem data de aprovação identificada usam a última gravação como referência.",'muted'))
+    return build_report(flow,'Evolução do PDV Orion','Validação do cutover','Posição em '+stamp+' (Brasília)')

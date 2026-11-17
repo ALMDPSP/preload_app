@@ -24,7 +24,7 @@ def test_rename_preserves_saved_checklist_inventory_operations_and_other_branch(
     assert save(c,id,before['state'],before['version']).status_code in (400,409)
     assert save(c,id,after['state'],before['version']).status_code==409
     fresh=form(c,b);assert [m['pdv'] for m in fresh['machines']]==['02','03','04','05','06']
-    assert fresh['machines'][-1]['notes']=='Preservar' and fresh['machines'][-1]['installed_version']=='Orion 2' and fresh['machines'][-1]['version']==2
+    assert fresh['machines'][-1]['notes']=='Preservar' and fresh['machines'][-1]['installed_version']=='Orion 2' and fresh['machines'][-1]['version']==data['machines'][0]['version']+2
     ops=c.get('/api/operations/overview').json
     assert ops['schedule'][0]['pdv']=='06' and ops['schedule'][0]['version']==2
     assert ops['issues'][0]['pdv']=='06' and ops['issues'][0]['version']==2

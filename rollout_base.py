@@ -25,6 +25,15 @@ def base_records(core):
 
 def deployed(machine,record):return bool(machine.get('ok') or record and record['status']=='Implantado')
 
+def declare_pdv_deployment(c,branch_id,pdv,stamp,actor):
+    changed=c.execute("""INSERT INTO ct_rollout_inventory
+        (branch_id,pdv,status,installed_version,deployed_at,notes,version,updated_at,updated_by)
+        VALUES (%s,%s,'Implantado','','','',1,%s,%s)
+        ON CONFLICT(branch_id,pdv) DO UPDATE SET status=excluded.status,
+        version=ct_rollout_inventory.version+1,updated_at=excluded.updated_at,updated_by=excluded.updated_by
+        WHERE ct_rollout_inventory.status<>excluded.status""",(branch_id,pdv,stamp,actor))
+    return changed.rowcount==1
+
 def reported_version(record):
     value=(record or {}).get('installed_version','').strip()
     return '' if normalize(value) in {'nao informada','nao informado'} else value

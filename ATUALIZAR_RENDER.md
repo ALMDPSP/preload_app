@@ -1,3 +1,9 @@
+# Atualização v5.1.14
+
+O PDF do checklist por PDV e o PDF de validação do Dashboard passam a usar a capa e o formato 16:9 do relatório executivo. Ao salvar o checklist, a Base de Rollout registra **Implantação declarada** como **Implantado** para o PDV. Os aceites continuam usando as regras do checklist.
+
+Envie o conteúdo do ZIP para a raiz do GitHub, incluindo a pasta `static/report`. Mantenha o Start Command `bash start.sh` e confirme a versão 5.1.14 em /healthz após o deploy.
+
 # Atualização v5.1.13
 
 Operador e Administrador compartilham as permissões operacionais. Cadastro, bloqueio, alteração de perfis e redefinição de senha ou MFA de outras contas permanecem exclusivos do Administrador.

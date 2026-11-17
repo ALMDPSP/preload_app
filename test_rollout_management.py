@@ -14,10 +14,17 @@ def preview(c,data):return c.post('/api/admin/operational-restore/preview',heade
 def restore(c,data,token):return c.post('/api/admin/operational-restore/apply',headers=headers(c),data={'file':(io.BytesIO(data),'backup.json.gz'),'token':token,'confirmation':'RESTAURAR'})
 
 def test_atomic_save_commits_every_part_and_rolls_back_base_on_checklist_conflict(isolated):
-    c=admin(isolated);id=create(c);b,body=central(c,id);body['base']['machines'][0].update(status='Implantado',installed_version='Orion v5')
+    c=admin(isolated);id=create(c);b,body=central(c,id)
+    assert body['base']['machines'][0]['status']=='Pendente'
+    base_only={key:value for key,value in body.items() if key!='checklist'}
+    assert save(c,b,base_only).json['base']['machines'][0]['status']=='Pendente'
+    b,body=central(c,id)
+    body['base']['machines'][0]['installed_version']='Orion v5'
     body['checklist']['state']['tasks']['linx1']={'status':'Concluído'}
     r=save(c,b,body);assert r.status_code==200 and r.json['checklist']['version']==2
     assert r.json['base']['machines'][0]['installed_version']=='Orion v5'
+    assert r.json['base']['machines'][0]['status']=='Implantado'
+    assert c.get('/api/cutovers/'+id).json['state']['decisions']==body['checklist']['state']['decisions']
     fresh_b,fresh=central(c,id);fresh['base']['gr']='Não gravar';fresh['checklist']['version']=1
     assert save(c,b,fresh).status_code==409
     assert form(c,b)['gr']=='' and c.get('/api/cutovers/'+id).json['version']==2
@@ -44,14 +51,14 @@ def test_central_pdv_numbers_save_atomically_and_appear_in_report(isolated):
     assert response.json['checklist']['meta']['pdv']=='15'
     assert response.json['base']['assignments'][0]['pdv']=='15'
     machine=next(row for row in response.json['base']['machines'] if row['pdv']=='15')
-    assert machine['legacy_pdv']=='0023'
+    assert machine['legacy_pdv']=='0023' and machine['status']=='Implantado'
     before=c.get('/api/cutovers/'+id).json
     assert before['state']['tasks']['linx1']['notes']=='Validado no caixa'
     assert before['version']==response.json['checklist']['version']
     assert any(row['action']=='renumeração de PDV' for row in c.get('/api/cutovers/'+id+'/audit').json)
     pdf=c.get('/api/cutovers/'+id+'/pdf?version='+str(before['version']))
     pages=PdfReader(io.BytesIO(pdf.data)).pages
-    assert all(label in pages[0].extract_text() for label in ['PDV NOVO', 'PDV ANTIGO', '0023', 'Avanço por fase'])
+    assert all(label in pages[1].extract_text() for label in ['PDV NOVO', 'PDV ANTIGO', '0023', 'Avanço por fase'])
     assert any('Validado no caixa' in page.extract_text() for page in pages[1:])
 
     base=form(c,b);machine=next(row for row in base['machines'] if row['pdv']=='15')

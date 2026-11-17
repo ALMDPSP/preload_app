@@ -29,9 +29,11 @@ def test_central_operator_can_grant_acceptance_and_pdf_has_pdv_summary(isolated)
     for task in module.SOURCE['orion'][:3]+module.SOURCE['linx']:state['tasks'][task['id']]={'status':'Concluído','owner':'Operador'}
     assert operator.put('/api/cutovers/'+id,headers=headers(operator),json={'version':before['version'],'state':state}).status_code==200
     response=c.get('/api/cutovers/'+id+'/pdf');assert response.status_code==200
-    pdf=PdfReader(io.BytesIO(response.data));first=' '.join(pdf.pages[0].extract_text().split())
+    pdf=PdfReader(io.BytesIO(response.data));first=' '.join(pdf.pages[1].extract_text().split())
     assert 'Resumo do cutover por PDV' in first and 'VD266 / PDV 01' in first
-    assert 'Orion Central' in first
+    assert 'Orion Central' in first and 'Implantado' in first
+    assert form(c,b)['machines'][0]['status']=='Implantado'
+    assert form(c,b)['machines'][1]['status']=='Pendente'
     assert 'Avanço por fase' in first and 'GO da retirada' in first and 'Aceite Orion' in first
     assert 'Próxima ação' in first
     assert any('Checklist detalhado' in page.extract_text() for page in pdf.pages[1:])

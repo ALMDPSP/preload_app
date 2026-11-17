@@ -268,18 +268,22 @@ def get_cutover(id):
     return jsonify(rejection=dict(review) if review else None,id=id,branch_id=branch['id'] if branch else None,state=bound_meta(json.loads(row['state']),branch) if branch else json.loads(row['state']),version=row['version'],updated_at=row['updated_at'],updated_by=row['updated_by'])
 
 @app.put('/api/cutovers/<id>')
-def update_cutover(id,body=None):
+def update_cutover(id,body=None,declare_deployment=True):
     body=body if body is not None else request.get_json() or {}
     try:s=valid_state(body.get('state'))
     except (ValueError,TypeError,AttributeError) as e:return error(str(e))
     if not isinstance(body.get('version'),int):return error('Versão inválida.')
+    if declare_deployment:g.atomic_write=True
     with db() as c:
-        old=c.execute('SELECT state FROM ct_cutovers WHERE id=%s',(id,)).fetchone()
+        branch=branch_for(c,id)
+        lock=' FOR UPDATE' if declare_deployment and DATABASE else ''
+        if branch and lock:
+            c.execute('SELECT id FROM ct_branches WHERE id=%s FOR UPDATE',(branch['id'],)).fetchone()
+        old=c.execute('SELECT state FROM ct_cutovers WHERE id=%s'+lock,(id,)).fetchone()
         if not old:return error('Cutover não encontrado.',404)
         if c.execute('SELECT cutover_id FROM ct_cutover_reviews WHERE cutover_id=%s',(id,)).fetchone():return error('Cutover rejeitado. Consulte o motivo ou solicite a exclusão a um Administrador ou Operador para refazer.',409)
-        previous=json.loads(old['state'])
-        branch=branch_for(c,id)
         if not branch:return error('Vincule esta execução a uma filial antes de salvar.')
+        previous=json.loads(old['state'])
         canonical=bound_meta(previous,branch)['meta']
         for key in ['branch_id','branch_code','branch_name','branch']:
             if key in s['meta'] and s['meta'][key]!=canonical[key]:return error('A filial deste cutover não pode ser alterada. Inicie outra execução para outra loja.')
@@ -301,6 +305,12 @@ def update_cutover(id,body=None):
         if changed.rowcount!=1:return error('Outra pessoa atualizou este cutover. Exporte sua cópia e recarregue antes de continuar.',409)
         previous=json.loads(old['state']);diff={k:{'antes':previous.get(k),'depois':s.get(k)} for k in ['meta','tasks','decisions'] if previous.get(k)!=s.get(k)}
         audit(c,g.user['email'],'atualização',id,diff)
+        if declare_deployment:
+            from dashboard import pdv_number
+            from rollout_base import declare_pdv_deployment
+            number=pdv_number(previous['meta'].get('pdv'))
+            if number and declare_pdv_deployment(c,branch['id'],number,now(),g.user['email']):
+                audit(c,g.user['email'],'implantação declarada por salvamento',id,{'branch_id':branch['id'],'pdv':number,'status':'Implantado'})
     return jsonify(version=body['version']+1,updated_at=now(),updated_by=g.user['email'])
 
 @app.post('/api/cutovers/<id>/reject')
