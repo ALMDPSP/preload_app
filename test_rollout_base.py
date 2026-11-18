@@ -96,3 +96,21 @@ def test_deployed_list_matches_card_and_version_chart_excludes_missing_versions(
     assert [row['pdv'] for row in pending['rows']]==['02','03','04']
     assert c.get('/api/dashboard/machines?status=pending&q=VD266').json['total']==4
     assert c.get('/api/dashboard/machines?status=deployed&q=ausente').json['total']==0
+
+def test_machine_store_search_covers_all_pages_and_preserves_dashboard_scope(isolated):
+    c=admin(isolated)
+    for index in range(10):
+        branch=c.post('/api/branches',headers=headers(c),json={'code':f'L{index+1000}','name':f'Farmácia São Paulo {index}'}).json['id']
+        body=form(c,branch)
+        for machine in body['machines']:machine['status']='Implantado'
+        assert put(c,branch,body).status_code==200
+    first=c.get('/api/dashboard/machines?status=deployed').json
+    assert first['total']==50 and first['pages']==2 and len(first['rows'])==40
+    last_code=c.get('/api/dashboard/machines?status=deployed&page=2').json['rows'][-1]['code']
+    found=c.get('/api/dashboard/machines',query_string={'status':'deployed','store_q':last_code,'page':2}).json
+    assert found['total']==5 and found['page']==1
+    assert all(row['code']==last_code for row in found['rows'])
+    assert c.get('/api/dashboard/machines?status=deployed&store_q=sao%20paulo').json['total']==50
+    assert c.get('/api/dashboard/machines?status=deployed&store_q=ausente').json['total']==0
+    assert c.get('/api/dashboard/machines?status=deployed&q=L1000&store_q=L1001').json['total']==0
+    assert c.get('/api/dashboard/machines?status=undeployed&store_q=L1000').json['total']==0

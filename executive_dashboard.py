@@ -111,5 +111,9 @@ def machine_page(core,args):
     else:
         complete={s['id'] for s in data['stores'] if not s['pending']}
         rows=[m for m in data['machines'] if (status not in ['ok','pending','stores_ok'] or (m['ok'] if status=='ok' else not m['ok'] if status=='pending' else m['branch_id'] in complete)) and (status in ['','all','ok','pending','stores_ok'] or m['status']==status)]
+    store_query=normalize(args.get('store_q','')[:200].strip())
+    if store_query:
+        matching={store['id'] for store in data['stores'] if store_query in normalize(store['code']+' '+store['name'])}
+        rows=[row for row in rows if row['branch_id'] in matching]
     size=40;pages=max(1,(len(rows)+size-1)//size);page=min(integer(args.get('page'),1,100000),pages)
     return {'rows':rows[(page-1)*size:page*size],'page':page,'pages':pages,'total':len(rows)}
