@@ -1,3 +1,9 @@
+# Atualização v5.1.16
+
+O gráfico de evolução acumulada do Orion OK ganha profundidade, degradê, animação de entrada e destaque do total acumulado e das aprovações no período. Passe o mouse, toque na curva ou mova a barra inferior para consultar cada dia. Os botões de 7, 14 e 30 dias atualizam a curva e os indicadores. A animação respeita a preferência de redução de movimento do dispositivo.
+
+Envie o conteúdo do ZIP para a raiz do GitHub. Mantenha o Start Command `bash start.sh` e confirme a versão 5.1.16 em /healthz após o deploy.
+
 # Atualização v5.1.15
 
 Ao abrir PDVs implantados ou pendentes pelo Dashboard, use Pesquisar loja para filtrar por código ou nome enquanto digita. A busca consulta toda a lista e mantém o filtro ao trocar de página.

@@ -33,33 +33,53 @@ function renderDashboard(){
 function renderApprovalTrend(container, trend, days=14){
  if(!container)return;
  const rows=trend.slice(-days);
- const number=value=>value.toLocaleString('pt-BR');
+ const number=value=>Number(value||0).toLocaleString('pt-BR');
  const date=value=>value.split('-').reverse().slice(0,2).join('/');
  const last=rows.at(-1);
- const maximum=Math.max(1,last?.cumulative_ok||0);
- const left=52,right=728,top=20,bottom=150;
- const x=i=>left+(right-left)*i/Math.max(1,rows.length-1);
+ const total=last?.cumulative_ok||0;
+ const periodTotal=rows.reduce((sum,row)=>sum+row.count,0);
+ const maximum=Math.max(1,total);
+ const left=60,right=710,top=44,bottom=218,depth=12;
+ const x=i=>left+(right-left)*(rows.length===1?1:i/Math.max(1,rows.length-1));
  const y=value=>bottom-(bottom-top)*value/maximum;
  const points=rows.map((row,i)=>x(i)+','+y(row.cumulative_ok));
  const ticks=[...new Set([0,Math.floor(maximum/2),maximum])];
  const dates=[...new Set([0,Math.round((rows.length-1)/3),Math.round((rows.length-1)*2/3),rows.length-1])];
- container.innerHTML=`<div class="approval-trend">
-   <div class="approval-trend-header"><div><h2>Evolução acumulada do Orion OK</h2>
+ const graphicId='approval-'+(container.id||'trend').replace(/[^a-zA-Z0-9_-]/g,'');
+ container.innerHTML=`<div class="approval-trend approval-trend-depth">
+  <div class="approval-trend-header"><div><h2>Evolução acumulada do Orion OK</h2>
    <p>${last?`${date(rows[0].day)} a ${date(last.day)} · PDVs com data de aprovação identificada`:''}</p></div>
-   <div class="actions" aria-label="Período da curva">${[7,14,30].map(period=>`<button type="button" data-trend-days="${period}" aria-pressed="${period===days}">${period} dias</button>`).join('')}</div></div>
-   ${last?.cumulative_ok?`<svg class="approval-trend-chart" viewBox="0 0 750 180" role="img" aria-label="Curva acumulada de PDVs Orion OK">
-   ${ticks.map(value=>`<line x1="${left}" y1="${y(value)}" x2="${right}" y2="${y(value)}" stroke="#dfe6f0"/><text x="${left-8}" y="${y(value)+4}" text-anchor="end">${number(value)}</text>`).join('')}
-   <polygon points="${left},${bottom} ${points.join(' ')} ${right},${bottom}" fill="#e9f6f0"/>
-   <polyline points="${points.join(' ')}" fill="none" stroke="#137961" stroke-width="3" stroke-linejoin="round"/>
-   ${dates.map(i=>`<text x="${x(i)}" y="174" text-anchor="middle">${date(rows[i].day)}</text>`).join('')}
-   <line data-trend-guide stroke="#6b8197" stroke-dasharray="4 4" y1="${top}" y2="${bottom}"/>
-   <circle data-trend-point r="5" fill="#137961" stroke="#fff" stroke-width="2"/>
+   <div class="actions" aria-label="Período da curva">${[7,14,30].map(period=>`<button type="button" data-trend-days="${period}" aria-pressed="${period===days}">${period} dias</button>`).join('')}</div>
+  </div>
+  ${last?`<div class="approval-trend-stage">
+   <div class="approval-trend-summary"><div><span>Orion OK acumulado</span><strong>${number(total)} <small>PDVs</small></strong></div><div><span>Aprovações no período</span><strong>+${number(periodTotal)}</strong></div></div>
+   <svg class="approval-trend-chart" viewBox="0 0 750 270" role="img" aria-label="Evolução acumulada de PDVs Orion OK, de ${date(rows[0].day)} a ${date(last.day)}. Total ${number(total)}.">
+    <defs>
+     <linearGradient id="${graphicId}-area" x1="0" y1="0" x2="0" y2="1"><stop offset="0%" stop-color="#4be0bb" stop-opacity=".42"/><stop offset="100%" stop-color="#4be0bb" stop-opacity=".03"/></linearGradient>
+     <linearGradient id="${graphicId}-line"><stop stop-color="#85e7ef"/><stop offset="100%" stop-color="#5aefb9"/></linearGradient>
+     <linearGradient id="${graphicId}-side" x1="0" y1="0" x2="0" y2="1"><stop stop-color="#2b9e83" stop-opacity=".55"/><stop offset="100%" stop-color="#153b45" stop-opacity=".2"/></linearGradient>
+     <filter id="${graphicId}-glow" x="-20%" y="-100%" width="140%" height="300%"><feGaussianBlur stdDeviation="3"/></filter>
+    </defs>
+    <path d="M${left} ${bottom} H${right} L${right+10} ${bottom+depth} H${left+10} Z" fill="#31465c" opacity=".7"/>
+    ${ticks.map(value=>`<path d="M${left} ${y(value)} H${right} l10 12" fill="none" stroke="#60768e" stroke-opacity=".3"/><text class="approval-axis" x="${left-12}" y="${y(value)+5}" text-anchor="end">${number(value)}</text>`).join('')}
+    ${points.length?`<polygon points="${points.join(' ')} ${rows.map((row,i)=>(x(i)+10)+','+(y(row.cumulative_ok)+depth)).reverse().join(' ')}" fill="url(#${graphicId}-side)"/>`:''}
+    <polygon points="${left},${bottom} ${points.join(' ')} ${right},${bottom}" fill="url(#${graphicId}-area)"/>
+    <polyline points="${points.join(' ')}" class="approval-line-glow" stroke="url(#${graphicId}-line)" filter="url(#${graphicId}-glow)" fill="none" stroke-width="8" opacity=".32"/>
+    <polyline points="${points.join(' ')}" class="approval-line-main" pathLength="1" fill="none" stroke="url(#${graphicId}-line)" stroke-width="3.5" stroke-linejoin="round" stroke-linecap="round"/>
+    ${rows.map((row,i)=>row.count>0?`<circle cx="${x(i)}" cy="${y(row.cumulative_ok)}" r="3" fill="#a2f4d8"/>`:'').join('')}
+    ${dates.map(i=>`<text class="approval-axis" x="${x(i)}" y="257" text-anchor="middle">${date(rows[i].day)}</text>`).join('')}
+    <line data-trend-guide stroke="#b5d7e5" stroke-opacity=".6" stroke-dasharray="3 5" y1="${top}" y2="${bottom+depth}"/>
+    <circle data-trend-halo r="11" fill="#65efc7" opacity=".15"/>
+    <circle data-trend-point r="5" fill="#74f1ce" stroke="#edfef8" stroke-width="2"/>
+    <g data-trend-label class="approval-trend-callout" aria-hidden="true"><rect width="130" height="33" rx="9" fill="#dffbf1"/><text x="65" y="22" text-anchor="middle"></text></g>
    </svg>
-   <div class="approval-trend-detail"><output data-trend-detail aria-live="polite"></output>
+   ${!total?'<p class="approval-trend-no-data">Sem aprovações com data identificada no recorte.</p>':''}
+  </div>
+  <div class="approval-trend-detail"><output data-trend-detail aria-live="polite"></output>
    <input type="range" min="0" max="${rows.length-1}" value="${rows.length-1}" aria-label="Selecionar dia da evolução"></div>`:
-   '<p class="empty">Sem aprovações com data identificada no recorte.</p>'}
-   <p class="muted dashboard-small">Conta os PDVs atualmente Orion OK por data de aprovação, incluindo o saldo anterior ao período.</p>
-  </div>`;
+  '<p class="empty">Sem aprovações com data identificada no recorte.</p>'}
+  <p class="muted dashboard-small">Conta os PDVs atualmente Orion OK por data de aprovação, incluindo o saldo anterior ao período.</p>
+ </div>`;
  container.querySelectorAll('[data-trend-days]').forEach(button=>{
   button.onclick=()=>{renderApprovalTrend(container,trend,Number(button.dataset.trendDays));container.querySelector('[aria-pressed="true"]').focus()};
  });
@@ -67,23 +87,30 @@ function renderApprovalTrend(container, trend, days=14){
  if(!slider)return;
  const svg=container.querySelector('svg');
  const guide=svg.querySelector('[data-trend-guide]'),point=svg.querySelector('[data-trend-point]');
+ const halo=svg.querySelector('[data-trend-halo]'),label=svg.querySelector('[data-trend-label]');
  function select(index){
-  const row=rows[index],position=x(index);
+  const row=rows[index],position=x(index),height=y(row.cumulative_ok);
   guide.setAttribute('x1',position);guide.setAttribute('x2',position);
-  point.setAttribute('cx',position);point.setAttribute('cy',y(row.cumulative_ok));
+  for(const marker of [point,halo]){marker.setAttribute('cx',position);marker.setAttribute('cy',height)}
+  label.setAttribute('transform',`translate(${Math.max(left,Math.min(right-130,position-65))},${Math.max(3,height-44)})`);
+  label.querySelector('text').textContent=number(row.cumulative_ok)+' PDVs';
   slider.value=index;
   const description=`${date(row.day)} · ${number(row.cumulative_ok)} acumulados · +${number(row.count)} no dia`;
   container.querySelector('[data-trend-detail]').textContent=description;
   slider.setAttribute('aria-valuetext',description);
  }
  slider.oninput=()=>select(Number(slider.value));
- svg.onclick=event=>{
+ function selectAtPointer(event){
+  const matrix=svg.getScreenCTM();
+  if(!matrix)return;
   const cursor=svg.createSVGPoint();
   cursor.x=event.clientX;cursor.y=event.clientY;
-  const local=cursor.matrixTransform(svg.getScreenCTM().inverse());
+  const local=cursor.matrixTransform(matrix.inverse());
   const index=Math.round((local.x-left)/(right-left)*(rows.length-1));
   select(Math.max(0,Math.min(rows.length-1,index)));
- };
+ }
+ svg.onpointermove=event=>{if(event.pointerType==='mouse')selectAtPointer(event)};
+ svg.onclick=selectAtPointer;
  select(rows.length-1);
 }
 async function dashboardStore(id){

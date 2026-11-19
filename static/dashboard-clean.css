@@ -107,3 +107,49 @@ button.rollout-meter .bar > span { background: #a3c6fa; }
 .approval-trend-detail { border-top: 1px solid #dfe6f0; padding-top: 8px; color: #24354e; font-size: 12px; }
 .approval-trend-detail input { width: min(100%, 240px); accent-color: #137961; }
 .approval-trend .dashboard-small { margin: 8px 0 0; }
+
+/* Approval history, with a depth layer and touch-accessible daily selection. */
+.approval-trend-depth .approval-trend-stage {
+  margin-top: 18px;
+  padding: 22px 22px 5px;
+  border: 1px solid #3e536d;
+  border-radius: 16px;
+  background: radial-gradient(ellipse at 78% 0%, #234d55 0%, transparent 56%), linear-gradient(145deg, #26384e, #162638);
+  box-shadow: 0 12px 25px -18px #112c43a6, inset 0 1px 0 #ffffff12;
+  overflow: hidden;
+}
+.approval-trend-depth .approval-trend-summary {
+  display: flex; align-items: center; gap: 32px; color: #eff9fc;
+}
+.approval-trend-summary > div + div { border-left: 1px solid #52697d; padding-left: 32px; }
+.approval-trend-summary span { display: block; color: #bed0df; font-size: 12px; }
+.approval-trend-summary strong { display: block; font-size: 29px; line-height: 1.4; font-variant-numeric: tabular-nums; }
+.approval-trend-summary strong small { font-size: 12px; font-weight: 500; color: #bed0df; }
+.approval-trend-summary > div + div strong { color: #83e6c6; }
+.approval-trend-depth .approval-trend-chart { max-height: 310px; margin: 2px auto 0; }
+.approval-trend-depth .approval-trend-chart .approval-axis { fill: #bdcfe0; font-size: 13px; }
+.approval-trend-depth .approval-trend-chart .approval-trend-callout text { fill: #124c40; font-size: 15px; font-weight: 700; }
+.approval-line-main { stroke-dasharray: 1; stroke-dashoffset: 0; animation: approval-line-reveal 1.1s ease-out both; }
+.approval-trend-depth .approval-trend-detail { margin-top: 14px; padding-top: 12px; }
+.approval-trend-depth .approval-trend-detail input { cursor: pointer; }
+.approval-trend-no-data { color: #bed0df; font-size: 12px; margin: 0 0 12px; }
+@keyframes approval-line-reveal { from { stroke-dashoffset: 1; } to { stroke-dashoffset: 0; } }
+@media (max-width: 760px) {
+  .approval-trend-depth .approval-trend-stage { padding: 16px 3px 5px; border-radius: 12px; }
+  .approval-trend-depth .approval-trend-summary { gap: 18px; padding: 0 12px; }
+  .approval-trend-summary > div + div { padding-left: 18px; }
+  .approval-trend-summary span { font-size: 10px; }
+  .approval-trend-summary strong { font-size: 24px; }
+  .approval-trend-depth .approval-trend-chart .approval-axis { font-size: 19px; }
+  .approval-trend-depth .approval-trend-chart .approval-trend-callout text { font-size: 20px; }
+  .approval-trend-depth .approval-trend-detail { align-items: stretch; }
+  .approval-trend-depth .approval-trend-detail input { width: 100%; }
+  .approval-trend-no-data { padding: 0 12px; }
+}
+@media (prefers-reduced-motion: reduce) {
+  .approval-line-main { animation: none; }
+}
+@media print {
+  .approval-trend-depth .approval-trend-stage { print-color-adjust: exact; }
+  .approval-line-main { animation: none; }
+}
