@@ -163,7 +163,7 @@ def create_rollout_executive_pdf(data):
         ('PDVs implantados',b['pdvs_deployed'],rate(b['pdvs_deployed'],b['pdvs_expected'])+' do parque',colors.HexColor('#e9f6f0')),
         ('PDVs pendentes',b['pdvs_pending'],'Aguardam implantação',colors.HexColor('#fff6e4')),
         ('Lojas atualizadas',b['stores_updated'],n(b['stores_updated'])+' de '+n(b['stores_expected'])+' lojas',BG),
-        ('Pendências abertas',network['open_issues'],n(network['overdue_issues'])+' com prazo vencido na rede',colors.HexColor('#fcf0f2')),
+        ('Pendências abertas',network['open_issues'],'',colors.HexColor('#fcf0f2')),
     ]
     flow = [
         p('Visão geral do rollout','title'),
@@ -171,13 +171,12 @@ def create_rollout_executive_pdf(data):
         headline_cards(cards),Spacer(1,16),
         columns(
             [p('Evolução acumulada do Orion OK','h'),approval_chart(data['trend']),
-             p('Últimos 14 dias, com saldo anterior. Considera PDVs atualmente Orion OK com data de aprovação identificada.','muted')],
+             p('Últimos 14 dias, com saldo anterior.','muted')],
             [Spacer(1,12),rollout_progress(b['pdvs_expected'],b['pdvs_deployed'],t['ok'],e['overdue_pdvs'],e['critical_issues']),
-             p('Prioridade executiva','h'),p(focus),
-             p('Lojas com todos os PDVs Orion OK: '+n(t['stores_ok'])+'\nAprovações nos últimos 7 dias: '+n(e['recent_ok']))],
+             p('Prioridade executiva','h'),p(focus)],
             (440,400),
         ),
-        p('Escopo: filiais ativas e abertas com cadastro confirmado. Implantação inclui declaração na Base ou Orion OK.','muted'),
+        p('Escopo: filiais ativas e abertas com cadastro confirmado.','muted'),
         PageBreak(),
     ]
     period=data.get('period_summary')

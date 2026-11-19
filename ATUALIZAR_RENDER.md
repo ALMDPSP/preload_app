@@ -1,3 +1,21 @@
+# Atualização v5.1.24
+
+O PDF executivo remove o prazo do cartão Pendências abertas, as linhas sobre lojas com todos os PDVs Orion OK e aprovações nos últimos sete dias, e os textos explicativos indicados sobre implantação e critério da curva. No Dashboard, o cartão Pendências abertas mostra o total e Ver pendências.
+
+Envie o conteúdo do ZIP para a raiz do GitHub. Mantenha o Start Command `bash start.sh` e confirme a versão 5.1.24 em /healthz após o deploy.
+
+# Atualização v5.1.23
+
+O painel de evolução fica mais compacto, com cerca de 280 px no bloco escuro, indicadores e textos menores. A curva ocupa a largura disponível e se ajusta ao redimensionamento da janela e à orientação do celular. O modo ampliado continua disponível.
+
+Envie o conteúdo do ZIP para a raiz do GitHub. Mantenha o Start Command `bash start.sh` e confirme a versão 5.1.23 em /healthz após o deploy.
+
+# Atualização v5.1.22
+
+O desenho do gráfico passa a usar uma área proporcional que ocupa toda a largura do painel. A curva branca acompanha o tamanho dessa área no Dashboard e no modo ampliado.
+
+Envie o conteúdo do ZIP para a raiz do GitHub. Mantenha o Start Command `bash start.sh` e confirme a versão 5.1.22 em /healthz após o deploy.
+
 # Atualização v5.1.21
 
 A curva de evolução ocupa toda a largura disponível dentro do painel do Dashboard. A altura acompanha a proporção do gráfico, permitindo a leitura ampliada na própria página.

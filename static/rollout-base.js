@@ -94,7 +94,6 @@ function renderRolloutBaseDashboard(data){
  const pdvLists={deployed:'PDVs implantados',pending:'Pendentes de implantação'};
  const issueMetrics=data.operations?.metrics;
  const openIssues=issueMetrics?.open_issues??0;
- const overdueIssues=issueMetrics?.overdue_issues??0;
  const executive=data.executive||{},totals=data.totals||{},gap=Math.max(0,b.pdvs_deployed-(totals.ok||0));
  const priority=!b.pdvs_expected?'Nenhum PDV no recorte selecionado.':executive.critical_issues?'Prioridade: resolver '+executive.critical_issues+' ocorrência(s) crítica(s).':executive.overdue_pdvs?'Prioridade: atuar em '+executive.overdue_pdvs+' PDV(s) com prazo vencido.':gap?'Próximo foco: validar os '+gap+' PDV(s) implantados sem Orion OK.':b.pdvs_pending?'Próximo foco: avançar a implantação dos PDVs pendentes.':'Parque implantado. Acompanhe os aceites e o suporte às lojas.';
  const kpis=[
@@ -103,13 +102,13 @@ function renderRolloutBaseDashboard(data){
   ['PDVs implantados',b.pdvs_deployed,pct(b.pdvs_deployed)+' do parque','deployed'],
   ['PDVs pendentes',b.pdvs_pending,'Aguardam implantação','pending'],
   ['Lojas atualizadas',b.stores_updated,'De '+number(b.stores_expected)+' lojas no recorte','stores'],
-  ['Pendências abertas',openIssues,number(overdueIssues)+' com prazo vencido na rede','issues']
+  ['Pendências abertas',openIssues,'','issues']
  ];
  headline.innerHTML=`<div class="rollout-primary-stats">${kpis.map(([label,value,detail,key])=>{
   const action=key==='issues'?'Ver pendências':pdvLists[key]?'Ver PDVs':'';
   const tag=action?'button':'article';
-  return `<${tag} ${action?`type="button" data-rollout-list="${key}"`:''} class="stat rollout-kpi rollout-kpi-${key}${key==='issues'&&overdueIssues?' has-overdue':''}">
-    <small>${label}</small><strong>${number(value)}</strong><small>${detail}</small>
+  return `<${tag} ${action?`type="button" data-rollout-list="${key}"`:''} class="stat rollout-kpi rollout-kpi-${key}">
+    <small>${label}</small><strong>${number(value)}</strong>${detail?`<small>${detail}</small>`:''}
     ${action?`<span class="rollout-kpi-link">${action} <span aria-hidden="true">→</span></span>`:''}
    </${tag}>`;
  }).join('')}</div>
