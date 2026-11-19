@@ -135,3 +135,10 @@
   .verification-page .card { overflow-wrap: anywhere; }
   .verification-page img { max-width: 100%; height: auto; }
 }
+
+@media screen and (max-width: 700px) {
+  :root { --mobile-header: 100px; }
+  aside .logo.alm-brandmark { height: 84px; min-height: 84px; gap: 4px; }
+  aside .group-brand-logo { width: 63px; height: 36px; flex-basis: 36px; border-radius: 4px; }
+  aside .group-brand-logo { font-size: 19px; letter-spacing: -.7px; }
+}

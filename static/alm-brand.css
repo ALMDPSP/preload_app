@@ -14,3 +14,20 @@
 @media(min-width:701px){.sidebar-collapsed .logo.alm-brandmark{flex:0 0 40px;min-height:40px;height:40px;width:48px;margin:0 0 15px 5px}.sidebar-collapsed .logo.alm-brandmark .cutover-wordmark{display:none}.sidebar-collapsed .logo.alm-brandmark::before{content:"CO";font:800 21px system-ui,sans-serif;color:#a8ddeb}}
 @media(max-width:700px){.logo.alm-brandmark{flex:0 0 68px;min-height:68px;width:145px;height:68px;margin:0}.cutover-wordmark strong{font-size:27px}.cutover-wordmark>span{font-size:18px}.sidebar-toggle,.sidebar-collapsed .sidebar-toggle{top:32px}.mobile-menu-open .nav{top:100%}.alm-auth-frame{width:200px;height:91px}.alm-auth-frame .cutover-wordmark strong{font-size:35px}.alm-auth-frame .cutover-wordmark>span{font-size:23px}.login-story{padding-top:16px;padding-bottom:16px}}
 @media print{aside .alm-brandmark{display:none!important}}
+
+/* DPSP name above the product name. */
+.alm-brandmark { flex-direction: column; align-items: flex-start; justify-content: center; gap: 7px; }
+.group-brand-logo { display: flex; align-items: center; justify-content: center; flex: 0 0 65px; width: 112px; height: 65px; overflow: hidden; background: #fff; border-radius: 7px; color: #2e3345; font: 800 34px/1 system-ui, sans-serif; letter-spacing: -1.5px; }
+.logo.alm-brandmark { flex-basis: 145px; height: 145px; min-height: 145px; }
+.alm-auth-frame { height: 205px; }
+.alm-auth-frame .group-brand-logo { width: 147px; height: 85px; flex-basis: 85px; }
+.alm-auth-frame .group-brand-logo { font-size: 44px; }
+.alm-verification-brand { height: 205px; padding: 16px 26px; }
+@media (min-width: 701px) {
+  .sidebar-collapsed .logo.alm-brandmark .group-brand-logo { display: none; }
+}
+@media (max-width: 700px) {
+  .alm-auth-frame { height: 175px; }
+  .alm-auth-frame .group-brand-logo { width: 112px; height: 65px; flex-basis: 65px; }
+  .alm-auth-frame .group-brand-logo { font-size: 34px; }
+}

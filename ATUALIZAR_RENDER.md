@@ -1,3 +1,15 @@
+# Atualização v5.1.18
+
+A marca acima de Cutover online passa a exibir apenas o texto DPSP no menu lateral e nas telas de acesso, mantendo a disposição e os tamanhos do layout.
+
+Envie o conteúdo do ZIP para a raiz do GitHub. Mantenha o Start Command `bash start.sh` e confirme a versão 5.1.18 em /healthz após o deploy.
+
+# Atualização v5.1.17
+
+O gráfico de evolução usa a paleta do Grupo DPSP, com fundo azul-marinho, curva em coral e rosa, e destaques em azul-claro. O logo do Grupo DPSP aparece acima de Cutover online no menu lateral e nas telas de acesso, usando a imagem institucional existente.
+
+Envie o conteúdo do ZIP para a raiz do GitHub. Mantenha o Start Command `bash start.sh` e confirme a versão 5.1.17 em /healthz após o deploy.
+
 # Atualização v5.1.16
 
 O gráfico de evolução acumulada do Orion OK ganha profundidade, degradê, animação de entrada e destaque do total acumulado e das aprovações no período. Passe o mouse, toque na curva ou mova a barra inferior para consultar cada dia. Os botões de 7, 14 e 30 dias atualizam a curva e os indicadores. A animação respeita a preferência de redução de movimento do dispositivo.
