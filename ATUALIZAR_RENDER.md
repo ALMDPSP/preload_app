@@ -1,3 +1,13 @@
+# Atualização v5.1.26
+
+GGR, GR e DIV são vinculados automaticamente ao código da loja na Central de Cutover e na Base de Rollout. Os campos aparecem somente para leitura. Os agrupamentos por GR e regional usam a relação fornecida.
+
+A referência contém as 2.085 lojas da planilha Relação de lojas.xlsx. NOME GGL foi usado para GGR, NOME GR para GR, NOME DIV para DIV e REGIAO GR para Regional. Foram incluídos apenas os códigos e campos de hierarquia. A referência está em store_organization.json e precisa acompanhar a publicação.
+
+Os valores antigos de GR e regional permanecem armazenados. Campos vazios na referência usam o valor anterior, quando existente. Lojas sem correspondência mantêm seus dados anteriores e mostram o aviso na tela. O vínculo da hierarquia não altera os cutovers, PDVs, checklists, aceites, pendências ou cronograma já gravados.
+
+Envie todo o conteúdo do ZIP para a raiz do GitHub, incluindo organization_reference.py e store_organization.json. Mantenha o Start Command `bash start.sh` e confirme a versão 5.1.26 em /healthz após o deploy.
+
 # Atualização v5.1.25
 
 O PDF executivo fica com duas páginas, a capa e a Visão geral do rollout. Os textos indicados sobre critérios de aprovação, lojas com todos os PDVs Orion OK, aprovações nos últimos sete dias e prazo no cartão de pendências foram removidos. O cartão Pendências abertas do Dashboard mostra o total e Ver pendências.

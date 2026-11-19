@@ -27,7 +27,7 @@ def test_atomic_save_commits_every_part_and_rolls_back_base_on_checklist_conflic
     assert c.get('/api/cutovers/'+id).json['state']['decisions']==body['checklist']['state']['decisions']
     fresh_b,fresh=central(c,id);fresh['base']['gr']='Não gravar';fresh['checklist']['version']=1
     assert save(c,b,fresh).status_code==409
-    assert form(c,b)['gr']=='' and c.get('/api/cutovers/'+id).json['version']==2
+    assert form(c,b)['gr']==body['base']['gr'] and c.get('/api/cutovers/'+id).json['version']==2
     # An assignment written before another failure must also roll back.
     fresh_b,fresh=central(c,id);fresh['assignment']={'version':0,'planned_date':'2026-11-10'}
     fresh['base']['version']=999

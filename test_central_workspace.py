@@ -16,7 +16,7 @@ def test_single_pdv_base_edit_preserves_other_pdvs_and_saved_checklist(isolated)
     assert c.get('/api/cutovers/'+id).json==cutover
     stale={**fresh,'gr':'Não deve salvar','machines':[first]}
     assert put(c,b,stale).status_code==409
-    assert form(c,b)['gr']=='GR CENTRAL'
+    assert form(c,b)['gr']=='OLIVEIRA JUNIOR'
     assert c.get('/api/dashboard?compact=1').json['rollout_base']['pdvs_deployed']==2
     assert c.get('/api/dashboard?compact=1').json['totals']['ok']==0
 

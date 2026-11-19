@@ -3,7 +3,7 @@ import json
 from collections import Counter,defaultdict
 from datetime import date
 from flask import request,g,jsonify
-from permissions import ROLLOUT_EDITOR_ROLES
+from organization_reference import organization_for
 from dashboard import dashboard_data,pdv_number,DEFAULT_PDVS,normalize
 
 SCHEMA=[
@@ -19,7 +19,7 @@ def migrate_rollout_base(c,postgres=False):
 
 def base_records(core):
     with core['db']() as c:
-        org={r['branch_id']:dict(r) for r in c.execute('SELECT branch_id,regional,gr FROM ct_rollout_organization').fetchall()}
+        org={r['id']:organization_for(r['code'],dict(r)) for r in c.execute('SELECT b.id,b.code,o.regional,o.gr FROM ct_branches b LEFT JOIN ct_rollout_organization o ON o.branch_id=b.id').fetchall()}
         inventory={(r['branch_id'],r['pdv']):dict(r) for r in c.execute('SELECT branch_id,pdv,status,installed_version,deployed_at FROM ct_rollout_inventory').fetchall()}
     return org,inventory
 
@@ -71,7 +71,7 @@ def branch_base(core,id):
         plan=c.execute('SELECT * FROM ct_branch_pdv_plan WHERE branch_id=%s',(id,)).fetchone()
         records={r['pdv']:dict(r) for r in c.execute('SELECT * FROM ct_rollout_inventory WHERE branch_id=%s',(id,)).fetchall()}
     pdvs=json.loads(plan['pdvs']) if plan else list(DEFAULT_PDVS)
-    return {'branch':dict(branch),'regional':org['regional'] if org else '','gr':org['gr'] if org else '','version':org['version'] if org else 0,'plan_version':plan['version'] if plan else 0,'machines':[records.get(pdv,{'pdv':pdv,'status':'Pendente','installed_version':'','deployed_at':'','notes':'','legacy_pdv':'','version':0}) for pdv in pdvs]}
+    return {'branch':dict(branch),**organization_for(branch['code'],dict(org) if org else None),'version':org['version'] if org else 0,'plan_version':plan['version'] if plan else 0,'machines':[records.get(pdv,{'pdv':pdv,'status':'Pendente','installed_version':'','deployed_at':'','notes':'','legacy_pdv':'','version':0}) for pdv in pdvs]}
 
 def clean(body,key,maximum,uppercase=False):
     value=body.get(key,'')
@@ -88,9 +88,9 @@ def register_rollout_base(app,core):
         for branch in branches:
             org=organizations.get(branch['id'],{});store=active.get(branch['id']);plan=json.loads(branch['pdvs']) if branch['pdvs'] else list(DEFAULT_PDVS)
             if uf and branch['uf']!=uf or gr and normalize(org.get('gr',''))!=gr or regional and normalize(org.get('regional',''))!=regional:continue
-            if q not in normalize(' '.join([branch['code'],branch['name'],org.get('gr',''),org.get('regional','')])):continue
+            if q not in normalize(' '.join([branch['code'],branch['name'],org.get('gr',''),org.get('regional',''),org.get('ggr',''),org.get('division','')])):continue
             count=sum(deployed(m,inventory.get((branch['id'],m['pdv']))) for m in store['machines']) if store else sum(inventory.get((branch['id'],pdv),{}).get('status')=='Implantado' for pdv in plan)
-            rows.append({k:branch[k] for k in ['id','code','name','uf','active','opening_soon','needs_review']}|{'regional':org.get('regional',''),'gr':org.get('gr',''),'expected':len(plan),'deployed':count,'percent':round(count/len(plan)*100,1) if plan else 0,'in_scope':bool(store)})
+            rows.append({k:branch[k] for k in ['id','code','name','uf','active','opening_soon','needs_review']}|{'regional':org.get('regional',''),'gr':org.get('gr',''),'ggr':org.get('ggr',''),'division':org.get('division',''),'expected':len(plan),'deployed':count,'percent':round(count/len(plan)*100,1) if plan else 0,'in_scope':bool(store)})
         try:page=max(1,int(request.args.get('page',1)))
         except ValueError:page=1
         pages=max(1,(len(rows)+24)//25);page=min(page,pages)
@@ -132,7 +132,9 @@ def register_rollout_base(app,core):
             if any(pdv not in expected for pdv,*rest in prepared):return core['error']('Inclua o PDV na lista prevista da filial antes de cadastrar.')
             org=c.execute('SELECT * FROM ct_rollout_organization WHERE branch_id=%s',(id,)).fetchone()
             if (org['version'] if org else 0)!=body['version']:return core['error']('Outra pessoa atualizou este cadastro. Reabra antes de salvar.',409)
-            if g.user['role'] not in ROLLOUT_EDITOR_ROLES and (regional,gr)!=(org['regional'] if org else '',org['gr'] if org else ''):return core['error']('Somente Administrador, Operador ou Gestor altera GR e regional.',403)
+            # Keep legacy organization values intact. The reference owns the displayed leadership.
+            regional=org['regional'] if org else ''
+            gr=org['gr'] if org else ''
             old={r['pdv']:dict(r) for r in c.execute('SELECT * FROM ct_rollout_inventory WHERE branch_id=%s',(id,)).fetchall()}
             # Validate all versions before any write, so a conflict never saves a partial form.
             if any((old.get(pdv,{}).get('version',0))!=version for pdv,status,installed,at,notes,version,legacy in prepared):return core['error']('Um PDV foi atualizado por outra pessoa. Reabra o cadastro.',409)

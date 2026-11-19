@@ -22,7 +22,7 @@ def test_declared_implantation_is_separate_from_acceptance_and_deduplicated(isol
 
 def test_gr_regional_denominators_and_uninformed_versions_are_consistent(isolated):
     c=admin(isolated);id=create(c);b=c.get('/api/cutovers/'+id).json['branch_id']
-    others=[c.post('/api/branches',headers=headers(c),json={'code':code,'name':code,'uf':uf}).json['id'] for code,uf in [('L0002','SP'),('L0003','RJ')]]
+    others=[c.post('/api/branches',headers=headers(c),json={'code':code,'name':code,'uf':uf}).json['id'] for code,uf in [('VD454','SP'),('L0003','RJ')]]
     for i,branch in enumerate([b,*others]):
         body=form(c,branch);body.update(gr='Mesmo GR' if i<2 else 'Outro GR',regional='SP Centro' if i<2 else 'RJ Centro')
         if i==0:
@@ -32,7 +32,7 @@ def test_gr_regional_denominators_and_uninformed_versions_are_consistent(isolate
     d=c.get('/api/dashboard?compact=1').json['rollout_base']
     assert d['pdvs_expected']==15 and d['pdvs_deployed']==3 and d['stores_updated']==2 and d['stores_percent']==66.7
     assert d['deployed_without_version']==1 and sum(v['count'] for v in d['versions'])+d['deployed_without_version']==d['pdvs_deployed']
-    gr=next(g for g in d['by_gr'] if g['name']=='MESMO GR');assert gr['stores_expected']==2 and gr['stores_updated']==1 and gr['percent']==50
+    gr=next(g for g in d['by_gr'] if g['name']=='OLIVEIRA JUNIOR');assert gr['stores_expected']==2 and gr['stores_updated']==1 and gr['percent']==50
     assert sum(g['stores_expected'] for g in d['by_regional'])==3
     scoped=c.get('/api/dashboard?compact=1&uf=RJ').json['rollout_base'];assert scoped['stores_expected']==1 and scoped['pdvs_deployed']==1
     empty=c.get('/api/dashboard?compact=1&uf=AC').json['rollout_base'];assert empty['stores_percent']==0 and empty['pdvs_percent']==0 and empty['by_gr']==[]
@@ -47,7 +47,7 @@ def test_role_permissions_and_conflicts_never_partially_save(isolated):
     assert put(c,b,body).status_code==409
     fresh=form(c,b);fresh['gr']='Não deve salvar';fresh['machines'][0]['version']=0
     assert put(c,b,fresh).status_code==409
-    assert form(c,b)['gr']=='GR OPERADOR' and form(c,b)['machines'][0]['installed_version']=='build-1'
+    assert form(c,b)['gr']=='OLIVEIRA JUNIOR' and form(c,b)['machines'][0]['installed_version']=='build-1'
     assert module.app.test_client().get('/api/rollout-base').status_code==401
     assert c.put('/api/rollout-base/branches/'+b,json=form(c,b)).status_code==403
 
@@ -61,11 +61,11 @@ def test_validation_plan_change_and_missing_registration(isolated):
     assert c.get('/api/rollout-base/branches/absent').status_code==404
     assert c.put('/api/branches/'+b+'/pdv-plan',headers=headers(c),json={'pdvs':['01','02','03','04','05'],'version':0}).status_code==200
     assert put(c,b,body).status_code==409
-    d=c.get('/api/dashboard?compact=1').json['rollout_base'];assert d['stores_missing_organization']==1 and d['by_gr'][0]['name']=='Não informado' and d['pdvs_expected']==5
+    d=c.get('/api/dashboard?compact=1').json['rollout_base'];assert d['stores_missing_organization']==0 and d['by_gr'][0]['name']=='OLIVEIRA JUNIOR' and d['pdvs_expected']==5
 
 def test_base_filters_pagination_inactive_scope_and_edits(isolated):
     c=admin(isolated);id=create(c);b=c.get('/api/cutovers/'+id).json['branch_id'];body=form(c,b);body.update(gr='Ana',regional='SP Centro');body['machines'][0].update(status='Implantado',installed_version='1.0');assert put(c,b,body).status_code==200
-    assert c.get('/api/rollout-base?gr=ana&regional=sp%20centro&q=VD266').json['total']==1
+    assert c.get('/api/rollout-base?gr=oliveira%20junior&regional=sp%20centro&q=VD266').json['total']==1
     assert c.get('/api/rollout-base?regional=RJ').json['total']==0
     with module.db() as db:
         for i in range(30):db.execute('INSERT INTO ct_branches (id,code,name,created_at) VALUES (%s,%s,%s,%s)',('qa'+str(i),'Q'+str(i).zfill(3),'QA',module.now()))
