@@ -3,9 +3,12 @@
  const button=document.getElementById('installApp');
  if(!button)return;
  const standalone=()=>window.matchMedia?.('(display-mode: standalone)').matches||window.navigator.standalone;
- const refresh=()=>button.hidden=!!standalone();refresh();
+ const installArea=button.closest('.auth-install')||button;
+ const setInstalled=installed=>{button.hidden=installed;installArea.hidden=installed};
+ const refresh=()=>setInstalled(!!standalone());refresh();
+ window.matchMedia?.('(display-mode: standalone)').addEventListener?.('change',refresh);
  window.addEventListener('beforeinstallprompt',e=>{e.preventDefault();installPrompt=e;refresh()});
- window.addEventListener('appinstalled',()=>{installPrompt=null;button.hidden=true});
+ window.addEventListener('appinstalled',()=>{installPrompt=null;setInstalled(true)});
  button.onclick=async()=>{
   if(installPrompt){const prompt=installPrompt;installPrompt=null;try{await prompt.prompt();await prompt.userChoice}catch(e){showHelp()}return}
   showHelp();

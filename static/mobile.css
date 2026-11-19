@@ -128,7 +128,7 @@
   .login-shell, .verification-page .card { width: 100%; max-width: 430px; min-width: 0; }
   .login-shell { grid-template-columns: minmax(0, 1fr); }
   .login-story { padding: 12px 18px; }
-  .login-story .alm-auth-frame { height: 57px; }
+  .login-story .alm-auth-frame { height: auto; min-height: 0; flex-shrink: 0; }
   .login-story .cutover-wordmark strong { font-size: 25px; }
   .login-story .cutover-wordmark > span { font-size: 16px; }
   .login-form-panel, .verification-page .card { padding: 20px 16px; }

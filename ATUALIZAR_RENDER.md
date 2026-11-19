@@ -1,3 +1,10 @@
+# v5.1.29 — Cabeçalho completo no celular
+
+- Removidas alturas fixas conflitantes da marca no login e MFA.
+- Aplicativo instalado oculta botão, texto e separador da área de instalação.
+- Mantidas autenticação, permissões e informações já salvas.
+- Envie o conteúdo deste ZIP, incluindo static e templates, para a raiz do repositório e aguarde o deploy.
+
 # Atualização v5.1.28
 
 As telas de login e MFA passam a usar um cabeçalho compacto, campos de toque com fonte de 16 px e espaçamentos para celular. A marca DPSP e Cutover online cabe no cabeçalho. O layout considera as áreas seguras do aplicativo instalado e permite rolagem em telas baixas. O QR Code e os códigos de recuperação se adaptam à largura disponível. No aplicativo instalado, a opção de instalar novamente fica oculta.

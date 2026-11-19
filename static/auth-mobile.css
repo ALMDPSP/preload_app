@@ -143,6 +143,7 @@
   }
   .verification-page .card > small { margin-top: 20px; }
 }
+body.login-page .auth-install[hidden],
 body.login-page #installApp[hidden],
 body.verification-page #installApp[hidden] { display: none !important; }
 @media (display-mode: standalone) {
