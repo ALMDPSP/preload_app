@@ -1,0 +1,151 @@
+/* Mobile authentication, including installed app safe areas and short viewports. */
+@media (max-width: 760px), (max-height: 500px) and (pointer: coarse) {
+  body.login-page,
+  body.verification-page {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    min-height: 100vh;
+    min-height: 100dvh;
+    padding: 12px;
+    padding-top: max(12px, env(safe-area-inset-top));
+    padding-right: max(12px, env(safe-area-inset-right));
+    padding-bottom: max(16px, env(safe-area-inset-bottom));
+    padding-left: max(12px, env(safe-area-inset-left));
+    font-size: 14px;
+    line-height: 1.5;
+  }
+  .login-page .login-shell,
+  .verification-page .card {
+    flex: 0 0 auto;
+    width: 100%;
+    max-width: 430px;
+    min-width: 0;
+    margin: auto;
+    border-radius: 18px;
+  }
+  .login-page .login-shell { grid-template-columns: minmax(0, 1fr); }
+  .login-page .login-story {
+    min-height: 0;
+    padding: 16px 20px;
+    gap: 0;
+  }
+  .login-page .story-content,
+  .login-page .story-foot { display: none; }
+  .login-page .login-story .alm-auth-frame,
+  .verification-page .alm-verification-brand {
+    width: 100%;
+    max-width: none;
+    height: auto;
+    min-height: 0;
+    overflow: visible;
+    padding: 0;
+    margin: 0;
+    gap: 6px;
+    align-items: flex-start;
+    justify-content: flex-start;
+  }
+  .login-page .alm-auth-frame .group-brand-logo,
+  .verification-page .alm-verification-brand .group-brand-logo {
+    flex: 0 0 auto;
+    width: 76px;
+    height: 36px;
+    min-height: 36px;
+    border-radius: 6px;
+    font: 800 23px/1 system-ui, sans-serif;
+    letter-spacing: -.8px;
+  }
+  .login-page .alm-auth-frame .cutover-wordmark,
+  .verification-page .alm-verification-brand .cutover-wordmark {
+    flex-direction: row;
+    align-items: baseline;
+    gap: 6px;
+    white-space: normal;
+  }
+  .login-page .login-story .cutover-wordmark strong,
+  .verification-page .alm-verification-brand .cutover-wordmark strong {
+    font-size: 25px;
+    letter-spacing: -.6px;
+  }
+  .login-page .login-story .cutover-wordmark > span,
+  .verification-page .alm-verification-brand .cutover-wordmark > span {
+    font-size: 18px;
+    margin-top: 0;
+    letter-spacing: .2px;
+  }
+  .login-page .login-form-panel { min-width: 0; padding: 22px 20px 20px; }
+  .login-page .login-heading h2,
+  .verification-page h1 { font-size: 24px; line-height: 1.25; margin: 10px 0; }
+  .login-page .login-heading p { font-size: 13px; margin-bottom: 18px; }
+  .login-page label,
+  .verification-page label { font-size: 13px; margin: 14px 0 7px; }
+  .login-page input:not([type="checkbox"]):not([type="hidden"]),
+  .verification-page input:not([type="checkbox"]):not([type="hidden"]) {
+    display: block;
+    box-sizing: border-box;
+    width: 100%;
+    max-width: 100%;
+    min-width: 0;
+    min-height: 48px;
+    padding: 12px;
+    font-size: 16px;
+    border-radius: 9px;
+  }
+  .login-page .password-field > input,
+  .verification-page .password-field > input { padding-right: 82px; }
+  .login-page .password-toggle,
+  .verification-page .password-toggle { min-height: 44px; }
+  .login-page .auth-submit,
+  .verification-page button:not(.password-toggle):not(#installApp),
+  .verification-page .primary {
+    min-height: 48px;
+    padding: 12px 15px;
+    font-size: 15px;
+    margin-top: 18px;
+  }
+  .login-page .auth-security { margin: 14px 0 18px; }
+  .login-page .auth-install { padding-top: 16px; }
+  .login-page #installApp,
+  .verification-page #installApp { min-height: 44px; }
+  .login-page footer { margin-top: 20px; }
+  .verification-page .card { padding: 18px 20px; overflow-wrap: anywhere; }
+  .verification-page .alm-verification-brand {
+    width: calc(100% + 40px);
+    padding: 16px 20px;
+    margin: -18px -20px 16px;
+    border-radius: 17px 17px 0 0;
+    overflow: hidden;
+  }
+  .verification-page p { font-size: 13px; line-height: 1.6; margin: 12px 0; }
+  .verification-page img {
+    width: 200px;
+    max-width: 100%;
+    height: auto;
+    margin: 16px auto;
+  }
+  .verification-page details { margin-top: 14px; padding: 10px; }
+  .verification-page code { max-width: 100%; white-space: normal; overflow-wrap: anywhere; }
+  .verification-page .codes { grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 8px; }
+  .verification-page .codes code { padding: 10px 6px; font-size: 12px; text-align: center; }
+  .verification-page label:has(input[type="checkbox"]) {
+    display: flex;
+    align-items: flex-start;
+    gap: 10px;
+    min-height: 44px;
+    padding: 8px 0;
+    font-weight: 500;
+  }
+  .verification-page input[type="checkbox"] {
+    flex: 0 0 20px;
+    width: 20px;
+    height: 20px;
+    margin: 0;
+  }
+  .verification-page .card > small { margin-top: 20px; }
+}
+body.login-page #installApp[hidden],
+body.verification-page #installApp[hidden] { display: none !important; }
+@media (display-mode: standalone) {
+  .login-page .auth-install,
+  .verification-page #installApp { display: none; }
+}

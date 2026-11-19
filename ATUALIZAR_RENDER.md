@@ -1,3 +1,9 @@
+# Atualização v5.1.28
+
+As telas de login e MFA passam a usar um cabeçalho compacto, campos de toque com fonte de 16 px e espaçamentos para celular. A marca DPSP e Cutover online cabe no cabeçalho. O layout considera as áreas seguras do aplicativo instalado e permite rolagem em telas baixas. O QR Code e os códigos de recuperação se adaptam à largura disponível. No aplicativo instalado, a opção de instalar novamente fica oculta.
+
+Envie todo o conteúdo do ZIP para a raiz do GitHub, incluindo static/auth-mobile.css. Mantenha o Start Command `bash start.sh` e confirme a versão 5.1.28 em /healthz após o deploy.
+
 # Atualização v5.1.27
 
 Os cinco vínculos de GR DELIVERY na relação fornecida passam a MARCELO POLO. O mesmo ajuste se aplica à exibição de valores anteriores de GR DELIVERY.
