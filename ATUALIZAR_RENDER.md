@@ -1,3 +1,11 @@
+# Atualização v5.1.27
+
+Os cinco vínculos de GR DELIVERY na relação fornecida passam a MARCELO POLO. O mesmo ajuste se aplica à exibição de valores anteriores de GR DELIVERY.
+
+Ao abrir PDVs implantados no Dashboard, cada linha mostra GGR, GR e DIV ao lado da filial. A busca de loja, paginação e abertura do cutover continuam disponíveis.
+
+Envie todo o conteúdo do ZIP para a raiz do GitHub, incluindo store_organization.json e organization_reference.py. Mantenha o Start Command `bash start.sh` e confirme a versão 5.1.27 em /healthz após o deploy.
+
 # Atualização v5.1.26
 
 GGR, GR e DIV são vinculados automaticamente ao código da loja na Central de Cutover e na Base de Rollout. Os campos aparecem somente para leitura. Os agrupamentos por GR e regional usam a relação fornecida.

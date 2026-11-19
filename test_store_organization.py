@@ -62,3 +62,25 @@ def test_blank_and_unmatched_reference_preserve_legacy_values(isolated):
         assert result['gr']=='GR ANTERIOR' and result['regional']=='REGIONAL ANTERIOR'
         assert result['ggr']==result['division']==''
         assert result['organization_matched']==(code=='VD002')
+
+def test_delivery_gr_override_covers_reference_and_legacy():
+    for code in ['L1620','L1755','L2180','L2296','L2888']:
+        assert organization_for(code)['gr']=='MARCELO POLO'
+    assert all(row['gr'].strip().upper()!='DELIVERY' for row in reference().values())
+    assert organization_for('LOJA AUSENTE',{'gr':'DELIVERY','regional':'SP'})['gr']=='MARCELO POLO'
+
+def test_deployed_dashboard_rows_include_store_leadership_and_keep_search(isolated):
+    c=admin(isolated)
+    branch=c.post('/api/branches',headers=headers(c),json={'code':'L1620','name':'Loja Delivery'}).json['id']
+    body=form(c,branch);body['machines'][0]['status']='Implantado'
+    assert put(c,branch,body).status_code==200
+    before=saved_tables()
+    result=c.get('/api/dashboard/machines?status=deployed&store_q=L1620').json
+    assert result['total']==1
+    row=result['rows'][0];expected=organization_for('L1620')
+    assert row['gr']=='MARCELO POLO'
+    assert row['ggr']==expected['ggr'] and row['division']==expected['division']
+    assert row['branch_id']==branch and row['pdv']=='01'
+    assert c.get('/api/dashboard/machines?status=deployed&store_q=ausente').json['total']==0
+    assert c.get('/api/dashboard/machines?status=undeployed&store_q=L1620').json['total']==4
+    assert before==saved_tables()

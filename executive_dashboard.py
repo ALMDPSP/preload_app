@@ -96,7 +96,7 @@ def machine_page(core,args):
     data=dashboard_data(core,args.get('q','')[:200],args.get('uf','').upper()[:2],include_evolution=not rollout_status)
     if rollout_status:
         from rollout_base import base_records,deployed,reported_version
-        _,inventory=base_records(core)
+        organizations,inventory=base_records(core)
         rows=[]
         for machine in data['machines']:
             record=inventory.get((machine['branch_id'],machine['pdv']))
@@ -105,7 +105,10 @@ def machine_page(core,args):
             label=machine['status']
             if status=='deployed' and not machine['ok']:
                 label='Implantação declarada'
+            organization=organizations.get(machine['branch_id'],{})
             rows.append({**machine,'status':label,
+                         'ggr':organization.get('ggr',''),'gr':organization.get('gr',''),
+                         'division':organization.get('division',''),
                          'installed_version':reported_version(record),
                          'deployed_at':(record or {}).get('deployed_at','')})
     else:

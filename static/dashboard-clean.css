@@ -205,3 +205,7 @@ dialog.approval-trend-fullscreen {
   margin: 0;
 }
 #approvalExpandedChart .approval-trend-plot { flex: 1; min-height: 180px; }
+
+#modal:has(.machine-list-organization) { width: min(1200px, 94vw); max-width: 1200px; }
+.machine-list-organization { min-width: 980px; }
+.machine-list-organization td { vertical-align: top; }

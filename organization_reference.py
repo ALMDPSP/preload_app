@@ -25,8 +25,9 @@ def organization_for(code,previous=None):
         matches=[value for candidate,value in reference().items() if store_key(candidate.lstrip('VDL'))==key]
         row=matches[0] if len(matches)==1 else None
     source=row or {}
+    gr=source.get('gr') or previous.get('gr') or ''
     return {
-        'gr':source.get('gr') or previous.get('gr') or '',
+        'gr':'MARCELO POLO' if gr.strip().upper()=='DELIVERY' else gr,
         'regional':source.get('regional') or previous.get('regional') or '',
         'ggr':source.get('ggr',''),
         'ggr_region':source.get('ggr_region',''),
