@@ -392,6 +392,20 @@ def users():
         audit(c,g.user['email'],'criação de usuário',detail={'email':email,'role':role})
     return jsonify(ok=True),201
 
+@app.delete('/api/users/<uid>')
+def delete_user(uid):
+    if g.user['role']!='admin':return error('Acesso exclusivo do administrador.',403)
+    if uid==g.user['id']:return error('Não é possível excluir sua própria conta.')
+    g.atomic_write=True
+    with db() as c:
+        row=c.execute('SELECT id,email,name FROM ct_users WHERE id=%s'+(' FOR UPDATE' if DATABASE else ''),(uid,)).fetchone()
+        if not row:return error('Usuário não encontrado.',404)
+        # Operational history keeps the recorded author; only access credentials are removed.
+        c.execute('DELETE FROM ct_auth WHERE user_id=%s',(uid,))
+        c.execute('DELETE FROM ct_users WHERE id=%s',(uid,))
+        audit(c,g.user['email'],'exclusão de usuário',detail=dict(row))
+    return jsonify(ok=True)
+
 @app.put('/api/users/<id>/active')
 def toggle_user(id):
     if g.user['role']!='admin':return error('Acesso exclusivo do administrador.',403)

@@ -1,3 +1,10 @@
+# v5.1.30 — Exclusão de usuários
+
+- Administrador pode excluir usuários em Usuários e acessos, com confirmação.
+- A própria conta não pode ser excluída.
+- Exclui credenciais e revoga acessos; preserva cutovers, PDVs e histórico. Vínculos de executor/validador ficam sem responsável pela regra existente do banco.
+- Envie todo o conteúdo do ZIP à raiz do repositório e aguarde o deploy.
+
 # v5.1.29 — Cabeçalho completo no celular
 
 - Removidas alturas fixas conflitantes da marca no login e MFA.
