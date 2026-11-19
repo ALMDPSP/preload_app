@@ -1,3 +1,9 @@
+# Atualização v5.1.25
+
+O PDF executivo fica com duas páginas, a capa e a Visão geral do rollout. Os textos indicados sobre critérios de aprovação, lojas com todos os PDVs Orion OK, aprovações nos últimos sete dias e prazo no cartão de pendências foram removidos. O cartão Pendências abertas do Dashboard mostra o total e Ver pendências.
+
+Envie o conteúdo do ZIP para a raiz do GitHub. Mantenha o Start Command `bash start.sh` e confirme a versão 5.1.25 em /healthz após o deploy.
+
 # Atualização v5.1.24
 
 O PDF executivo remove o prazo do cartão Pendências abertas, as linhas sobre lojas com todos os PDVs Orion OK e aprovações nos últimos sete dias, e os textos explicativos indicados sobre implantação e critério da curva. No Dashboard, o cartão Pendências abertas mostra o total e Ver pendências.
