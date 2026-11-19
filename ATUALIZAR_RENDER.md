@@ -1,3 +1,9 @@
+# Atualização v5.1.20
+
+Use Ampliar gráfico na evolução acumulada do Orion OK para ocupar toda a área da tela. O gráfico ampliado oferece os filtros de 7, 14 e 30 dias, a linha branca e a consulta dos valores por dia. Use Fechar gráfico ou Esc para voltar ao Dashboard.
+
+Envie o conteúdo do ZIP para a raiz do GitHub. Mantenha o Start Command `bash start.sh` e confirme a versão 5.1.20 em /healthz após o deploy.
+
 # Atualização v5.1.19
 
 A curva de evolução acumulada do Orion OK usa linha e pontos brancos, com brilho branco e preenchimento suave.

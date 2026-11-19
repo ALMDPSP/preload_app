@@ -30,7 +30,7 @@ function renderDashboard(){
  if(typeof renderExecutiveDashboard==='function')renderExecutiveDashboard(d);
  $('dashboardExceptions').innerHTML=d.exceptions.length?`<h3>Numeração para revisar · ${d.totals.exceptions}</h3><p>Estes registros não entram na meta nem nos PDVs OK até a numeração corresponder ao plano da loja.</p><ul>${d.exceptions.slice(0,100).map(e=>`<li>${esc(e.code)} · PDV ${esc(e.pdv||'não informado')}: ${esc(e.reason)}</li>`).join('')}</ul>${d.totals.exceptions>100?'<p>Use a busca de loja para refinar essa lista.</p>':''}`:'';$('dashboardExceptions').hidden=!d.exceptions.length;
 }
-function renderApprovalTrend(container, trend, days=14){
+function renderApprovalTrend(container, trend, days=14, expanded=false){
  if(!container)return;
  const rows=trend.slice(-days);
  const number=value=>Number(value||0).toLocaleString('pt-BR');
@@ -49,7 +49,7 @@ function renderApprovalTrend(container, trend, days=14){
  container.innerHTML=`<div class="approval-trend approval-trend-depth">
   <div class="approval-trend-header"><div><h2>Evolução acumulada do Orion OK</h2>
    <p>${last?`${date(rows[0].day)} a ${date(last.day)} · PDVs com data de aprovação identificada`:''}</p></div>
-   <div class="actions" aria-label="Período da curva">${[7,14,30].map(period=>`<button type="button" data-trend-days="${period}" aria-pressed="${period===days}">${period} dias</button>`).join('')}</div>
+   <div class="actions" aria-label="Período da curva">${[7,14,30].map(period=>`<button type="button" data-trend-days="${period}" aria-pressed="${period===days}">${period} dias</button>`).join('')}${expanded?'':'<button type="button" data-trend-expand>⛶ Ampliar gráfico</button>'}</div>
   </div>
   ${last?`<div class="approval-trend-stage">
    <div class="approval-trend-summary"><div><span>Orion OK acumulado</span><strong>${number(total)} <small>PDVs</small></strong></div><div><span>Aprovações no período</span><strong>+${number(periodTotal)}</strong></div></div>
@@ -81,8 +81,22 @@ function renderApprovalTrend(container, trend, days=14){
   <p class="muted dashboard-small">Conta os PDVs atualmente Orion OK por data de aprovação, incluindo o saldo anterior ao período.</p>
  </div>`;
  container.querySelectorAll('[data-trend-days]').forEach(button=>{
-  button.onclick=()=>{renderApprovalTrend(container,trend,Number(button.dataset.trendDays));container.querySelector('[aria-pressed="true"]').focus()};
+  button.onclick=()=>{renderApprovalTrend(container,trend,Number(button.dataset.trendDays),expanded);container.querySelector('[aria-pressed="true"]').focus()};
  });
+ const expandButton=container.querySelector('[data-trend-expand]');
+ if(expandButton)expandButton.onclick=()=>{
+  const dialog=document.createElement('dialog');
+  dialog.className='approval-trend-fullscreen';
+  dialog.setAttribute('aria-label','Gráfico de evolução ampliado');
+  dialog.innerHTML='<div class="approval-fullscreen-toolbar"><button type="button" data-trend-close autofocus>Fechar gráfico</button></div><div id="approvalExpandedChart"></div>';
+  document.body.append(dialog);
+  const previousOverflow=document.body.style.overflow;
+  document.body.style.overflow='hidden';
+  dialog.onclose=()=>{document.body.style.overflow=previousOverflow;dialog.remove();expandButton.focus()};
+  dialog.querySelector('[data-trend-close]').onclick=()=>dialog.close();
+  renderApprovalTrend(dialog.querySelector('#approvalExpandedChart'),trend,days,true);
+  dialog.showModal();
+ };
  const slider=container.querySelector('input[type="range"]');
  if(!slider)return;
  const svg=container.querySelector('svg');
