@@ -55,9 +55,9 @@ function renderApprovalTrend(container, trend, days=14){
    <div class="approval-trend-summary"><div><span>Orion OK acumulado</span><strong>${number(total)} <small>PDVs</small></strong></div><div><span>Aprovações no período</span><strong>+${number(periodTotal)}</strong></div></div>
    <svg class="approval-trend-chart" viewBox="0 0 750 270" role="img" aria-label="Evolução acumulada de PDVs Orion OK, de ${date(rows[0].day)} a ${date(last.day)}. Total ${number(total)}.">
     <defs>
-     <linearGradient id="${graphicId}-area" x1="0" y1="0" x2="0" y2="1"><stop offset="0%" stop-color="#ff595d" stop-opacity=".42"/><stop offset="100%" stop-color="#ff595d" stop-opacity=".03"/></linearGradient>
-     <linearGradient id="${graphicId}-line"><stop stop-color="#ff9ee0"/><stop offset="100%" stop-color="#ff595d"/></linearGradient>
-     <linearGradient id="${graphicId}-side" x1="0" y1="0" x2="0" y2="1"><stop stop-color="#bd4158" stop-opacity=".55"/><stop offset="100%" stop-color="#382d45" stop-opacity=".2"/></linearGradient>
+     <linearGradient id="${graphicId}-area" x1="0" y1="0" x2="0" y2="1"><stop offset="0%" stop-color="#ffffff" stop-opacity=".18"/><stop offset="100%" stop-color="#ffffff" stop-opacity=".03"/></linearGradient>
+     <linearGradient id="${graphicId}-line"><stop stop-color="#ffffff"/><stop offset="100%" stop-color="#ffffff"/></linearGradient>
+     <linearGradient id="${graphicId}-side" x1="0" y1="0" x2="0" y2="1"><stop stop-color="#b9c6d8" stop-opacity=".25"/><stop offset="100%" stop-color="#3a4354" stop-opacity=".08"/></linearGradient>
      <filter id="${graphicId}-glow" x="-20%" y="-100%" width="140%" height="300%"><feGaussianBlur stdDeviation="3"/></filter>
     </defs>
     <path d="M${left} ${bottom} H${right} L${right+10} ${bottom+depth} H${left+10} Z" fill="#4a4b61" opacity=".7"/>
@@ -66,12 +66,12 @@ function renderApprovalTrend(container, trend, days=14){
     <polygon points="${left},${bottom} ${points.join(' ')} ${right},${bottom}" fill="url(#${graphicId}-area)"/>
     <polyline points="${points.join(' ')}" class="approval-line-glow" stroke="url(#${graphicId}-line)" filter="url(#${graphicId}-glow)" fill="none" stroke-width="8" opacity=".32"/>
     <polyline points="${points.join(' ')}" class="approval-line-main" pathLength="1" fill="none" stroke="url(#${graphicId}-line)" stroke-width="3.5" stroke-linejoin="round" stroke-linecap="round"/>
-    ${rows.map((row,i)=>row.count>0?`<circle cx="${x(i)}" cy="${y(row.cumulative_ok)}" r="3" fill="#ffb8d8"/>`:'').join('')}
+    ${rows.map((row,i)=>row.count>0?`<circle cx="${x(i)}" cy="${y(row.cumulative_ok)}" r="3" fill="#ffffff"/>`:'').join('')}
     ${dates.map(i=>`<text class="approval-axis" x="${x(i)}" y="257" text-anchor="middle">${date(rows[i].day)}</text>`).join('')}
     <line data-trend-guide stroke="#b5d7e5" stroke-opacity=".6" stroke-dasharray="3 5" y1="${top}" y2="${bottom+depth}"/>
-    <circle data-trend-halo r="11" fill="#ff595d" opacity=".15"/>
-    <circle data-trend-point r="5" fill="#ff8da3" stroke="#fff3f8" stroke-width="2"/>
-    <g data-trend-label class="approval-trend-callout" aria-hidden="true"><rect width="130" height="33" rx="9" fill="#ffe1ed"/><text x="65" y="22" text-anchor="middle"></text></g>
+    <circle data-trend-halo r="11" fill="#ffffff" opacity=".15"/>
+    <circle data-trend-point r="5" fill="#ffffff" stroke="#ffffff" stroke-width="2"/>
+    <g data-trend-label class="approval-trend-callout" aria-hidden="true"><rect width="130" height="33" rx="9" fill="#ffffff"/><text x="65" y="22" text-anchor="middle"></text></g>
    </svg>
    ${!total?'<p class="approval-trend-no-data">Sem aprovações com data identificada no recorte.</p>':''}
   </div>

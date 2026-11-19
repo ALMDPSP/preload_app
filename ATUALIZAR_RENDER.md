@@ -1,3 +1,9 @@
+# Atualização v5.1.19
+
+A curva de evolução acumulada do Orion OK usa linha e pontos brancos, com brilho branco e preenchimento suave.
+
+Envie o conteúdo do ZIP para a raiz do GitHub. Mantenha o Start Command `bash start.sh` e confirme a versão 5.1.19 em /healthz após o deploy.
+
 # Atualização v5.1.18
 
 A marca acima de Cutover online passa a exibir apenas o texto DPSP no menu lateral e nas telas de acesso, mantendo a disposição e os tamanhos do layout.
