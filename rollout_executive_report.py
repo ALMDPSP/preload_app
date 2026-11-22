@@ -5,10 +5,11 @@ from xml.sax.saxutils import escape
 from flask import send_file,request
 from reportlab.lib import colors
 from reportlab.lib.styles import ParagraphStyle
-from reportlab.platypus import Paragraph,Spacer,Table,TableStyle
+from reportlab.platypus import Paragraph,Spacer,Table,TableStyle,PageBreak
 from reportlab.graphics.shapes import Drawing,Rect,String,Line,PolyLine,Circle
 from dashboard import dashboard_data
-from rollout_base import rollout_base_summary
+from rollout_base import rollout_base_summary,base_records
+from report_organization import organization_rollout
 from operations import operation_overview,today
 from executive_dashboard import approval_trend,executive_metrics
 
@@ -17,7 +18,8 @@ from pdf_brand import INK, MUTED, BLUE, PALE, LINE, BG, WIDTH, build_report, col
 def report_payload(core):
     data=dashboard_data(core)
     operations=operation_overview(core,data)
-    base=rollout_base_summary(core,data)
+    records=base_records(core)
+    base=rollout_base_summary(core,data,records)
     executive=executive_metrics(data,operations,core)
     trend=approval_trend(data['machines'],today(core),length=14)
     branches={s['id']:s for s in data['stores']}
@@ -31,6 +33,7 @@ def report_payload(core):
                 updates.append({'code':branches[row['branch_id']]['code'],'pdv':'','source':'GR / Regional','status':'Cadastro atualizado','at':row['updated_at']})
     updates.sort(key=lambda r:(r['at'],r['code'],r['pdv'],r['source']),reverse=True)
     return {'generated_at':data['generated_at'],'base':base,'totals':data['totals'],'excluded':data['excluded'],
+            'organization':organization_rollout(data,records),
             'executive':executive,'network':{'active_branches':data['active_branches_total'],
             'open_issues':operations['metrics']['open_issues'],'overdue_issues':operations['metrics']['overdue_issues']},'trend':trend,'updates':updates[:5],'updates_total':len(updates),'date_references':data['date_references']}
 
@@ -43,6 +46,8 @@ def create_rollout_executive_pdf(data):
       'muted':ParagraphStyle('rm',fontName='RolloutSans',fontSize=9,leading=13,textColor=MUTED,spaceAfter=6),
       'klabel':ParagraphStyle('rkl',fontName='RolloutSans-Bold',fontSize=9,leading=12,textColor=INK),
       'kvalue':ParagraphStyle('rkv',fontName='RolloutSans-Bold',fontSize=25,leading=33,textColor=INK),
+      'cell':ParagraphStyle('roc',fontName='RolloutSans',fontSize=8,leading=11,textColor=INK),
+      'thead':ParagraphStyle('roh',fontName='RolloutSans-Bold',fontSize=7.5,leading=10,textColor=colors.white),
     }
     def p(value,style='body'):
         return Paragraph(escape(str(value)).replace('\n','<br/>'),styles[style])
@@ -165,6 +170,55 @@ def create_rollout_executive_pdf(data):
         ),
         p('Escopo: filiais ativas e abertas com cadastro confirmado.','muted'),
     ]
+    organization=data.get('organization',{})
+    def org_table(headers, rows, widths):
+        table=Table([[p(label,'thead') for label in headers]]+rows,colWidths=widths,
+                    repeatRows=1,hAlign='LEFT')
+        table.setStyle(TableStyle([
+            ('BACKGROUND',(0,0),(-1,0),INK),('ROWBACKGROUNDS',(0,1),(-1,-1),[colors.white,BG]),
+            ('VALIGN',(0,0),(-1,-1),'TOP'),('LINEBELOW',(0,0),(-1,0),.7,INK),
+            ('LINEBELOW',(0,1),(-1,-1),.3,LINE),
+            ('LEFTPADDING',(0,0),(-1,-1),7),('RIGHTPADDING',(0,0),(-1,-1),7),
+            ('TOPPADDING',(0,0),(-1,-1),8),('BOTTOMPADDING',(0,0),(-1,-1),8),
+        ]))
+        return table
+
+    def group_progress(row):
+        graphic=Drawing(80,27)
+        graphic.add(String(0,17,rate(row['pdvs_deployed'],row['pdvs_expected']),
+                           fontName='RolloutSans-Bold',fontSize=9,fillColor=INK))
+        graphic.add(Rect(0,3,80,5,fillColor=LINE,strokeColor=None))
+        if row['pdvs_expected']:
+            graphic.add(Rect(0,3,80*min(1,row['pdvs_deployed']/row['pdvs_expected']),5,
+                             fillColor=BLUE,strokeColor=None))
+        return graphic
+
+    if organization.get('groups'):
+        flow.extend([PageBreak(),p('Virada por DIV, GGR e GR','title'),
+            p('Posição em '+stamp(data['generated_at'])+' (Brasília)','muted'),
+            p('Com implantação: ao menos um PDV implantado. Totalmente viradas: todos os PDVs previstos implantados. Orion OK é acompanhado separadamente.','muted')])
+        rows=[]
+        for row in organization['groups']:
+            rows.append([p(row[key],'cell') for key in ('division','ggr','gr')]+
+                [p(n(row[key]),'cell') for key in ('stores_expected','stores_updated','stores_complete')]+
+                [p(n(row['pdvs_deployed'])+' / '+n(row['pdvs_expected']),'cell'),p(n(row['pdvs_ok']),'cell'),group_progress(row)])
+        flow.append(org_table(['DIV','GGR','GR','Lojas no escopo','Com implantação',
+            'Totalmente viradas','PDVs impl. / previstos','Orion OK','Avanço PDVs'],rows,[120,130,140,60,70,76,90,70,100]))
+    else:
+        flow.extend([PageBreak(),p('Virada por DIV, GGR e GR','title'),p('Nenhuma loja no escopo para consolidar.','muted')])
+
+    flow.extend([PageBreak(),p('Lojas com virada registrada','title'),
+        p('Lojas com ao menos um PDV implantado, com os vínculos atuais do cadastro de filiais.','muted')])
+    if organization.get('stores'):
+        rows=[]
+        for row in organization['stores']:
+            status='Completa' if row['complete'] else 'Parcial'
+            rows.append([p(row['code']+' - '+row['name'],'cell')]+
+                [p(row[key],'cell') for key in ('division','ggr','gr')]+
+                [p(', '.join(row['installed']),'cell'),p(status+'\n'+n(len(row['installed']))+' / '+n(row['expected'])+' PDVs\n'+n(row['ok'])+' Orion OK','cell')])
+        flow.append(org_table(['Filial','DIV','GGR','GR','PDVs implantados','Situação'],rows,[216,120,125,125,160,110]))
+    else:
+        flow.append(p('Nenhuma loja com implantação registrada no escopo.','muted'))
     return build_report(flow,'Relatório executivo','Rollout PDV Orion',
                         'Posição em '+stamp(data['generated_at'])+' (Brasília)')
 

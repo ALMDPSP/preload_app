@@ -1,3 +1,11 @@
+# v5.1.31 — Virada por DIV, GGR e GR no relatório executivo
+
+- Mantém capa e visão geral; adiciona consolidado hierárquico e lojas com virada registrada.
+- Exibe lojas previstas, com implantação, totalmente viradas, PDVs implantados/previstos, Orion OK e avanço percentual.
+- Vínculos obtidos automaticamente da mesma referência de filiais usada no site.
+- Exportação somente de leitura: não altera o banco nem os checklists.
+- Publicação: envie todo o conteúdo do ZIP à raiz do repositório e aguarde o deploy.
+
 # v5.1.30 — Exclusão de usuários
 
 - Administrador pode excluir usuários em Usuários e acessos, com confirmação.
