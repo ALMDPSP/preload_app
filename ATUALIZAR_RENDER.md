@@ -1,3 +1,10 @@
+# v5.1.33 — Base completa e interface unificada
+
+- Interface carregada por static/app-5.1.33.js, incluindo o cartão Lojas totalmente viradas e sua lista pesquisável.
+- Conferência da integridade dos arquivos na inicialização, antes do acesso ao banco.
+- Todos os recursos de 5.1.32 mantidos: resumo DIV/GGR/GR, exclusão de usuários, mobile e permissões.
+- Consulte PUBLICAR_BASE_COMPLETA.md e envie as pastas completas, preservando os caminhos.
+
 # v5.1.32 — Resumo executivo e lojas totalmente viradas
 
 - PDF com capa, visão geral e quadro compacto DIV/GGR/GR, sem a relação detalhada de filiais. Grupos sem implantação são omitidos do quadro e continuam nos totais.

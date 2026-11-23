@@ -1,0 +1,62 @@
+[
+  {
+    "src": "static/server.js"
+  },
+  {
+    "src": "static/cutover-actions.js"
+  },
+  {
+    "src": "static/users.js"
+  },
+  {
+    "inline": "initChecklistUX()"
+  },
+  {
+    "src": "static/branch-progress.js"
+  },
+  {
+    "src": "static/branches.js"
+  },
+  {
+    "inline": "initBranches()"
+  },
+  {
+    "src": "static/branch-import.js"
+  },
+  {
+    "inline": "initBranchImport()"
+  },
+  {
+    "src": "static/reports.js"
+  },
+  {
+    "src": "static/completed-stores.js"
+  },
+  {
+    "src": "static/rollout-base.js"
+  },
+  {
+    "src": "static/executive-dashboard.js"
+  },
+  {
+    "src": "static/dashboard.js"
+  },
+  {
+    "src": "static/operations.js"
+  },
+  {
+    "src": "static/guided.js"
+  },
+  {
+    "src": "static/professional.js"
+  },
+  {
+    "src": "static/design.js"
+  },
+  {
+    "src": "static/central.js"
+  },
+  {
+    "src": "static/management.js"
+  }
+]
