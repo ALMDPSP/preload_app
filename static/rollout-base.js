@@ -102,10 +102,11 @@ function renderRolloutBaseDashboard(data){
   ['PDVs implantados',b.pdvs_deployed,pct(b.pdvs_deployed)+' do parque','deployed'],
   ['PDVs pendentes',b.pdvs_pending,'Aguardam implantação','pending'],
   ['Lojas atualizadas',b.stores_updated,'De '+number(b.stores_expected)+' lojas no recorte','stores'],
+  ['Lojas totalmente viradas',totals.stores_ok||0,'Todos os PDVs previstos Orion OK','complete'],
   ['Pendências abertas',openIssues,'','issues']
  ];
  headline.innerHTML=`<div class="rollout-primary-stats">${kpis.map(([label,value,detail,key])=>{
-  const action=key==='issues'?'Ver pendências':pdvLists[key]?'Ver PDVs':'';
+  const action=key==='complete'?'Ver lojas':key==='issues'?'Ver pendências':pdvLists[key]?'Ver PDVs':'';
   const tag=action?'button':'article';
   return `<${tag} ${action?`type="button" data-rollout-list="${key}"`:''} class="stat rollout-kpi rollout-kpi-${key}">
     <small>${label}</small><strong>${number(value)}</strong>${detail?`<small>${detail}</small>`:''}
@@ -147,6 +148,7 @@ function renderRolloutBaseDashboard(data){
  headline.querySelectorAll('[data-rollout-list]').forEach(button=>{
   const key=button.dataset.rolloutList;
   button.onclick=()=>{
+   if(key==='complete')return dashboardCompletedStores();
    if(key==='issues'){
     $('operationSearch').value='';
     return showOperations('issues','pending');
