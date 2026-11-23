@@ -24,9 +24,9 @@ def test_organization_rollout_unique_stores_pdvs_and_hierarchy():
     result=organization_rollout(data,records)
     assert len(result['groups'])==3
     a=next(row for row in result['groups'] if row['division']=='DIV A')
-    assert (a['stores_expected'],a['stores_updated'],a['stores_complete'])==(2,1,1)
+    assert (a['stores_expected'],a['stores_updated'],a['stores_complete'])==(2,1,0)
     assert (a['pdvs_expected'],a['pdvs_deployed'],a['pdvs_ok'])==(3,2,1)
-    assert a['percent']==66.67
+    assert a['percent']==33.33
     assert len(result['stores'])==2
     assert next(row for row in result['stores'] if row['code']=='VD001')['installed']==['101','102']
     assert any(row['division']=='Sem vínculo' for row in result['groups'])
@@ -39,9 +39,10 @@ def test_organization_pdf_names_and_continuation_without_truncation(isolated):
     data,records=sample();d['organization']=organization_rollout(data,records)
     pdf=PdfReader(create_rollout_executive_pdf(d))
     text=' '.join(page.extract_text() for page in pdf.pages)
-    for term in ('Virada por DIV, GGR e GR','Lojas com virada registrada','DIV A','GGR A','GR X','VD001','101, 102','VD003'):
+    for term in ('Resumo por DIV, GGR e GR','Lojas totalmente viradas','DIV A','GGR A','GR X'):
         assert term in text
-    assert 'VD002' not in text and 'VD004' not in text
+    assert len(pdf.pages)==3
+    assert all(code not in text for code in ('VD001','VD002','VD003','VD004'))
     rows=[]
     for i in range(100):
         row=dict(d['organization']['groups'][0]);row['gr']='GR RESPONSÁVEL COM NOME EXTENSO '+str(i);rows.append(row)
@@ -50,4 +51,4 @@ def test_organization_pdf_names_and_continuation_without_truncation(isolated):
     text=' '.join(page.extract_text() for page in pdf.pages)
     assert len(pdf.pages)>4
     assert all('GR RESPONSÁVEL COM NOME EXTENSO '+str(i) in ' '.join(text.split()) for i in range(100))
-    assert 'Lojas com virada registrada' in text
+    assert 'Lojas com virada registrada' not in text

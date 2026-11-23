@@ -183,42 +183,24 @@ def create_rollout_executive_pdf(data):
         ]))
         return table
 
-    def group_progress(row):
-        graphic=Drawing(80,27)
-        graphic.add(String(0,17,rate(row['pdvs_deployed'],row['pdvs_expected']),
-                           fontName='RolloutSans-Bold',fontSize=9,fillColor=INK))
-        graphic.add(Rect(0,3,80,5,fillColor=LINE,strokeColor=None))
-        if row['pdvs_expected']:
-            graphic.add(Rect(0,3,80*min(1,row['pdvs_deployed']/row['pdvs_expected']),5,
-                             fillColor=BLUE,strokeColor=None))
-        return graphic
-
-    if organization.get('groups'):
-        flow.extend([PageBreak(),p('Virada por DIV, GGR e GR','title'),
-            p('Posição em '+stamp(data['generated_at'])+' (Brasília)','muted'),
-            p('Com implantação: ao menos um PDV implantado. Totalmente viradas: todos os PDVs previstos implantados. Orion OK é acompanhado separadamente.','muted')])
+    groups=organization.get('groups',[])
+    active=[row for row in groups if row['pdvs_deployed'] or row['pdvs_ok']]
+    flow.extend([PageBreak(),p('Resumo por DIV, GGR e GR','title'),
+        p('Lojas totalmente viradas: '+n(t.get('stores_ok',0))+' de '+n(b['stores_expected'])+
+          ' | Todos os PDVs previstos devem estar Orion OK.','muted')])
+    if active:
         rows=[]
-        for row in organization['groups']:
+        for row in active:
             rows.append([p(row[key],'cell') for key in ('division','ggr','gr')]+
-                [p(n(row[key]),'cell') for key in ('stores_expected','stores_updated','stores_complete')]+
-                [p(n(row['pdvs_deployed'])+' / '+n(row['pdvs_expected']),'cell'),p(n(row['pdvs_ok']),'cell'),group_progress(row)])
-        flow.append(org_table(['DIV','GGR','GR','Lojas no escopo','Com implantação',
-            'Totalmente viradas','PDVs impl. / previstos','Orion OK','Avanço PDVs'],rows,[120,130,140,60,70,76,90,70,100]))
+                [p(n(row['stores_complete'])+' / '+n(row['stores_expected']),'cell'),
+                 p(n(row['pdvs_ok'])+' / '+n(row['pdvs_expected']),'cell'),
+                 p(rate(row['pdvs_ok'],row['pdvs_expected']),'cell')])
+        flow.append(org_table(['DIV','GGR','GR','Lojas viradas / total','PDVs Orion OK / total','Avanço Orion OK'],
+            rows,[160,170,190,120,120,96]))
+        omitted=len(groups)-len(active)
+        if omitted:flow.append(p(n(omitted)+' grupo(s) sem implantação registrada, incluídos nos totais da visão geral.','muted'))
     else:
-        flow.extend([PageBreak(),p('Virada por DIV, GGR e GR','title'),p('Nenhuma loja no escopo para consolidar.','muted')])
-
-    flow.extend([PageBreak(),p('Lojas com virada registrada','title'),
-        p('Lojas com ao menos um PDV implantado, com os vínculos atuais do cadastro de filiais.','muted')])
-    if organization.get('stores'):
-        rows=[]
-        for row in organization['stores']:
-            status='Completa' if row['complete'] else 'Parcial'
-            rows.append([p(row['code']+' - '+row['name'],'cell')]+
-                [p(row[key],'cell') for key in ('division','ggr','gr')]+
-                [p(', '.join(row['installed']),'cell'),p(status+'\n'+n(len(row['installed']))+' / '+n(row['expected'])+' PDVs\n'+n(row['ok'])+' Orion OK','cell')])
-        flow.append(org_table(['Filial','DIV','GGR','GR','PDVs implantados','Situação'],rows,[216,120,125,125,160,110]))
-    else:
-        flow.append(p('Nenhuma loja com implantação registrada no escopo.','muted'))
+        flow.append(p('Nenhuma implantação registrada no escopo.','muted'))
     return build_report(flow,'Relatório executivo','Rollout PDV Orion',
                         'Posição em '+stamp(data['generated_at'])+' (Brasília)')
 

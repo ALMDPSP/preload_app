@@ -209,3 +209,8 @@ dialog.approval-trend-fullscreen {
 #modal:has(.machine-list-organization) { width: min(1200px, 94vw); max-width: 1200px; }
 .machine-list-organization { min-width: 980px; }
 .machine-list-organization td { vertical-align: top; }
+
+/* Completed-store KPI remains visible alongside deployment indicators. */
+@media(min-width:1201px){#rolloutHeadline .rollout-primary-stats{grid-template-columns:repeat(7,minmax(0,1fr));gap:10px}}
+#rolloutHeadline .rollout-kpi-complete{background:#f0f7ff;border-color:#bdd4ee}
+#rolloutHeadline .rollout-kpi-complete>strong{color:#235c93}

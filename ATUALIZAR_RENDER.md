@@ -1,3 +1,10 @@
+# v5.1.32 — Resumo executivo e lojas totalmente viradas
+
+- PDF com capa, visão geral e quadro compacto DIV/GGR/GR, sem a relação detalhada de filiais. Grupos sem implantação são omitidos do quadro e continuam nos totais.
+- Novo indicador Lojas totalmente viradas: exige todos os PDVs previstos Orion OK. Declaração de implantação não conclui a loja.
+- Ao clicar, consulta filiais completas com pesquisa por código/nome, paginação e abertura da filial.
+- Leitura dos registros existentes, sem migração destrutiva. Envie o conteúdo completo do ZIP ao GitHub e aguarde o deploy.
+
 # v5.1.31 — Virada por DIV, GGR e GR no relatório executivo
 
 - Mantém capa e visão geral; adiciona consolidado hierárquico e lojas com virada registrada.

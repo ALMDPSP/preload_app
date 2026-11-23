@@ -123,6 +123,18 @@ def dashboard_data(core,q='',uf='',summary_only=False,include_evolution=True):
 
 def register_dashboard(app,core):
     db,error,audit,now=(core[k] for k in ['db','error','audit','now'])
+
+    @app.get('/api/dashboard/completed-stores')
+    def completed_stores():
+        from executive_dashboard import integer
+        data=dashboard_data(core,request.args.get('q','')[:200],request.args.get('uf','').upper()[:2],include_evolution=False)
+        search=normalize(request.args.get('store_q','')[:200].strip())
+        rows=[{key:store[key] for key in ('id','code','name','uf','expected','ok')}
+              for store in data['stores'] if store['expected']>0 and store['ok']==store['expected']
+              and search in normalize(store['code']+' '+store['name'])]
+        rows.sort(key=lambda row:row['code'])
+        size=25;pages=max(1,(len(rows)+size-1)//size);page=min(integer(request.args.get('page'),1,100000),pages)
+        return jsonify(rows=rows[(page-1)*size:page*size],page=page,pages=pages,total=len(rows))
     def read_data():return dashboard_data(core,request.args.get('q','')[:200],request.args.get('uf','').upper()[:2])
     @app.get('/api/dashboard')
     def dashboard():

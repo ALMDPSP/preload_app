@@ -15,7 +15,7 @@ def organization_rollout(data, records):
         installed = [machine['pdv'] for machine in store['machines']
                      if deployed(machine, inventory.get((store['id'], machine['pdv'])))]
         ok = sum(bool(machine.get('ok')) for machine in store['machines'])
-        complete = bool(store['expected'] and len(installed) == store['expected'])
+        complete = bool(store['expected'] and ok == store['expected'])
         row['stores_expected'] += 1
         row['stores_updated'] += bool(installed)
         row['stores_complete'] += complete
@@ -26,6 +26,6 @@ def organization_rollout(data, records):
             stores.append(dict(leadership, code=store['code'], name=store['name'],
                 expected=store['expected'], installed=installed, ok=ok, complete=complete))
     for row in groups.values():
-        row['percent'] = round(row['pdvs_deployed'] / row['pdvs_expected'] * 100, 2) if row['pdvs_expected'] else 0
+        row['percent'] = round(row['pdvs_ok'] / row['pdvs_expected'] * 100, 2) if row['pdvs_expected'] else 0
     return {'groups': [groups[key] for key in sorted(groups)],
             'stores': sorted(stores, key=lambda row: tuple(normalize(row[key]) for key in ('division', 'ggr', 'gr', 'code')))}
