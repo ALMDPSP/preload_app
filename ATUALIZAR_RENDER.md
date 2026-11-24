@@ -1,24 +1,3 @@
-# v5.1.36 — Menu sem Requisitos de rede
-
-- Removido somente o botão de navegação Requisitos de rede.
-- Mantidas as referências técnicas e elementos internos usados pelo checklist e pela renderização.
-- Preservados os indicadores, relatórios, autenticação e registros existentes.
-- Publicação: envie todo o conteúdo incluindo release-assets.zip fechado na raiz do GitHub; mantenha bash start.sh.
-
-# v5.1.35 — Correção da publicação dos templates
-
-- A inicialização restaura static/templates a partir de release-assets.zip antes da conferência de integridade.
-- Resolve publicação parcial ou diferenças de formato nos templates sem acessar o banco.
-- Mantém o cartão Lojas totalmente viradas no dashboard e no PDF executivo.
-- Consulte PUBLICAR_BASE_COMPLETA.md e envie também release-assets.zip fechado para a raiz do repositório.
-
-# v5.1.34 — Lojas totalmente viradas no PDF executivo
-
-- Novo cartão na Visão geral do rollout, junto aos demais indicadores.
-- Mesmo total do dashboard: todos os PDVs previstos devem estar Orion OK.
-- Layout azul claro e texto de critério; capa e resumo DIV/GGR/GR mantidos.
-- Envie o conteúdo completo preservando static e templates. O banco não precisa ser apagado ou reimportado.
-
 # v5.1.33 — Base completa e interface unificada
 
 - Interface carregada por static/app-5.1.33.js, incluindo o cartão Lojas totalmente viradas e sua lista pesquisável.
