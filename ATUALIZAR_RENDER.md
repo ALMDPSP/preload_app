@@ -1,10 +1,3 @@
-# v5.1.34 — Lojas totalmente viradas no PDF executivo
-
-- Novo cartão na Visão geral do rollout, junto aos demais indicadores.
-- Mesmo total do dashboard: todos os PDVs previstos devem estar Orion OK.
-- Layout azul claro e texto de critério; capa e resumo DIV/GGR/GR mantidos.
-- Envie o conteúdo completo preservando static e templates. O banco não precisa ser apagado ou reimportado.
-
 # v5.1.33 — Base completa e interface unificada
 
 - Interface carregada por static/app-5.1.33.js, incluindo o cartão Lojas totalmente viradas e sua lista pesquisável.
