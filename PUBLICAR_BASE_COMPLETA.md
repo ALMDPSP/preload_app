@@ -1,12 +1,13 @@
-# Publicar base completa 5.1.33
+# Publicar base completa 5.1.36
 
 1. Extraia este ZIP no computador.
-2. Abra a raiz do repositório ALMDPSP/preload_app, na branch main, e escolha Add file > Upload files.
-3. Arraste as pastas static e templates inteiras, junto com todos os arquivos da raiz extraída. Não arraste somente os arquivos de dentro das pastas para a raiz do GitHub. Não envie o ZIP fechado.
-4. Confirme em Commit changes e aguarde o deploy automático no Render ficar Live.
-5. Mantenha o Start Command como bash start.sh. O log deve mostrar: Base completa conferida - versão 5.1.33.
-6. Abra o site e use Ctrl + Shift + R. O topo deve ter sete indicadores, incluindo Lojas totalmente viradas, mesmo quando o valor for zero.
+2. Na raiz do repositório ALMDPSP/preload_app (main), use Add file > Upload files.
+3. Envie todos os arquivos extraídos, incluindo release-assets.zip, restore_release_assets.py, release_manifest.json e start.sh. Envie também as pastas static e templates completas.
+4. Confirme em Commit changes e aguarde o deploy ficar Live. Mantenha o Start Command como bash start.sh.
+5. A inicialização prepara automaticamente os arquivos de static e templates a partir de release-assets.zip e confere a integridade antes de acessar o banco.
+6. No log, confira: Interface 5.1.36 conferida e Base completa conferida - versão 5.1.36.
+7. Atualize o navegador com Ctrl + Shift + R e baixe novamente o PDF executivo.
 
-Se a conferência informar arquivos ausentes ou diferentes, reenvie os caminhos indicados pelo log nas pastas correspondentes. A conferência ocorre antes de acessar o banco.
+IMPORTANTE: release-assets.zip é um arquivo do programa e deve permanecer fechado na raiz do GitHub. O próprio serviço o utiliza para preparar as pastas de interface.
 
-O pacote contém o programa. Nenhum banco de produção, usuário, checklist ou dado operacional precisa ser apagado ou reimportado. A contagem de lojas totalmente viradas exige Orion OK em todos os PDVs previstos para cada filial.
+Esta preparação altera somente os arquivos de interface do programa. Não apague, restaure ou reimporte os dados do Neon. Os usuários, cutovers, PDVs e históricos já salvos permanecem no banco existente.
