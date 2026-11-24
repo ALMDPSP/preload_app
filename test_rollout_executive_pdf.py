@@ -2,7 +2,7 @@ import io,copy
 from datetime import datetime,timedelta
 from pypdf import PdfReader
 from test_app import isolated,admin,create,headers,add_user
-from test_dashboard import finish
+from test_dashboard import finish,new_run
 from test_rollout_base import form,put
 from rollout_executive_report import report_payload,create_rollout_executive_pdf
 import app as module
@@ -32,7 +32,7 @@ def test_pdf_all_saved_rollout_and_cutover_current_data(isolated):
     assert all(page.images for page in reader.pages)
     first_page=reader.pages[1].extract_text()
     for label in ('Filiais ativas','PDVs previstos','PDVs implantados','PDVs pendentes',
-                  'Lojas atualizadas','Pendências abertas','Avanço do rollout','Prioridade executiva'):
+                  'Lojas atualizadas','Lojas totalmente','Pendências abertas','Avanço do rollout','Prioridade executiva'):
         assert label in first_page
     text='\n'.join(p.extract_text() for p in reader.pages)
     for value in ['Relatório executivo','Visão geral do rollout','Evolução acumulada do Orion OK']:
@@ -40,6 +40,29 @@ def test_pdf_all_saved_rollout_and_cutover_current_data(isolated):
     for removed in ['Não imprimir observações completas','Lojas com todos os PDVs Orion OK','Aprovações nos últimos 7 dias','Considera PDVs atualmente Orion OK','com prazo vencido na rede','Cobertura e versões','Atenção e atualizações']:
         assert removed not in text
     assert len(response.data)<100000
+
+def test_pdf_completed_store_card_matches_dashboard_and_requires_every_pdv(isolated):
+    import re
+    client=admin(isolated);first=create(client)
+    branch=client.get('/api/cutovers/'+first).json['branch_id']
+    assert client.put('/api/branches/'+branch+'/pdv-plan',headers=headers(client),json={'version':0,'pdvs':['01','02']}).status_code==200
+    body=form(client,branch)
+    for machine in body['machines']:machine['status']='Implantado'
+    assert put(client,branch,body).status_code==200
+    def count():
+        response=client.get('/api/reports/rollout-executive.pdf')
+        assert response.status_code==200
+        reader=PdfReader(io.BytesIO(response.data));assert len(reader.pages)==3
+        text=' '.join(reader.pages[1].extract_text().split())
+        match=re.search(r'Lojas totalmente viradas (\d+) Todos os PDVs previstos Orion OK',text)
+        assert match,text
+        value=int(match[1])
+        assert value==client.get('/api/dashboard?compact=1').json['totals']['stores_ok']
+        return value
+    assert count()==0
+    finish(client,first);assert count()==0
+    second=new_run(client,branch,'02');finish(client,second)
+    assert count()==1
 
 def test_pdf_read_permissions_empty_and_no_business_writes(isolated):
     c=admin(isolated)
