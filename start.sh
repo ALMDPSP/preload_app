@@ -2,6 +2,7 @@
 set -euo pipefail
 export PYTHONUNBUFFERED=1
 echo '[inicialização] Preparando o serviço Cutover...'
+python -u restore_release_assets.py
 python -u validate_release.py
 python -u init_db.py
 echo '[inicialização] Abrindo a porta do servidor web...'

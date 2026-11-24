@@ -46,6 +46,7 @@ def create_rollout_executive_pdf(data):
       'muted':ParagraphStyle('rm',fontName='RolloutSans',fontSize=9,leading=13,textColor=MUTED,spaceAfter=6),
       'klabel':ParagraphStyle('rkl',fontName='RolloutSans-Bold',fontSize=9,leading=12,textColor=INK),
       'kvalue':ParagraphStyle('rkv',fontName='RolloutSans-Bold',fontSize=25,leading=33,textColor=INK),
+      'kcomplete':ParagraphStyle('rkc',fontName='RolloutSans-Bold',fontSize=25,leading=33,textColor=colors.HexColor('#235c93')),
       'cell':ParagraphStyle('roc',fontName='RolloutSans',fontSize=8,leading=11,textColor=INK),
       'thead':ParagraphStyle('roh',fontName='RolloutSans-Bold',fontSize=7.5,leading=10,textColor=colors.white),
     }
@@ -55,7 +56,13 @@ def create_rollout_executive_pdf(data):
     def pct(value):return str(value).replace('.',',')+'%'
     def stamp(value):return datetime.fromisoformat(value).astimezone(ZoneInfo('America/Sao_Paulo')).strftime('%d/%m/%Y %H:%M')
     def kpis(items):
-        cells=[[p(label,'klabel'),p(n(value),'kvalue'),p(note,'muted')] for label,value,note in items]
+        cells=[]
+        for label,value,note in items:
+            heading=Table([[p(label,'klabel')]],colWidths=[WIDTH/len(items)-18],rowHeights=[24])
+            heading.setStyle(TableStyle([('VALIGN',(0,0),(-1,-1),'TOP'),
+                ('LEFTPADDING',(0,0),(-1,-1),0),('RIGHTPADDING',(0,0),(-1,-1),0),
+                ('TOPPADDING',(0,0),(-1,-1),0),('BOTTOMPADDING',(0,0),(-1,-1),0)]))
+            cells.append([heading,p(n(value),'kcomplete' if label=='Lojas totalmente viradas' else 'kvalue'),p(note,'muted')])
         t=Table([cells],colWidths=[WIDTH/len(cells)]*len(cells))
         t.setStyle(TableStyle([('VALIGN',(0,0),(-1,-1),'TOP'),('BACKGROUND',(0,0),(-1,-1),BG),
           ('BOX',(0,0),(-1,-1),.5,LINE),('LINEAFTER',(0,0),(-2,-1),.5,colors.white),
@@ -155,6 +162,7 @@ def create_rollout_executive_pdf(data):
         ('PDVs implantados',b['pdvs_deployed'],rate(b['pdvs_deployed'],b['pdvs_expected'])+' do parque',colors.HexColor('#e9f6f0')),
         ('PDVs pendentes',b['pdvs_pending'],'Aguardam implantação',colors.HexColor('#fff6e4')),
         ('Lojas atualizadas',b['stores_updated'],n(b['stores_updated'])+' de '+n(b['stores_expected'])+' lojas',BG),
+        ('Lojas totalmente viradas',t.get('stores_ok',0),'Todos os PDVs previstos Orion OK',colors.HexColor('#f0f7ff')),
         ('Pendências abertas',network['open_issues'],'',colors.HexColor('#fcf0f2')),
     ]
     flow = [
