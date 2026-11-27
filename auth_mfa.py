@@ -128,7 +128,7 @@ def register_auth(app, core):
                     audit(c,user['email'],'ativação de MFA')
                     finish(c,user['id'],user['email'],auth['auth_version'])
         if codes:return render_template('mfa.html',mode='recovery',codes=codes,csrf=token(),email=user['email'])
-        uri=pyotp.TOTP(secret).provisioning_uri(name=user['email'],issuer_name='DPSP Cutover')
+        uri=pyotp.TOTP(secret).provisioning_uri(name=user['email'],issuer_name='Cutover online')
         output=io.BytesIO();qrcode.make(uri).save(output,format='PNG')
         return render_template('mfa.html',mode='setup',qr=base64.b64encode(output.getvalue()).decode(),secret=secret,csrf=token(),message=message,email=user['email'])
 

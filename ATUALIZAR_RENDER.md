@@ -1,3 +1,11 @@
+# v5.1.37 — Identificação Cutover online
+
+- Removida a marca DPSP do menu, login e MFA.
+- Aplicativo e novos cadastros no Authenticator identificados como Cutover online.
+- Capas e rodapés dos PDFs com identidade Cutover online, sem logotipos da companhia.
+- Cadastros, usuários, e-mails, checklist e métricas preservados.
+- Envie a base completa ao GitHub, incluindo release-assets.zip fechado.
+
 # v5.1.36 — Menu sem Requisitos de rede
 
 - Removido somente o botão de navegação Requisitos de rede.

@@ -29,7 +29,8 @@ def test_pdf_all_saved_rollout_and_cutover_current_data(isolated):
     reader=PdfReader(io.BytesIO(response.data));assert len(reader.pages)==3
     assert 'Relatório executivo' in reader.pages[0].extract_text()
     assert all((float(page.mediabox.width),float(page.mediabox.height))==(960,540) for page in reader.pages)
-    assert all(page.images for page in reader.pages)
+    assert all('Cutover Online' in page.extract_text() for page in reader.pages)
+    assert 'DPSP' not in '\n'.join(page.extract_text() for page in reader.pages)
     first_page=reader.pages[1].extract_text()
     for label in ('Filiais ativas','PDVs previstos','PDVs implantados','PDVs pendentes',
                   'Lojas atualizadas','Lojas totalmente','Pendências abertas','Avanço do rollout','Prioridade executiva'):
